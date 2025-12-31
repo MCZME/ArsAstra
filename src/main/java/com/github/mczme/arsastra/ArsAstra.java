@@ -1,10 +1,8 @@
 package com.github.mczme.arsastra;
 
+import com.github.mczme.arsastra.registry.*;
 import org.slf4j.Logger;
 
-import com.github.mczme.arsastra.registry.AABlocks;
-import com.github.mczme.arsastra.registry.AACreativeTabs;
-import com.github.mczme.arsastra.registry.AAItems;
 import com.mojang.logging.LogUtils;
 
 import net.neoforged.bus.api.IEventBus;
@@ -21,5 +19,7 @@ public class ArsAstra {
         AABlocks.register(modEventBus);
         AAItems.register(modEventBus);
         AACreativeTabs.register(modEventBus);
+        AAElements.register(modEventBus);
+        AAEnvironmentTypes.register(modEventBus);
     }
 }

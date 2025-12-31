@@ -1,3 +1,11 @@
 {
+  "element.ars_astra.corrosion": "腐蚀",
+  "element.ars_astra.death": "死亡",
+  "element.ars_astra.decay": "凋零",
+  "element.ars_astra.growth": "生长",
+  "element.ars_astra.life": "生命",
+  "element.ars_astra.matter": "物质",
+  "element.ars_astra.order": "秩序",
+  "element.ars_astra.structure": "结构",
   "itemGroup.ars_astra.ars_astra_tab": "星枢万象"
 }

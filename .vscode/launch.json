@@ -12,11 +12,11 @@
       "projectName": "ArsAstra",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\clientRunProgramArgs.txt"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\clientRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\clientRunVmArgs.txt",
-        "-Dfml.modFolders\u003dars_astra%%E:\\Minecraft mod\\ArsAstra\\bin\\main"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dars_astra%%E:\\MinecraftMod\\ArsAstra\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "env": {},
@@ -34,11 +34,11 @@
       "projectName": "ArsAstra",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\dataRunProgramArgs.txt"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\dataRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\dataRunVmArgs.txt",
-        "-Dfml.modFolders\u003dars_astra%%E:\\Minecraft mod\\ArsAstra\\bin\\main"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\dataRunVmArgs.txt",
+        "-Dfml.modFolders\u003dars_astra%%E:\\MinecraftMod\\ArsAstra\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "env": {},
@@ -56,11 +56,11 @@
       "projectName": "ArsAstra",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\gameTestServerRunProgramArgs.txt"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\gameTestServerRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\gameTestServerRunVmArgs.txt",
-        "-Dfml.modFolders\u003dars_astra%%E:\\Minecraft mod\\ArsAstra\\bin\\main"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\gameTestServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dars_astra%%E:\\MinecraftMod\\ArsAstra\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "env": {},
@@ -78,11 +78,11 @@
       "projectName": "ArsAstra",
       "mainClass": "net.neoforged.devlaunch.Main",
       "args": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\serverRunProgramArgs.txt"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\serverRunProgramArgs.txt"
       ],
       "vmArgs": [
-        "@E:\\Minecraft mod\\ArsAstra\\build\\moddev\\serverRunVmArgs.txt",
-        "-Dfml.modFolders\u003dars_astra%%E:\\Minecraft mod\\ArsAstra\\bin\\main"
+        "@E:\\MinecraftMod\\ArsAstra\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dars_astra%%E:\\MinecraftMod\\ArsAstra\\bin\\main"
       ],
       "cwd": "${workspaceFolder}\\run",
       "env": {},

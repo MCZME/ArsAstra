@@ -50,7 +50,6 @@ public class ArsAstraSavedData extends SavedData {
      */
     public static ArsAstraSavedData get(ServerLevel level) {
         DimensionDataStorage storage = level.getDataStorage();
-        // 更新computeIfAbsent的调用，传递正确的Factory
         return storage.computeIfAbsent(new Factory<>(ArsAstraSavedData::new, ArsAstraSavedData::load), DATA_NAME);
     }
 }

@@ -22,5 +22,6 @@ public class AADataGen {
         CompletableFuture<HolderLookup.Provider> lookupProvider = event.getLookupProvider();
 
         generator.addProvider(event.includeClient(), new ZH_CN(output));
+        generator.addProvider(event.includeServer(), new AAElementProfile(output, lookupProvider, existingFileHelper));
     }
 }

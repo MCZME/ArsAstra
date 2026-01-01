@@ -1,0 +1,27 @@
+{
+  "type": "basic",
+  "priority": 1000,
+  "profiles": [
+    {
+      "elements": {
+        "ars_astra:order": 100.0,
+        "ars_astra:structure": 50.0
+      },
+      "item": "minecraft:diamond",
+      "launch_point": [
+        0.8,
+        0.8
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:life": 80.0
+      },
+      "item": "minecraft:glowstone_dust",
+      "launch_point": [
+        -0.5,
+        0.5
+      ]
+    }
+  ]
+}

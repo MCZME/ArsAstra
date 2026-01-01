@@ -20,7 +20,6 @@ import net.minecraft.world.item.Item;
 import org.joml.Vector2f;
 
 import java.util.*;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
 
 public class ElementProfileManager extends SimpleJsonResourceReloadListener {
@@ -90,7 +89,7 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
                                     sharedData.launchPoint().ifPresent(wip::setLaunchPoint);
                                     sharedData.elements().ifPresent(wip::addElements);
                                 }
-                                applyEntry.launchPoint().ifPresent(wip::setLaunchPoint); // 覆盖发射点
+                                applyEntry.launchPoint().ifPresent(wip::setLaunchPoint);
                                 wip.addElements(applyEntry.elements());
                             });
                         });

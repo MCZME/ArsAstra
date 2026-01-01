@@ -1,7 +1,6 @@
 package com.github.mczme.arsastra.core.starchart.shape;
 
 import com.github.mczme.arsastra.util.CodecUtils;
-import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.joml.Vector2f;
@@ -11,7 +10,7 @@ import java.util.List;
 public record ExteriorPolygon(List<Vector2f> vertices) implements Shape {
 
     public static final MapCodec<ExteriorPolygon> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            CodecUtils.VECTOR2F.listOf().fieldOf("vertices").forGetter(ExteriorPolygon::vertices)
+            CodecUtils.VECTOR2F_CODEC.listOf().fieldOf("vertices").forGetter(ExteriorPolygon::vertices)
     ).apply(instance, ExteriorPolygon::new));
 
     @Override

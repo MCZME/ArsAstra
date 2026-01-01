@@ -1,9 +1,11 @@
 package com.github.mczme.arsastra.core.element;
 
+import com.mojang.serialization.Codec;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
 import com.github.mczme.arsastra.registry.AARegistries;
 import net.minecraft.Util;
 import net.minecraft.resources.ResourceLocation;
+import org.joml.Vector2f;
 import java.util.Map;
 
 /**
@@ -11,6 +13,14 @@ import java.util.Map;
  * 要素是构成物品炼金属性的基本单位。
  */
 public interface Element {
+
+    Codec<Element> CODEC = ResourceLocation.CODEC.xmap(
+            AARegistries.ELEMENT_REGISTRY::get,
+            element -> AARegistries.ELEMENT_REGISTRY.getKey(element)
+    );
+
+    Vector2f getVector();
+
     /**
      * 【基础要素】使用此方法生成路径。
      * 基于要素自身的矢量和传入的强度，生成一个简单的线性路径。

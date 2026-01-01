@@ -1,0 +1,26 @@
+{
+  "priority": 0,
+  "type": "random",
+  "apply": [
+    {
+      "tag": "minecraft:stone"
+    },
+    {
+      "tag": "minecraft:planks"
+    }
+  ],
+  "rules": {
+    "total_value_range": [ 10.0, 50.0 ],
+    "max_element_types": 3,
+    "pool": [
+      { "element": "ars_astra:order", "weight": 1 },
+      { "element": "ars_astra:death", "weight": 1 },
+      { "element": "ars_astra:matter", "weight": 5 },
+      { "element": "ars_astra:life", "weight": 5 },
+      { "element": "ars_astra:structure", "weight": 3 },
+      { "element": "ars_astra:growth", "weight": 3 },
+      { "element": "ars_astra:corrosion", "weight": 2 },
+      { "element": "ars_astra:decay", "weight": 2 }
+    ]
+  }
+}

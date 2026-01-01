@@ -1,8 +1,0 @@
-{
-  "item": "ars_astra:data_driven_item",
-  "launch_point": [ 99.0, 99.0 ],
-  "elements": {
-    "ars_astra:element1": 10.0,
-    "ars_astra:element2": 50.0
-  }
-}

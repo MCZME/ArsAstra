@@ -29,6 +29,7 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
     private static final ElementProfileManager INSTANCE = new ElementProfileManager();
 
     private Map<ResourceLocation, ElementProfile> profiles = new HashMap<>();
+    private List<DefinitionFile> loadedDefinitions = new ArrayList<>();
 
     public ElementProfileManager() {
         super(new Gson(), FOLDER_NAME);
@@ -37,9 +38,8 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
     @Override
     protected void apply(Map<ResourceLocation, JsonElement> pObject, ResourceManager pResourceManager, ProfilerFiller pProfiler) {
         ArsAstra.LOGGER.info("Loading element profiles from data packs (V2)...");
-
-        // 1. 加载阶段
         List<DefinitionFile> definitions = new ArrayList<>();
+        // 1. 加载阶段
         for (Map.Entry<ResourceLocation, JsonElement> entry : pObject.entrySet()) {
             ResourceLocation fileId = entry.getKey();
             JsonElement json = entry.getValue();
@@ -51,10 +51,17 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
                 ArsAstra.LOGGER.error("Failed to load element definition file: " + fileId, e);
             }
         }
+        this.loadedDefinitions = definitions;
+        ArsAstra.LOGGER.info("Found {} element definition files. Processing will occur after tags are loaded.", definitions.size());
+    }
+
+    public void processDefinitions(long seed) {
+        ArsAstra.LOGGER.debug("Processing {} element definition files with custom seed {}...", loadedDefinitions.size(), seed);
+        Random random = new Random(seed);
 
         // 2. 排序阶段
+        List<DefinitionFile> definitions = new ArrayList<>(this.loadedDefinitions);
         definitions.sort(Comparator.comparingInt(DefinitionFile::priority));
-        ArsAstra.LOGGER.info("Loaded and sorted {} element definition files.", definitions.size());
 
         // 3. 处理阶段
         Map<ResourceLocation, WorkInProgressProfile> wipProfiles = new HashMap<>();
@@ -68,7 +75,7 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
                             // 仅当物品尚未被定义时才应用随机配置（最低优先级）
                             if (!wipProfiles.containsKey(itemId)) {
                                 var wip = wipProfiles.computeIfAbsent(itemId, k -> new WorkInProgressProfile());
-                                generateRandomProfile(randomDef.rules()).ifPresent(wip::applyPartial);
+                                generateRandomProfile(randomDef.rules(), random).ifPresent(wip::applyPartial);
                             }
                         }));
                     }
@@ -83,6 +90,7 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
                                     sharedData.launchPoint().ifPresent(wip::setLaunchPoint);
                                     sharedData.elements().ifPresent(wip::addElements);
                                 }
+                                applyEntry.launchPoint().ifPresent(wip::setLaunchPoint); // 覆盖发射点
                                 wip.addElements(applyEntry.elements());
                             });
                         });
@@ -107,7 +115,7 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
         }
         this.profiles = finalProfiles;
 
-        ArsAstra.LOGGER.info("Finished loading element profiles. {} final profiles generated.", profiles.size());
+        ArsAstra.LOGGER.info("Finished processing element profiles. {} final profiles generated.", profiles.size());
     }
                 
     private Stream<ResourceLocation> streamTargets(TemplateApplyEntry entry) {
@@ -134,10 +142,9 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
         return Stream.empty();
     }
 
-    private Optional<PartialProfile> generateRandomProfile(RandomRules rules) {
+    private Optional<PartialProfile> generateRandomProfile(RandomRules rules, Random random) {
         // 生成要素
         Map<ResourceLocation, Float> generatedElements = new HashMap<>();
-        var random = ThreadLocalRandom.current();
         rules.totalValueRange().ifPresent(range -> {
             if (range.size() != 2)
                 return;
@@ -147,7 +154,7 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
             if (pool.isEmpty())
                 return;
 
-            Collections.shuffle(pool);
+            Collections.shuffle(pool, random);
             int typesToGenerate = random.nextInt(1, Math.min(pool.size(), maxTypes) + 1);
             List<ElementPoolEntry> chosenPool = pool.subList(0, typesToGenerate);
 
@@ -232,3 +239,4 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
         }
     }
 }
+

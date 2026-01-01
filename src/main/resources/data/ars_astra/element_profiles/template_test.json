@@ -2,7 +2,6 @@
   "priority": 100,
   "type": "template",
   "data": {
-    "launch_point": [0.0, 0.0],
     "elements": {
       "ars_astra:order": 10.0
     }
@@ -10,18 +9,21 @@
   "apply": [
     {
       "item": "minecraft:sand",
+      "launch_point": [0.0, 0.0],
       "elements": {
         "ars_astra:matter": 5.0
       }
     },
     {
       "tag": "minecraft:dirt",
+      "launch_point": [0.0, 1.0],
       "elements": {
         "ars_astra:growth": 5.0
       }
     },
     {
       "item": "minecraft:oak_log",
+      "launch_point": [1.0, 0.0],
       "elements": {
         "ars_astra:structure": 5.0
       }

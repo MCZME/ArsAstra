@@ -1,16 +1,25 @@
 package com.github.mczme.arsastra.core.starchart.shape;
 
+import com.github.mczme.arsastra.util.CodecUtils;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.MapCodec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import org.joml.Vector2f;
 
-/**
- * 代表一个圆形形状，由圆心点和半径定义。
- * @param center 圆心坐标。
- * @param radius 半径长度。
- */
 public record Circle(Vector2f center, float radius) implements Shape {
+
+    public static final MapCodec<Circle> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
+            CodecUtils.VECTOR2F.fieldOf("center").forGetter(Circle::center),
+            Codec.FLOAT.fieldOf("radius").forGetter(Circle::radius)
+    ).apply(instance, Circle::new));
+
     @Override
     public boolean contains(Vector2f point) {
-        // 使用距离的平方来避免昂贵的开方运算，判断点是否在圆内。
         return point.distanceSquared(center) <= radius * radius;
+    }
+
+    @Override
+    public ShapeType getType() {
+        return ShapeType.CIRCLE;
     }
 }

@@ -1,5 +1,6 @@
 package com.github.mczme.arsastra.core.starchart.path;
 
+import com.github.mczme.arsastra.core.starchart.shape.Shape;
 import org.joml.Vector2f;
 
 /**
@@ -33,4 +34,48 @@ public interface StarChartPath {
      * @return 路径上对应点的坐标
      */
     Vector2f getPointAtDistance(float distance);
+
+    /**
+     * 将路径平移指定的偏移量，并返回一个新的路径对象。
+     * @param offset 偏移量
+     * @return 平移后的路径
+     */
+    StarChartPath offset(Vector2f offset);
+
+    /**
+     * 计算路径与指定形状的第一个交点（进入点）。
+     *
+     * @param shape  环境形状
+     * @param offset 路径的绝对平移量（因为求交是在世界坐标系下进行的）
+     * @return 交点处距离起点的距离 distance (0 <= dist <= getLength())。如果不相交，返回 -1.0f。
+     */
+    default float intersect(Shape shape, Vector2f offset) {
+        // 默认实现：步进法 (Step-marching)
+        // 精度：1.0 (一个像素/单位)
+        float step = 1.0f;
+        float length = getLength();
+        // 检查起点是否已经在内部（如果已经在内部，则不需要求“进入点”，或者交点就是 0）
+        // 这里的逻辑定义为：寻找“穿过边界”的点。
+        // 如果起点在内，我们通常寻找“离开点”；但目前逻辑是“寻找进入环境的点”。
+        // 如果起点已经在环境内，intersect 应该返回什么？
+        // 根据 RouteGenerationService 的逻辑，如果起点在环境内，会直接交给环境处理。
+        // 所以调用 intersect 时，前提通常是起点不在环境内。
+        
+        Vector2f probe = new Vector2f();
+        for (float d = 0; d <= length; d += step) {
+            getPointAtDistance(d).add(offset, probe);
+            if (shape.contains(probe)) {
+                return d;
+            }
+        }
+        return -1.0f;
+    }
+
+    /**
+     * 在指定距离处将路径一分为二。
+     *
+     * @param distance 分割点距离 (0 < distance < getLength())
+     * @return 包含两个新路径的数组：[0]为前半段，[1]为后半段。
+     */
+    StarChartPath[] split(float distance);
 }

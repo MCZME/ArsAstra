@@ -27,4 +27,15 @@ public class ArcStarChartPath implements StarChartPath {
     public Vector2f getPointAtDistance(float distance) {
         throw new UnsupportedOperationException("Arc path calculation is not yet implemented.");
     }
+
+    @Override
+    public StarChartPath offset(Vector2f offset) {
+        throw new UnsupportedOperationException("Arc path calculation is not yet implemented.");
+    }
+
+    @Override
+    public StarChartPath[] split(float distance) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'split'");
+    }
 }

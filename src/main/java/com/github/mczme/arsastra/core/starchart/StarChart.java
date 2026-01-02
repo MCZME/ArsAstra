@@ -1,5 +1,6 @@
 package com.github.mczme.arsastra.core.starchart;
 
+import com.github.mczme.arsastra.core.starchart.environment.Environment;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;

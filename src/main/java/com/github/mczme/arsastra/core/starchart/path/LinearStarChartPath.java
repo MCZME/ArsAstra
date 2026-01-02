@@ -39,4 +39,37 @@ public class LinearStarChartPath implements StarChartPath {
         float t = distance / length;
         return new Vector2f(this.startPoint).lerp(this.endPoint, t);
     }
+
+    @Override
+    public StarChartPath offset(Vector2f offset) {
+        return new LinearStarChartPath(
+                new Vector2f(this.startPoint).add(offset),
+                new Vector2f(this.endPoint).add(offset)
+        );
+    }
+
+    @Override
+    public StarChartPath[] split(float distance) {
+        float length = getLength();
+        if (distance <= 0.001f) {
+            // 切割点在起点，前半段为空(或极小)，这里简单处理：全部归为后半段
+            // 但为了接口约定，我们还是返回一个零长度路径作为前半段
+            return new StarChartPath[]{
+                    new LinearStarChartPath(new Vector2f(startPoint), new Vector2f(startPoint)),
+                    this
+            };
+        }
+        if (distance >= length - 0.001f) {
+            return new StarChartPath[]{
+                    this,
+                    new LinearStarChartPath(new Vector2f(endPoint), new Vector2f(endPoint))
+            };
+        }
+
+        Vector2f splitPoint = getPointAtDistance(distance);
+        return new StarChartPath[]{
+                new LinearStarChartPath(new Vector2f(startPoint), new Vector2f(splitPoint)),
+                new LinearStarChartPath(new Vector2f(splitPoint), new Vector2f(endPoint))
+        };
+    }
 }

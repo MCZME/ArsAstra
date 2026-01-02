@@ -1,0 +1,196 @@
+{
+  "base_liquid": "minecraft:water",
+  "fields": [
+    {
+      "effect": "minecraft:poison",
+      "center": [-47, -493],
+      "max_level": 4
+    },
+    {
+      "effect": "minecraft:wither",
+      "center": [-5, -856],
+      "max_level": 4
+    },
+    {
+      "effect": "minecraft:infested",
+      "center": [-282, -395],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:instant_damage",
+      "center": [-310, -690],
+      "max_level": 4
+    },
+    {
+      "effect": "minecraft:glowing",
+      "center": [268, -691],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:night_vision",
+      "center": [398, -559],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:luck",
+      "center": [611, -896],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:wind_charged",
+      "center": [634, -513],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:invisibility",
+      "center": [626, -660],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:unluck",
+      "center": [297, -331],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:levitation",
+      "center": [321, -854],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:strength",
+      "center": [594, 188],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:haste",
+      "center": [896, 188],
+      "max_level": 2
+    },
+    {
+      "effect": "minecraft:resistance",
+      "center": [267, 97],
+      "max_level": 4
+    },
+    {
+      "effect": "minecraft:conduit_power",
+      "center": [694, -202],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:slow_falling",
+      "center": [828, -80],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:jump_boost",
+      "center": [490, -204],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:speed",
+      "center": [472, -33],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:bad_omen",
+      "center": [-660, 567],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:hero_of_the_village",
+      "center": [-355, 698],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:raid_omen",
+      "center": [-198, 400],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:trial_omen",
+      "center": [-615, 343],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:absorption",
+      "center": [201, 367],
+      "max_level": 4
+    },
+    {
+      "effect": "minecraft:fire_resistance",
+      "center": [394, 613],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:water_breathing",
+      "center": [316, 509],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:regeneration",
+      "center": [187, 675],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:health_boost",
+      "center": [639, 684],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:instant_health",
+      "center": [501, 463],
+      "max_level": 4
+    },
+    {
+      "effect": "minecraft:saturation",
+      "center": [466, 896],
+      "max_level": 5
+    },
+    {
+      "effect": "minecraft:nausea",
+      "center": [-413, -147],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:blindness",
+      "center": [-871, -114],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:mining_fatigue",
+      "center": [-896, -367],
+      "max_level": 4
+    },
+    {
+      "effect": "minecraft:oozing",
+      "center": [-716, -448],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:weaving",
+      "center": [-412, -330],
+      "max_level": 1
+    },
+    {
+      "effect": "minecraft:slowness",
+      "center": [-719, -253],
+      "max_level": 6
+    },
+    {
+      "effect": "minecraft:weakness",
+      "center": [-617, 47],
+      "max_level": 3
+    },
+    {
+      "effect": "minecraft:hunger",
+      "center": [-555, -319],
+      "max_level": 3
+    },
+    {
+      "effect": "minecraft:darkness",
+      "center": [-248, -39],
+      "max_level": 1
+    }
+  ],
+  "environments": []
+}

@@ -30,4 +30,8 @@ public record EffectField(
     public MobEffect getEffect() {
         return BuiltInRegistries.MOB_EFFECT.get(effect);
     }
+
+    public float getRadius() {
+        return (float) maxLevel;
+    }
 }

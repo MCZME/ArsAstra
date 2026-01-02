@@ -13,7 +13,7 @@ public class BasicElement implements Element {
 
     @Override
     public StarChartPath getPath(float strength) {
-        return new LinearStarChartPath(new Vector2f(vector), new Vector2f(vector).mul(strength));
+        return new LinearStarChartPath(new Vector2f(0, 0), new Vector2f(vector).mul(strength));
     }
 
     @Override

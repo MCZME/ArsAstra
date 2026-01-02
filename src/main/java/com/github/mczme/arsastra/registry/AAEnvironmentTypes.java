@@ -1,7 +1,8 @@
 package com.github.mczme.arsastra.registry;
 
 import com.github.mczme.arsastra.ArsAstra;
-import com.github.mczme.arsastra.core.environment.EnvironmentType;
+import com.github.mczme.arsastra.core.starchart.environment.EnvironmentType;
+
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 

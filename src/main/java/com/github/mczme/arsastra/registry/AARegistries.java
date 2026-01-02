@@ -2,7 +2,7 @@ package com.github.mczme.arsastra.registry;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.core.element.Element;
-import com.github.mczme.arsastra.core.environment.EnvironmentType;
+import com.github.mczme.arsastra.core.starchart.environment.EnvironmentType;
 
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;

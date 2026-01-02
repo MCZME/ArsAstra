@@ -1,6 +1,5 @@
-package com.github.mczme.arsastra.core.starchart;
+package com.github.mczme.arsastra.core.starchart.environment;
 
-import com.github.mczme.arsastra.core.environment.EnvironmentType;
 import com.github.mczme.arsastra.core.starchart.shape.Shape;
 import com.github.mczme.arsastra.registry.AARegistries;
 import com.mojang.serialization.Codec;

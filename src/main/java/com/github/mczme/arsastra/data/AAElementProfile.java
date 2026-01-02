@@ -20,12 +20,8 @@ public class AAElementProfile extends ElementProfileProvider {
     @Override
     protected void gather() {
         basic("basic_items", 1000, basicBuilder()
-                .add(ResourceLocation.withDefaultNamespace("diamond"), new Vector2f(0.8f, 0.8f), Map.of(
-                        ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "order"), 100.0f,
-                        ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "structure"), 50.0f
-                ))
-                .add(ResourceLocation.withDefaultNamespace("glowstone_dust"), new Vector2f(-0.5f, 0.5f), Map.of(
-                        ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "life"), 80.0f
+                .add(ResourceLocation.withDefaultNamespace("diamond"), new Vector2f(512.0f, 1286.0f), Map.of(
+                        ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "order"), 20.0f
                 ))
         );
     }

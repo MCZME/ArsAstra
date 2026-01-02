@@ -2,6 +2,8 @@ package com.github.mczme.arsastra.core;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
+import com.github.mczme.arsastra.core.starchart.StarChartManager;
+
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -20,6 +22,7 @@ public class AAEvent {
     @SubscribeEvent
     public static void onAddReloadListener(AddReloadListenerEvent event) {
         event.addListener(ElementProfileManager.getInstance());
+        event.addListener(StarChartManager.getInstance());
     }
 
     @SubscribeEvent

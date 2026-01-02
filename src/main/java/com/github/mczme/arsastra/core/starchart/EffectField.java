@@ -32,6 +32,6 @@ public record EffectField(
     }
 
     public float getRadius() {
-        return (float) maxLevel;
+        return (float) maxLevel * 20.0f;
     }
 }

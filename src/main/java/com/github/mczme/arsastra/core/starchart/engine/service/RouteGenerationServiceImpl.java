@@ -12,7 +12,6 @@ import net.minecraft.world.item.ItemStack;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

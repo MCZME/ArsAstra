@@ -21,6 +21,7 @@ public class ArsAstra {
         AACreativeTabs.register(modEventBus);
         AAElements.register(modEventBus);
         AAEnvironmentTypes.register(modEventBus);
-        AAComponents.register(modEventBus); // Register our new data components
+        AAComponents.register(modEventBus);
+        AAMenus.register(modEventBus);
     }
 }

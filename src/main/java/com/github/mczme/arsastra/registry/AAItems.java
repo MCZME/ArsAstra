@@ -1,6 +1,8 @@
 package com.github.mczme.arsastra.registry;
 
 import com.github.mczme.arsastra.ArsAstra;
+import com.github.mczme.arsastra.item.StarChartJournalItem;
+
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -14,6 +16,9 @@ public class AAItems {
 
     public static final Supplier<Item> DATA_DRIVEN_ITEM = register("data_driven_item",
             () -> new Item(new Item.Properties()));
+
+    public static final Supplier<Item> STAR_CHART_JOURNAL = register("star_chart_journal",
+            () -> new StarChartJournalItem(new Item.Properties().stacksTo(1)));
 
     private static Supplier<Item> register(String name, Supplier<Item> supplier) {
         Supplier<Item> registeredItem = ITEMS.register(name, supplier);

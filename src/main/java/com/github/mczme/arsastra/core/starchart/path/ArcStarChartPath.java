@@ -34,6 +34,11 @@ public class ArcStarChartPath implements StarChartPath {
     }
 
     @Override
+    public StarChartPath rotate(float angle) {
+        throw new UnsupportedOperationException("Arc path calculation is not yet implemented.");
+    }
+
+    @Override
     public StarChartPath[] split(float distance) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'split'");

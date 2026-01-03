@@ -4,6 +4,7 @@ import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
+import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.engine.service.RouteGenerationServiceImpl;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
@@ -31,7 +32,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @EventBusSubscriber(modid = ArsAstra.MODID)
 public class AACommands {
@@ -122,7 +125,8 @@ public class AACommands {
         }
 
         RouteGenerationServiceImpl routeService = new RouteGenerationServiceImpl();
-        StarChartRoute route = routeService.computeRoute(itemList, startPos, chartOpt.get());
+        List<AlchemyInput> inputs = itemList.stream().map(AlchemyInput::of).collect(Collectors.toList());
+        StarChartRoute route = routeService.computeRoute(inputs, startPos, chartOpt.get());
 
         Vector2f endPoint = new Vector2f(0,0);
         if (!route.segments().isEmpty()) {

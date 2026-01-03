@@ -1,6 +1,6 @@
 package com.github.mczme.arsastra.core.starchart.engine.service;
 
-import net.minecraft.world.item.ItemStack;
+import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import java.util.List;
 
 /**
@@ -10,8 +10,8 @@ public interface StabilityService {
     /**
      * 计算当前物品组合的稳定性。
      *
-     * @param items 投入的物品列表
+     * @param inputs 投入的物品及参数列表
      * @return 稳定性 (0.0 - 1.0)
      */
-    float computeStability(List<ItemStack> items);
+    float computeStability(List<AlchemyInput> inputs);
 }

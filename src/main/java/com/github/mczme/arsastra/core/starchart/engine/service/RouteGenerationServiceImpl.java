@@ -3,6 +3,7 @@ package com.github.mczme.arsastra.core.starchart.engine.service;
 import com.github.mczme.arsastra.core.element.SpecialElement;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.starchart.StarChart;
+import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
@@ -19,11 +20,12 @@ import java.util.Map;
 public class RouteGenerationServiceImpl implements RouteGenerationService {
 
     @Override
-    public StarChartRoute computeRoute(List<ItemStack> items, Vector2f startPoint, StarChart chart) {
+    public StarChartRoute computeRoute(List<AlchemyInput> inputs, Vector2f startPoint, StarChart chart) {
         List<StarChartPath> segments = new ArrayList<>();
         Vector2f currentPos = new Vector2f(startPoint);
 
-        for (ItemStack stack : items) {
+        for (AlchemyInput input : inputs) {
+            ItemStack stack = input.stack();
             if (stack.isEmpty()) continue;
 
             ElementProfileManager.getInstance().getElementProfile(stack.getItem()).ifPresent(profile -> {
@@ -31,6 +33,12 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
                 
                 for (StarChartPath rawPath : rawPaths) {
                     StarChartPath pendingRawPath = rawPath;
+                    
+                    // 应用该物品特定的矢量搅拌旋转
+                    // 这里的逻辑是对每一段原始路径都进行旋转，这符合“搅拌”让整个物品的矢量方向改变的直觉
+                    if (Math.abs(input.rotation()) > 0.0001f) {
+                        pendingRawPath = pendingRawPath.rotate(input.rotation());
+                    }
                     
                     // 循环处理，直到当前这一段相对路径被完全消耗
                     while (pendingRawPath != null && pendingRawPath.getLength() > 0.001f) {

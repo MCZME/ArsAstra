@@ -19,21 +19,21 @@ public class StarChartEngineImpl implements StarChartEngine {
 
     @Override
     public StarChartContext compute(StarChart chart, StarChartContext context, Vector2f startPoint) {
-        // 1. 生成路径 (传入的是完整的 context.thrownItems() 和 当前星图)
-        StarChartRoute route = routeService.computeRoute(context.thrownItems(), startPoint, chart);
+        // 1. 生成路径 (传入的是完整的 context.inputs() 和 当前星图)
+        StarChartRoute route = routeService.computeRoute(context.inputs(), startPoint, chart);
 
         // 2. 计算交互
         List<InteractionResult> interactions = interactionService.computeInteractions(route, chart);
 
         // 3. 计算稳定性
-        float stability = stabilityService.computeStability(context.thrownItems());
+        float stability = stabilityService.computeStability(context.inputs());
 
         // 4. 计算最终效果 (PotionData)
         Map<EffectField, PotionData> predictedEffects = calculateEffects(interactions);
 
         // 返回全新的上下文
         return new StarChartContext(
-                context.thrownItems(),
+                context.inputs(),
                 route,
                 interactions,
                 stability,

@@ -43,6 +43,13 @@ public interface StarChartPath {
     StarChartPath offset(Vector2f offset);
 
     /**
+     * 以起点为圆心旋转路径指定的角度，并返回一个新的路径对象。
+     * @param angle 旋转角度 (弧度)
+     * @return 旋转后的路径
+     */
+    StarChartPath rotate(float angle);
+
+    /**
      * 计算路径与指定形状的第一个交点（进入点）。
      *
      * @param shape  环境形状

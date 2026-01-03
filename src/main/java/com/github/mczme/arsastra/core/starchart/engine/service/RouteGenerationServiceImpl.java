@@ -4,6 +4,7 @@ import com.github.mczme.arsastra.core.element.SpecialElement;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
+import com.github.mczme.arsastra.core.starchart.engine.InteractionResult;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
@@ -21,12 +22,22 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
 
     @Override
     public StarChartRoute computeRoute(List<AlchemyInput> inputs, Vector2f startPoint, StarChart chart) {
-        List<StarChartPath> segments = new ArrayList<>();
+        List<SegmentData> segmented = computeSegmentedRoute(inputs, startPoint, chart);
+        List<StarChartPath> paths = segmented.stream().map(SegmentData::path).toList();
+        return new StarChartRoute(paths);
+    }
+
+    @Override
+    public List<SegmentData> computeSegmentedRoute(List<AlchemyInput> inputs, Vector2f startPoint, StarChart chart) {
+        List<SegmentData> results = new ArrayList<>();
         Vector2f currentPos = new Vector2f(startPoint);
+        InteractionService interactionService = new InteractionServiceImpl();
 
         for (AlchemyInput input : inputs) {
             ItemStack stack = input.stack();
             if (stack.isEmpty()) continue;
+
+            final float rotation = input.rotation();
 
             ElementProfileManager.getInstance().getElementProfile(stack.getItem()).ifPresent(profile -> {
                 List<StarChartPath> rawPaths = generatePathsForItem(profile);
@@ -34,35 +45,29 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
                 for (StarChartPath rawPath : rawPaths) {
                     StarChartPath pendingRawPath = rawPath;
                     
-                    // 应用该物品特定的矢量搅拌旋转
-                    // 这里的逻辑是对每一段原始路径都进行旋转，这符合“搅拌”让整个物品的矢量方向改变的直觉
-                    if (Math.abs(input.rotation()) > 0.0001f) {
-                        pendingRawPath = pendingRawPath.rotate(input.rotation());
+                    if (Math.abs(rotation) > 0.0001f) {
+                        pendingRawPath = pendingRawPath.rotate(rotation);
                     }
                     
-                    // 循环处理，直到当前这一段相对路径被完全消耗
                     while (pendingRawPath != null && pendingRawPath.getLength() > 0.001f) {
-                        // 1. 检查起点是否已经在环境内
                         Environment activeEnv = findEnvironmentAt(currentPos, chart);
-                        
+                        StarChartPath finalSegment;
+
                         if (activeEnv != null) {
-                            // 情况 A: 起点在环境内 -> 完全委托环境处理
-                            // 注意：这里假设环境会“消费”掉传入的整段 pendingRawPath。
-                            // 如果环境（如阻力区）让路径变短，那也是一种“消费”（即同样的能量只能走这么远）。
                             List<StarChartPath> processed = activeEnv.getType().processSegment(currentPos, pendingRawPath, activeEnv.shape());
-                            segments.addAll(processed);
-                            
-                            if (!processed.isEmpty()) {
-                                currentPos.set(processed.getLast().getEndPoint());
+                            if (processed.isEmpty()) {
+                                pendingRawPath = null;
+                                continue;
                             }
-                            pendingRawPath = null; // 标记为已处理完
+                            // 假设环境处理后返回的是完整段（或其首段）
+                            finalSegment = processed.get(0); // 简化处理，实际上可能产生多段
+                            currentPos.set(finalSegment.getEndPoint());
+                            pendingRawPath = null;
                         } else {
-                            // 情况 B: 起点不在环境内 -> 寻找最近的进入点
                             float minDist = Float.MAX_VALUE;
                             Environment nearestEnv = null;
                             
                             for (Environment env : chart.environments()) {
-                                // 传入 currentPos 作为 offset，因为 pendingRawPath 是相对坐标
                                 float d = pendingRawPath.intersect(env.shape(), currentPos);
                                 if (d >= 0 && d < minDist) {
                                     minDist = d;
@@ -71,35 +76,26 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
                             }
                             
                             if (nearestEnv != null && minDist < pendingRawPath.getLength()) {
-                                // B1: 中途撞上了环境 -> 切割
                                 StarChartPath[] parts = pendingRawPath.split(minDist);
-                                StarChartPath preSegment = parts[0];
-                                StarChartPath postSegment = parts[1];
-                                
-                                // 前半段：安全通过，直接平移
-                                if (preSegment != null && preSegment.getLength() > 0.001f) {
-                                    StarChartPath absPre = preSegment.offset(currentPos);
-                                    segments.add(absPre);
-                                    currentPos.set(absPre.getEndPoint());
-                                }
-                                
-                                // 后半段：留给下一轮循环处理 (届时起点将在环境边界上)
-                                pendingRawPath = postSegment;
-                                
+                                finalSegment = parts[0].offset(currentPos);
+                                currentPos.set(finalSegment.getEndPoint());
+                                pendingRawPath = parts[1];
                             } else {
-                                // B2: 全程无阻 -> 全部平移
-                                StarChartPath absPath = pendingRawPath.offset(currentPos);
-                                segments.add(absPath);
-                                currentPos.set(absPath.getEndPoint());
+                                finalSegment = pendingRawPath.offset(currentPos);
+                                currentPos.set(finalSegment.getEndPoint());
                                 pendingRawPath = null;
                             }
+                        }
+
+                        if (finalSegment != null) {
+                            List<InteractionResult> interactions = interactionService.computeInteractionsForSegment(finalSegment, chart);
+                            results.add(new SegmentData(finalSegment, interactions, rotation));
                         }
                     }
                 }
             });
         }
-
-        return new StarChartRoute(segments);
+        return results;
     }
 
     private Environment findEnvironmentAt(Vector2f pos, StarChart chart) {

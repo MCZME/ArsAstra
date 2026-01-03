@@ -3,6 +3,7 @@ package com.github.mczme.arsastra.core.starchart.engine.service;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.engine.InteractionResult;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
+import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
 import java.util.List;
 
 /**
@@ -17,4 +18,9 @@ public interface InteractionService {
      * @return 交互结果列表
      */
     List<InteractionResult> computeInteractions(StarChartRoute route, StarChart chart);
+
+    /**
+     * 计算单个路径段与星图中效果星域的交互。
+     */
+    List<InteractionResult> computeInteractionsForSegment(StarChartPath segment, StarChart chart);
 }

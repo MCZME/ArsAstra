@@ -1,0 +1,171 @@
+{
+  "type": "basic",
+  "priority": 100,
+  "profiles": [
+    {
+      "elements": {
+        "ars_astra:order": 18.0,
+        "ars_astra:structure": 6.0
+      },
+      "item": "minecraft:redstone",
+      "launch_point": [
+        0.0,
+        300.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:growth": 5.0,
+        "ars_astra:order": 10.0
+      },
+      "item": "minecraft:sugar",
+      "launch_point": [
+        -158.0,
+        618.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:life": 10.0,
+        "ars_astra:order": 30.0
+      },
+      "item": "minecraft:rabbit_foot",
+      "launch_point": [
+        -58.0,
+        923.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:corrosion": 10.0,
+        "ars_astra:order": 15.0
+      },
+      "item": "minecraft:blaze_powder",
+      "launch_point": [
+        -488.0,
+        769.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:life": 35.0,
+        "ars_astra:order": 15.0
+      },
+      "item": "minecraft:ghast_tear",
+      "launch_point": [
+        639.0,
+        321.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:life": 20.0,
+        "ars_astra:order": 5.0
+      },
+      "item": "minecraft:glistering_melon_slice",
+      "launch_point": [
+        813.0,
+        493.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:life": 12.0,
+        "ars_astra:matter": 8.0
+      },
+      "item": "minecraft:pufferfish",
+      "launch_point": [
+        484.0,
+        566.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:matter": 15.0,
+        "ars_astra:order": 10.0
+      },
+      "item": "minecraft:magma_cream",
+      "launch_point": [
+        603.0,
+        701.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:death": 7.0,
+        "ars_astra:order": 18.0
+      },
+      "item": "minecraft:phantom_membrane",
+      "launch_point": [
+        -621.0,
+        393.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:life": 10.0,
+        "ars_astra:order": 20.0
+      },
+      "item": "minecraft:golden_carrot",
+      "launch_point": [
+        -719.0,
+        250.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:decay": 12.0,
+        "ars_astra:life": 3.0
+      },
+      "item": "minecraft:spider_eye",
+      "launch_point": [
+        468.0,
+        -537.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:order": 35.0,
+        "ars_astra:structure": 10.0
+      },
+      "item": "minecraft:breeze_rod",
+      "launch_point": [
+        -313.0,
+        -849.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:decay": 5.0,
+        "ars_astra:structure": 15.0
+      },
+      "item": "minecraft:cobweb",
+      "launch_point": [
+        -214.0,
+        -533.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:life": 10.0,
+        "ars_astra:matter": 30.0
+      },
+      "item": "minecraft:slime_block",
+      "launch_point": [
+        -283.0,
+        -706.0
+      ]
+    },
+    {
+      "elements": {
+        "ars_astra:matter": 5.0,
+        "ars_astra:structure": 5.0
+      },
+      "item": "minecraft:stone",
+      "launch_point": [
+        214.0,
+        -533.0
+      ]
+    }
+  ]
+}

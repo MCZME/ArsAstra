@@ -18,7 +18,7 @@ public class AAItems {
             () -> new Item(new Item.Properties()));
 
     public static final Supplier<Item> STAR_CHART_JOURNAL = register("star_chart_journal",
-            () -> new StarChartJournalItem(new Item.Properties().stacksTo(1)));
+            () -> new StarChartJournalItem(new Item.Properties().stacksTo(1).component(AAComponents.IS_OPEN, false)));
 
     private static Supplier<Item> register(String name, Supplier<Item> supplier) {
         Supplier<Item> registeredItem = ITEMS.register(name, supplier);

@@ -7,5 +7,10 @@
   "element.ars_astra.matter": "物质",
   "element.ars_astra.order": "秩序",
   "element.ars_astra.structure": "结构",
+  "gui.ars_astra.journal.tab.atlas": "星图总览",
+  "gui.ars_astra.journal.tab.blueprints": "蓝图档案",
+  "gui.ars_astra.journal.tab.compendium": "要素典籍",
+  "gui.ars_astra.journal.tab.workshop": "推演工坊",
+  "item.ars_astra.star_chart_journal": "星图日志",
   "itemGroup.ars_astra.ars_astra_tab": "星枢万象"
 }

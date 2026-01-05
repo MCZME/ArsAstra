@@ -1,7 +1,9 @@
 package com.github.mczme.arsastra.client.gui.widget.compendium;
 
+import com.github.mczme.arsastra.core.element.Element;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
+import com.github.mczme.arsastra.registry.AARegistries;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -117,10 +119,16 @@ public class CompendiumWidget extends AbstractWidget {
         ElementProfileManager.getInstance().getElementProfile(selectedItem.getItem()).ifPresent(profile -> {
             int elementY = topY + 75;
             for (var entry : profile.elements().entrySet()) {
-                String elementName = Component.translatable("element." + entry.getKey().getNamespace() + "." + entry.getKey().getPath().replace("/", ".")).getString();
-                String text = String.format("%s: %.1f", elementName, entry.getValue());
-                guiGraphics.drawString(Minecraft.getInstance().font, text, rightX + 15, elementY, 0x333333, false);
-                elementY += 10;
+                Element element = AARegistries.ELEMENT_REGISTRY.get(entry.getKey());
+                if (element != null) {
+                    // 1. 绘制要素图标
+                    guiGraphics.blit(element.getIcon(), rightX + 15, elementY - 2, 0, 0, 12, 12, 12, 12);
+                    
+                    // 2. 绘制名称和数值
+                    String text = String.format("%s: %.1f", Component.translatable(element.getDescriptionId()).getString(), entry.getValue());
+                    guiGraphics.drawString(Minecraft.getInstance().font, text, rightX + 32, elementY, 0x333333, false);
+                    elementY += 14;
+                }
             }
         });
     }

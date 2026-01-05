@@ -7,7 +7,6 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 
 public class ToolbarFilterWidget extends AbstractWidget {
     private final ToolbarTabButton mainButton;
@@ -223,10 +222,19 @@ public class ToolbarFilterWidget extends AbstractWidget {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (expanded) {
-            if (elementsInput.isFocused() && elementsInput.keyPressed(keyCode, scanCode, modifiers)) return true;
-            if (tagsInput.isFocused() && tagsInput.keyPressed(keyCode, scanCode, modifiers)) return true;
-            if (keyCode == 256) { // ESC 键关闭
+            // 256 = ESC
+            if (keyCode == 256) {
                 setExpanded(false);
+                return true;
+            }
+            
+            // 如果任一输入框处于聚焦状态
+            if (elementsInput.isFocused() || tagsInput.isFocused()) {
+                // 转发按键给输入框 (处理退格、箭头、回车等内部逻辑)
+                if (elementsInput.isFocused() && elementsInput.keyPressed(keyCode, scanCode, modifiers)) return true;
+                if (tagsInput.isFocused() && tagsInput.keyPressed(keyCode, scanCode, modifiers)) return true;
+                
+                // 拦截所有按键（包括 E 键和回车键），防止触发全局快捷键或关闭面板
                 return true;
             }
         }

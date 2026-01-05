@@ -151,9 +151,21 @@ public class ToolbarSearchWidget extends AbstractWidget {
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         if (expanded) {
-            if (searchBox.keyPressed(keyCode, scanCode, modifiers)) return true;
-            if (keyCode == 256) { // ESC
+            // 256 = ESC
+            if (keyCode == 256) {
                 setExpanded(false);
+                return true;
+            }
+
+            if (searchBox.isFocused()) {
+                // 转发给输入框
+                if (searchBox.keyPressed(keyCode, scanCode, modifiers)) return true;
+                
+                // 拦截回车键 (257 = Enter, 335 = KP Enter)
+                // 不关闭搜索框，仅拦截以防止触发其他 GUI 动作
+                if (keyCode == 257 || keyCode == 335) return true;
+
+                // 吞掉所有其他按键（如 E 键），防止关闭界面
                 return true;
             }
         }

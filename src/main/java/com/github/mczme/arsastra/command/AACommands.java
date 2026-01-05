@@ -2,6 +2,7 @@ package com.github.mczme.arsastra.command;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
+import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
@@ -9,6 +10,8 @@ import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.engine.service.*;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
+import com.github.mczme.arsastra.network.payload.SyncKnowledgePayload;
+import com.github.mczme.arsastra.registry.AAAttachments;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.FloatArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -18,12 +21,15 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.commands.arguments.item.ItemArgument;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.joml.Vector2f;
 
 import java.io.BufferedWriter;
@@ -45,6 +51,11 @@ public class AACommands {
 
         dispatcher.register(Commands.literal("arsastra")
                 .requires(source -> source.hasPermission(2))
+                .then(Commands.literal("knowledge")
+                        .then(Commands.literal("unlock_all")
+                                .executes(AACommands::unlockAllKnowledge)
+                        )
+                )
                 .then(Commands.literal("debug")
                         .then(Commands.literal("test_env")
                                 .then(Commands.argument("chart", ResourceLocationArgument.id())
@@ -78,6 +89,30 @@ public class AACommands {
                         )
                 )
         );
+    }
+
+    private static int unlockAllKnowledge(CommandContext<CommandSourceStack> context) {
+        try {
+            ServerPlayer player = context.getSource().getPlayerOrException();
+            PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+            
+            int count = 0;
+            for (ResourceLocation itemId : ElementProfileManager.getInstance().getAllProfiledItems()) {
+                if (knowledge.analyzeItem(BuiltInRegistries.ITEM.get(itemId))) {
+                    count++;
+                }
+            }
+            
+            // 同步到客户端
+            PacketDistributor.sendToPlayer(player, new SyncKnowledgePayload(knowledge.serializeNBT(player.registryAccess())));
+            
+            int finalCount = count;
+            context.getSource().sendSuccess(() -> Component.literal("Unlocked analysis knowledge for " + finalCount + " items."), true);
+            return 1;
+        } catch (CommandSyntaxException e) {
+            context.getSource().sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
     }
 
     private static int testEnvironment(CommandContext<CommandSourceStack> context) {

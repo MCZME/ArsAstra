@@ -29,6 +29,7 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.journal.tab.atlas", "星图总览");
         add("gui.ars_astra.journal.compendium.elements", "已解锁要素");
         add("gui.ars_astra.journal.compendium.select_element", "请选择一个要素以查看详情");
+        add("gui.ars_astra.journal.compendium.search", "搜索档案...");
         add("gui.ars_astra.journal.workshop.sequence", "推演序列");
 
         // 元素

@@ -8,6 +8,7 @@
   "element.ars_astra.order": "秩序",
   "element.ars_astra.structure": "结构",
   "gui.ars_astra.journal.compendium.elements": "已解锁要素",
+  "gui.ars_astra.journal.compendium.search": "搜索档案...",
   "gui.ars_astra.journal.compendium.select_element": "请选择一个要素以查看详情",
   "gui.ars_astra.journal.tab.atlas": "星图总览",
   "gui.ars_astra.journal.tab.blueprints": "蓝图档案",

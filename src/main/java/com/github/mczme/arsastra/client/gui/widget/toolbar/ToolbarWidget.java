@@ -40,6 +40,9 @@ public class ToolbarWidget extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        // 每一帧都重新排列，以适应子组件的宽度变化（如搜索框展开动画）
+        arrange();
+        
         for (AbstractWidget child : children) {
             if (child.visible) {
                 child.render(guiGraphics, mouseX, mouseY, partialTick);

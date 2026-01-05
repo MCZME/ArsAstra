@@ -14,6 +14,7 @@ public class ToolbarTabButton extends AbstractButton {
     private int iconIndex;
     private final Runnable onPress;
     private boolean isSelected;
+    private boolean forceLeftAlign = false;
 
     public ToolbarTabButton(int x, int y, int width, int height, Component message, int iconIndex, int color, Runnable onPress) {
         super(x, y, width, height, message);
@@ -32,6 +33,10 @@ public class ToolbarTabButton extends AbstractButton {
     
     public void setColor(int color) {
         this.color = color;
+    }
+
+    public void setForceLeftAlign(boolean leftAlign) {
+        this.forceLeftAlign = leftAlign;
     }
 
     @Override
@@ -88,7 +93,15 @@ public class ToolbarTabButton extends AbstractButton {
         int iconU = (iconIndex % 4) * 16;
         int iconV = (iconIndex / 4) * 16; 
         
-        guiGraphics.blit(ICONS_TEXTURE, x + (w - 16) / 2, y + (h - 16) / 2, iconU, iconV, 16, 16, 64, 64);
+        int iconX;
+        if (forceLeftAlign) {
+            iconX = x + 2; // 左对齐，留出2px边框
+        } else {
+            iconX = x + (w - 16) / 2; // 居中
+        }
+        int iconY = y + (h - 16) / 2;
+        
+        guiGraphics.blit(ICONS_TEXTURE, iconX, iconY, iconU, iconV, 16, 16, 64, 64);
         
         RenderSystem.disableBlend();
     }

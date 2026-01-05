@@ -5,27 +5,33 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 
 import java.util.function.Consumer;
 
 public class ToolbarSearchWidget extends AbstractWidget {
-    private final ToolbarTabButton button;
+    private final ToolbarTabButton backgroundButton; 
     private final ToolbarSearchBox searchBox;
     private boolean expanded = false;
+    
     private final int collapsedWidth = 20;
     private final int expandedWidth = 100;
-    private final int fixedHeight = 22; // 稍微高一点以容纳标签
+    private final int fixedHeight = 22;
+    
+    private float animationProgress = 0.0f; // 0.0 (Collapsed) -> 1.0 (Expanded)
 
     public ToolbarSearchWidget(int x, int y, Consumer<String> onSearch) {
         super(x, y, 20, 22, Component.empty());
         
-        // 按钮状态: index 0 (搜索图标), 金色
-        this.button = new ToolbarTabButton(0, 0, collapsedWidth, fixedHeight, Component.empty(), 0, 0xA08030, this::toggleExpand);
+        this.backgroundButton = new ToolbarTabButton(x, y, collapsedWidth, fixedHeight, Component.empty(), 0, 0xA08030, null);
+        this.backgroundButton.setForceLeftAlign(true);
         
-        // 搜索框状态
-        this.searchBox = new ToolbarSearchBox(Minecraft.getInstance().font, expandedWidth, 16, Component.empty());
+        this.searchBox = new ToolbarSearchBox(Minecraft.getInstance().font, 10, 16, Component.empty());
         this.searchBox.setResponder(onSearch);
         this.searchBox.setVisible(false);
+        this.searchBox.setBordered(false);
+        
+        updateInternalLayout();
     }
 
     private void toggleExpand() {
@@ -34,63 +40,111 @@ public class ToolbarSearchWidget extends AbstractWidget {
 
     public void setExpanded(boolean expanded) {
         this.expanded = expanded;
-        this.searchBox.setVisible(expanded);
-        this.button.visible = !expanded;
-        this.width = expanded ? expandedWidth : collapsedWidth;
-        
         if (expanded) {
-            this.searchBox.setFocused(true);
+            this.searchBox.setVisible(true);
         } else {
             this.searchBox.setFocused(false);
-            this.searchBox.setValue(""); // 收起时清空? 或者保留? 用户习惯通常保留或清空。这里先不清空，但如果用户意图是“关闭搜索”，可能需要清空。
-            // 按照需求：点击按钮打开搜索框。通常意味着“开始搜索”。
         }
+    }
+
+    private void updateInternalLayout() {
+        int currentW = (int) Mth.lerp(animationProgress, collapsedWidth, expandedWidth);
+        this.width = currentW;
+        
+        this.backgroundButton.setX(this.getX());
+        this.backgroundButton.setY(this.getY());
+        this.backgroundButton.setWidth(currentW);
+
+        // 搜索框位置同步
+        int boxX = this.getX() + 20;
+        // 再次增加偏移: +2 -> +4，使输入文字显著下移
+        int boxY = this.getY() + (this.height - 16) / 2 + 4; 
+        int boxW = currentW - 24;
+        
+        this.searchBox.setX(boxX);
+        this.searchBox.setY(boxY);
+        this.searchBox.setWidth(boxW);
     }
 
     @Override
     public void setX(int x) {
         super.setX(x);
-        this.button.setX(x);
-        this.searchBox.setX(x);
+        updateInternalLayout();
     }
 
     @Override
     public void setY(int y) {
         super.setY(y);
-        this.button.setY(y);
-        // 搜索框垂直居中于底部对齐
-        this.searchBox.setY(y + (this.height - this.searchBox.getHeight())); 
+        updateInternalLayout();
     }
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        if (expanded) {
-            searchBox.render(guiGraphics, mouseX, mouseY, partialTick);
+        // 1. 更新动画进度
+        float target = expanded ? 1.0f : 0.0f;
+        float step = 0.15f; 
+        if (animationProgress < target) {
+            animationProgress = Math.min(animationProgress + step, target);
+        } else if (animationProgress > target) {
+            animationProgress = Math.max(animationProgress - step, target);
+        }
+        
+        // 2. 更新内部组件布局
+        updateInternalLayout();
+
+        // 3. 渲染背景 (按钮)
+        this.backgroundButton.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        // 4. 渲染搜索框 (如果宽度足够容纳)
+        if (animationProgress > 0.1f) {
+            this.searchBox.setVisible(true);
+            guiGraphics.enableScissor(this.getX() + 2, this.getY(), this.getX() + this.width - 2, this.getY() + this.height);
+            this.searchBox.render(guiGraphics, mouseX, mouseY, partialTick);
+            guiGraphics.disableScissor();
         } else {
-            button.render(guiGraphics, mouseX, mouseY, partialTick);
+             this.searchBox.setVisible(false);
         }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (expanded) {
-            // 如果点击在搜索框内，正常处理
-            if (searchBox.mouseClicked(mouseX, mouseY, button)) {
-                return true;
+        if (!this.visible || !this.active) return false;
+
+        // 1. 判断是否点击在组件范围内
+        if (this.isHovered()) {
+            if (expanded) {
+                // 已展开状态
+                if (mouseX < this.getX() + 20) {
+                    // 点击左侧图标区域 -> 切换收起
+                    this.toggleExpand();
+                    Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                } else {
+                    // 点击右侧搜索区域 -> 聚焦
+                    // 无论点击是否精准落在输入框文字上，只要在右侧，都强制聚焦
+                    this.searchBox.setFocused(true);
+                    // 转发点击事件给输入框以处理光标定位 (仅当确实在输入框内时，避免EditBox副作用)
+                    if (this.searchBox.isMouseOver(mouseX, mouseY)) {
+                        this.searchBox.mouseClicked(mouseX, mouseY, button);
+                    }
+                }
+            } else {
+                // 未展开状态 -> 点击任意位置展开
+                this.toggleExpand();
+                Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
             }
-            
-            // 如果点击在搜索框外
-            // 逻辑：如果内容为空，则收起
-            if (searchBox.getValue().isEmpty()) {
-                setExpanded(false);
-                return false; // 返回 false 让点击事件继续传递给可能的其他组件（如物品格）
-            }
-            
-            // 如果内容不为空且点击在外部，通常保持展开但失去焦点（或者也可以选择不收起）
-            // 这里我们选择不收起，除非用户清空内容或按 ESC。
-        } else {
-            if (this.button.mouseClicked(mouseX, mouseY, button)) return true;
+            return true;
         }
+        
+        // 2. 点击在组件外部
+        if (expanded) {
+             // 如果内容为空则自动收起，否则仅失焦
+             if (searchBox.getValue().isEmpty()) {
+                setExpanded(false);
+            } else {
+                searchBox.setFocused(false);
+            }
+        }
+        
         return false;
     }
 

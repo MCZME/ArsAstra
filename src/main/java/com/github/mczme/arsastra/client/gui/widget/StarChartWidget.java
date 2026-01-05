@@ -6,10 +6,13 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector2f;
 
 import java.util.List;
 
+@OnlyIn(Dist.CLIENT)
 public class StarChartWidget extends AbstractWidget {
     private StarChart starChart;
     private PlayerKnowledge knowledge;

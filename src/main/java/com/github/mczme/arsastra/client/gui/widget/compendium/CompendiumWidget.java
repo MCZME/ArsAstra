@@ -5,6 +5,7 @@ import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
 import com.github.mczme.arsastra.core.element.Element;
+import com.github.mczme.arsastra.core.element.profile.ElementProfile;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.registry.AARegistries;
@@ -15,11 +16,11 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class CompendiumWidget extends AbstractWidget {
@@ -28,6 +29,7 @@ public class CompendiumWidget extends AbstractWidget {
     private final PlayerKnowledge knowledge;
     private final ToolbarWidget toolbar;
     private final ToolbarTabButton modeSwitchButton;
+    private final ToolbarFilterWidget filterWidget;
     
     // 数据字段 - 物品模式
     private List<ItemStack> allAnalyzedItems = new ArrayList<>();
@@ -44,7 +46,6 @@ public class CompendiumWidget extends AbstractWidget {
     private int currentPage = 0;
     private static final int ITEMS_PER_PAGE = 20;
     private String currentSearchQuery = "";
-    private int currentFilterIndex = 0;
 
     public CompendiumWidget(int x, int y, int width, int height, PlayerKnowledge knowledge) {
         super(x, y, width, height, Component.empty());
@@ -53,7 +54,7 @@ public class CompendiumWidget extends AbstractWidget {
         // 初始化工具栏
         this.toolbar = new ToolbarWidget(x + 15, y - 20, 200, 22);
         
-        // 1. 模式切换按钮 (初始为 ITEMS 模式, 使用图标索引 2 - 物品)
+        // 1. 模式切换按钮 (初始为 ITEMS 模式)
         this.modeSwitchButton = new ToolbarTabButton(0, 0, 20, 22, Component.empty(), 2, 0x4040A0, this::toggleMode);
         this.toolbar.addChild(this.modeSwitchButton);
 
@@ -63,11 +64,9 @@ public class CompendiumWidget extends AbstractWidget {
             this.refreshContent();
         }));
 
-        // 3. 筛选组件
-        this.toolbar.addChild(new ToolbarFilterWidget(0, 0, (index) -> {
-            this.currentFilterIndex = index;
-            this.refreshContent();
-        }));
+        // 3. 筛选组件 (高级筛选)
+        this.filterWidget = new ToolbarFilterWidget(0, 0, this::refreshContent);
+        this.toolbar.addChild(this.filterWidget);
 
         refreshContent();
     }
@@ -75,12 +74,12 @@ public class CompendiumWidget extends AbstractWidget {
     private void toggleMode() {
         if (this.currentMode == DisplayMode.ITEMS) {
             this.currentMode = DisplayMode.ELEMENTS;
-            this.modeSwitchButton.setIconIndex(3); // 切换到图标 3 (要素)
-            this.modeSwitchButton.setColor(0x804080); // 紫色调
+            this.modeSwitchButton.setIconIndex(3);
+            this.modeSwitchButton.setColor(0x804080);
         } else {
             this.currentMode = DisplayMode.ITEMS;
-            this.modeSwitchButton.setIconIndex(2); // 切换到图标 2 (物品)
-            this.modeSwitchButton.setColor(0x4040A0); // 蓝色调
+            this.modeSwitchButton.setIconIndex(2);
+            this.modeSwitchButton.setColor(0x4040A0);
         }
         this.currentPage = 0;
         refreshContent();
@@ -95,41 +94,87 @@ public class CompendiumWidget extends AbstractWidget {
     }
 
     private void refreshItems() {
+        // 1. 获取所有已分析物品
         this.allAnalyzedItems = ElementProfileManager.getInstance().getAllProfiledItems().stream()
                 .map(id -> new ItemStack(BuiltInRegistries.ITEM.get(id)))
                 .filter(stack -> knowledge.hasAnalyzed(stack.getItem()))
                 .collect(Collectors.toList());
         
-        List<ItemStack> afterFilter = this.allAnalyzedItems.stream()
-                .filter(stack -> applyItemFilter(stack, currentFilterIndex))
-                .collect(Collectors.toList());
-
-        if (!currentSearchQuery.isEmpty()) {
-            this.filteredItems = afterFilter.stream()
-                    .filter(stack -> stack.getHoverName().getString().toLowerCase().contains(currentSearchQuery))
-                    .collect(Collectors.toList());
-        } else {
-            this.filteredItems = afterFilter;
-        }
+        // 2. 准备筛选器
+        Predicate<ItemStack> advancedFilter = createAdvancedFilter();
         
+        // 3. 应用筛选 (高级筛选 + 搜索词)
+        this.filteredItems = this.allAnalyzedItems.stream()
+                .filter(advancedFilter)
+                .filter(stack -> {
+                    if (currentSearchQuery.isEmpty()) return true;
+                    return stack.getHoverName().getString().toLowerCase().contains(currentSearchQuery);
+                })
+                .collect(Collectors.toList());
+        
+        // 4. 更新选中项
         if (selectedItem.isEmpty() && !filteredItems.isEmpty()) {
             selectedItem = filteredItems.get(0);
         } else if (!filteredItems.contains(selectedItem) && !filteredItems.isEmpty()) {
             selectedItem = filteredItems.get(0);
         }
     }
+    
+    private Predicate<ItemStack> createAdvancedFilter() {
+        String elementFilter = filterWidget.getElementFilter().toLowerCase();
+        String tagFilter = filterWidget.getTagFilter().toLowerCase();
+        
+        return stack -> {
+            // 要素筛选 (AND 逻辑)
+            if (!elementFilter.isBlank()) {
+                String[] requiredElements = elementFilter.split(",");
+                ElementProfile profile = ElementProfileManager.getInstance().getElementProfile(stack.getItem()).orElse(null);
+                if (profile == null) return false;
+
+                for (String req : requiredElements) {
+                    String q = req.trim();
+                    if (q.isEmpty()) continue;
+                    boolean hasElement = profile.elements().keySet().stream().anyMatch(key -> {
+                        Element e = AARegistries.ELEMENT_REGISTRY.get(key);
+                        if (e == null) return false;
+                        // 匹配注册名路径或本地化名称
+                        if (key.getPath().contains(q)) return true;
+                        if (Component.translatable(e.getDescriptionId()).getString().toLowerCase().contains(q)) return true;
+                        return false;
+                    });
+                    if (!hasElement) return false; 
+                }
+            }
+
+            // 标签筛选 (AND 逻辑)
+            if (!tagFilter.isBlank()) {
+                String[] requiredTags = tagFilter.split(",");
+                for (String req : requiredTags) {
+                    String q = req.trim();
+                    if (q.isEmpty()) continue;
+                    boolean hasTag = stack.getTags().anyMatch(tag -> {
+                        String tagLoc = tag.location().toString().toLowerCase();
+                        String tagPath = tag.location().getPath().toLowerCase();
+                        return tagLoc.contains(q) || tagPath.contains(q);
+                    });
+                    if (!hasTag) return false;
+                }
+            }
+            
+            return true;
+        };
+    }
 
     private void refreshElements() {
         this.allElements = AARegistries.ELEMENT_REGISTRY.stream().collect(Collectors.toList());
         
-        List<Element> afterFilter = this.allElements; 
-
+        // 在要素模式下，我们目前只支持基础的名称搜索，忽略高级物品筛选
         if (!currentSearchQuery.isEmpty()) {
-            this.filteredElements = afterFilter.stream()
+            this.filteredElements = this.allElements.stream()
                     .filter(e -> Component.translatable(e.getDescriptionId()).getString().toLowerCase().contains(currentSearchQuery))
                     .collect(Collectors.toList());
         } else {
-            this.filteredElements = afterFilter;
+            this.filteredElements = this.allElements;
         }
 
         if (selectedElement == null && !filteredElements.isEmpty()) {
@@ -138,19 +183,10 @@ public class CompendiumWidget extends AbstractWidget {
             selectedElement = filteredElements.get(0);
         }
     }
-    
-    private boolean applyItemFilter(ItemStack stack, int filterIndex) {
-        switch (filterIndex) {
-            case 0: return true; 
-            case 1: return stack.getItem() instanceof BlockItem; 
-            case 2: return ! (stack.getItem() instanceof BlockItem); 
-            default: return true;
-        }
-    }
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        toolbar.render(guiGraphics, mouseX, mouseY, partialTick);
+        // 先渲染内容
         if (currentMode == DisplayMode.ITEMS) {
             renderItemGrid(guiGraphics, mouseX, mouseY);
             renderItemDetails(guiGraphics);
@@ -158,6 +194,9 @@ public class CompendiumWidget extends AbstractWidget {
             renderElementGrid(guiGraphics, mouseX, mouseY);
             renderElementDetails(guiGraphics);
         }
+        
+        // 最后渲染工具栏（确保弹出菜单覆盖在内容之上）
+        toolbar.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     private void renderItemGrid(GuiGraphics guiGraphics, int mouseX, int mouseY) {

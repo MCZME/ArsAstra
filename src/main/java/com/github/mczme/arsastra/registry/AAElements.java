@@ -16,14 +16,14 @@ public class AAElements {
     // Cardinal
     public static final DeferredHolder<Element, BasicElement> ORDER = register("order", () -> new BasicElement(new Vector2f(0, 1)));
     public static final DeferredHolder<Element, BasicElement> DEATH = register("death", () -> new BasicElement(new Vector2f(0, -1)));
-    public static final DeferredHolder<Element, BasicElement> MATTER = register("matter", () -> new BasicElement(new Vector2f(1, 0)));
-    public static final DeferredHolder<Element, BasicElement> LIFE = register("life", () -> new BasicElement(new Vector2f(-1, 0)));
+    public static final DeferredHolder<Element, BasicElement> MATTER = register("matter", () -> new BasicElement(new Vector2f(-1, 0)));
+    public static final DeferredHolder<Element, BasicElement> LIFE = register("life", () -> new BasicElement(new Vector2f(1, 0)));
 
     // Intercardinal
-    public static final DeferredHolder<Element, BasicElement> STRUCTURE = register("structure", () -> new BasicElement(new Vector2f(1, 1).normalize()));
-    public static final DeferredHolder<Element, BasicElement> GROWTH = register("growth", () -> new BasicElement(new Vector2f(-1, 1).normalize()));
-    public static final DeferredHolder<Element, BasicElement> CORROSION = register("corrosion", () -> new BasicElement(new Vector2f(1, -1).normalize()));
-    public static final DeferredHolder<Element, BasicElement> DECAY = register("decay", () -> new BasicElement(new Vector2f(-1, -1).normalize()));
+    public static final DeferredHolder<Element, BasicElement> STRUCTURE = register("structure", () -> new BasicElement(new Vector2f(-1, 1).normalize()));
+    public static final DeferredHolder<Element, BasicElement> GROWTH = register("growth", () -> new BasicElement(new Vector2f(1, 1).normalize()));
+    public static final DeferredHolder<Element, BasicElement> CORROSION = register("corrosion", () -> new BasicElement(new Vector2f(-1, -1).normalize()));
+    public static final DeferredHolder<Element, BasicElement> DECAY = register("decay", () -> new BasicElement(new Vector2f(1, -1).normalize()));
 
 
     private static <T extends Element> DeferredHolder<Element, T> register(String name, Supplier<T> supplier) {

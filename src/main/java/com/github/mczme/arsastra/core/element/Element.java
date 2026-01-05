@@ -45,6 +45,18 @@ public interface Element {
     }
 
     default String getDescriptionId() {
+
         return Util.makeDescriptionId("element", AARegistries.ELEMENT_REGISTRY.getKey(this));
+
     }
-}
+
+    /**
+    * 获取要素的图标纹理位置。
+    * 路径为 assets/<namespace>/textures/element/<path>.png
+    */
+    default ResourceLocation getIcon() {
+        ResourceLocation key = AARegistries.ELEMENT_REGISTRY.getKey(this);
+        return ResourceLocation.fromNamespaceAndPath(key.getNamespace(), "textures/element/" + key.getPath() + ".png");
+    }
+
+} 

@@ -8,7 +8,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 
-@EventBusSubscriber(modid = ArsAstra.MODID, bus = EventBusSubscriber.Bus.GAME)
+@EventBusSubscriber(modid = ArsAstra.MODID)
 public class AAEventHandler {
 
     @SubscribeEvent

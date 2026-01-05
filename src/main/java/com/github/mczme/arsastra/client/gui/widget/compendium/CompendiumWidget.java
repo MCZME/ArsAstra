@@ -162,15 +162,17 @@ public class CompendiumWidget extends AbstractWidget {
         if (mouseY >= this.getY() + 140 && mouseY <= this.getY() + 160) {
             if (mouseX >= this.getX() + 20 && mouseX <= this.getX() + 50 && currentPage > 0) {
                 currentPage--;
+                Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
             }
             if (mouseX >= this.getX() + 90 && mouseX <= this.getX() + 120 && (currentPage + 1) * ITEMS_PER_PAGE < filteredItems.size()) {
                 currentPage++;
+                Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
             }
         }
 
-        return super.mouseClicked(mouseX, mouseY, button);
+        return false;
     }
 
     @Override

@@ -19,8 +19,8 @@ public class ToolbarSearchWidget extends AbstractWidget {
     public ToolbarSearchWidget(int x, int y, Consumer<String> onSearch) {
         super(x, y, 20, 22, Component.empty());
         
-        // 按钮状态: index 3 (罗盘图标), 金色
-        this.button = new ToolbarTabButton(0, 0, collapsedWidth, fixedHeight, Component.empty(), 3, 0xA08030, this::toggleExpand);
+        // 按钮状态: index 0 (搜索图标), 金色
+        this.button = new ToolbarTabButton(0, 0, collapsedWidth, fixedHeight, Component.empty(), 0, 0xA08030, this::toggleExpand);
         
         // 搜索框状态
         this.searchBox = new ToolbarSearchBox(Minecraft.getInstance().font, expandedWidth, 16, Component.empty());

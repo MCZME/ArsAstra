@@ -27,6 +27,7 @@ public class CompendiumWidget extends AbstractWidget {
 
     private final PlayerKnowledge knowledge;
     private final ToolbarWidget toolbar;
+    private final ToolbarTabButton modeSwitchButton;
     
     // 数据字段 - 物品模式
     private List<ItemStack> allAnalyzedItems = new ArrayList<>();
@@ -52,8 +53,9 @@ public class CompendiumWidget extends AbstractWidget {
         // 初始化工具栏
         this.toolbar = new ToolbarWidget(x + 15, y - 20, 200, 22);
         
-        // 1. 模式切换按钮 (index 2: 物品/文档)
-        this.toolbar.addChild(new ToolbarTabButton(0, 0, 20, 22, Component.empty(), 2, 0x4040A0, this::toggleMode));
+        // 1. 模式切换按钮 (初始为 ITEMS 模式, 使用图标索引 2 - 物品)
+        this.modeSwitchButton = new ToolbarTabButton(0, 0, 20, 22, Component.empty(), 2, 0x4040A0, this::toggleMode);
+        this.toolbar.addChild(this.modeSwitchButton);
 
         // 2. 搜索组件
         this.toolbar.addChild(new ToolbarSearchWidget(0, 0, (query) -> {
@@ -73,20 +75,21 @@ public class CompendiumWidget extends AbstractWidget {
     private void toggleMode() {
         if (this.currentMode == DisplayMode.ITEMS) {
             this.currentMode = DisplayMode.ELEMENTS;
+            this.modeSwitchButton.setIconIndex(3); // 切换到图标 3 (要素)
+            this.modeSwitchButton.setColor(0x804080); // 紫色调
         } else {
             this.currentMode = DisplayMode.ITEMS;
+            this.modeSwitchButton.setIconIndex(2); // 切换到图标 2 (物品)
+            this.modeSwitchButton.setColor(0x4040A0); // 蓝色调
         }
         this.currentPage = 0;
-        // 切换模式时清空搜索，避免搜索词在不同模式下无结果
-        // this.currentSearchQuery = ""; 
         refreshContent();
     }
 
     public void refreshContent() {
         if (currentMode == DisplayMode.ITEMS) {
             refreshItems();
-        }
-        else {
+        } else {
             refreshElements();
         }
     }
@@ -119,7 +122,7 @@ public class CompendiumWidget extends AbstractWidget {
     private void refreshElements() {
         this.allElements = AARegistries.ELEMENT_REGISTRY.stream().collect(Collectors.toList());
         
-        List<Element> afterFilter = this.allElements; // 暂时没有要素筛选器
+        List<Element> afterFilter = this.allElements; 
 
         if (!currentSearchQuery.isEmpty()) {
             this.filteredElements = afterFilter.stream()

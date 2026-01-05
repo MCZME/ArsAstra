@@ -22,14 +22,13 @@ public class ToolbarFilterWidget extends AbstractWidget {
         super(x, y, 20, 22, Component.empty());
         this.onSelect = onSelect;
         
-        // 主按钮：初始显示索引 0 的图标
-        this.mainButton = new ToolbarTabButton(0, 0, buttonWidth, buttonHeight, Component.empty(), 0, 0xFFFFFF, this::toggleExpand);
+        // 主按钮：index 1 (筛选图标), 浅灰色
+        this.mainButton = new ToolbarTabButton(0, 0, buttonWidth, buttonHeight, Component.empty(), 1, 0xA0A0A0, this::toggleExpand);
         
         // 添加一些硬编码的选项 (示例)
-        // 0: 全部 (图标 0), 1: 类别 A (图标 1), 2: 类别 B (图标 2)
-        addOption(0, 0xA0A0A0); // 全部 (灰)
-        addOption(1, 0x40A040); // 植物 (绿)
-        addOption(2, 0xA04040); // 矿物 (红)
+        addOption(0, 0xA0A0A0); // 全部
+        addOption(1, 0x40A040); // 植物
+        addOption(2, 0xA04040); // 矿物
     }
     
     private void addOption(int iconIndex, int color) {
@@ -44,35 +43,12 @@ public class ToolbarFilterWidget extends AbstractWidget {
     
     private void select(int index) {
         this.selectedIndex = index;
-        // 更新主按钮外观以匹配选中项 (除了点击事件仍是 toggle)
-        // 这里我们需要 Hack 一下 ToolbarTabButton 或者给它添加 setter
-        // 简单起见，我们不做视觉同步，主按钮始终作为一个“打开菜单”的按钮，或者显示当前选中的图标。
-        // 为了好的 UX，主按钮应该显示选中的图标。
-        // 但 ToolbarTabButton 的字段是 final 的。
-        // 我需要重新创建主按钮或者修改 ToolbarTabButton。
-        // 暂时保持主按钮不变，只触发回调。
-        
         setExpanded(false);
         if (onSelect != null) onSelect.accept(index);
     }
 
     public void setExpanded(boolean expanded) {
         this.expanded = expanded;
-        // 展开时，高度增加以包含选项列表
-        // 选项列表向下延伸? 不，工具栏在书页上方，向下延伸会盖住书页，这是对的。
-        // 但是 ToolbarWidget 对齐是底部对齐。
-        // 如果高度增加，ToolbarWidget 可能会把它向上推。
-        // 我们需要小心。ToolbarWidget 的 arrange() 使用 (this.height - child.getHeight())。
-        // 如果 child 变高，Y 会变小（向上移动）。
-        // 这不是我们想要的下拉菜单行为。下拉菜单应该保持顶部位置不变，向下延伸。
-        
-        // 解决方案：不要改变 Widget 的 height，只在 render 中绘制溢出部分，并手动处理点击。
-        // 或者修改 ToolbarWidget 的对齐逻辑。
-        // 鉴于 ToolbarWidget 已经被设计为“底部对齐”以适应垂直标签，
-        // 这里 FilterWidget 比较特殊。
-        // 它的“根”在底部，展开的部分其实是“向下”的，也就是进入了书页区域。
-        
-        // 让 FilterWidget 始终保持高度 22。展开部分作为 Overlay 绘制。
     }
 
     @Override

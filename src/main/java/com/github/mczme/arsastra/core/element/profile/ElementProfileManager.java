@@ -202,6 +202,10 @@ public class ElementProfileManager extends SimpleJsonResourceReloadListener {
         return INSTANCE;
     }
 
+    public Set<ResourceLocation> getAllProfiledItems() {
+        return Collections.unmodifiableSet(profiles.keySet());
+    }
+
     public Optional<ElementProfile> getElementProfile(Item item) {
         return Optional.ofNullable(profiles.get(BuiltInRegistries.ITEM.getKey(item)));
     }

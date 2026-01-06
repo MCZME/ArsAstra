@@ -1,22 +1,24 @@
 package com.github.mczme.arsastra.client.gui;
 
+import com.github.mczme.arsastra.client.gui.tab.AtlasTab;
+import com.github.mczme.arsastra.client.gui.tab.CompendiumTab;
+import com.github.mczme.arsastra.client.gui.tab.JournalTab;
+import com.github.mczme.arsastra.client.gui.tab.WorkshopTab;
 import com.github.mczme.arsastra.client.gui.widget.JournalTabButton;
-import com.github.mczme.arsastra.client.gui.widget.StarChartWidget;
-import com.github.mczme.arsastra.client.gui.widget.compendium.CompendiumWidget;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.menu.StarChartJournalMenu;
 import com.github.mczme.arsastra.network.payload.DeductionResultPayload;
-import com.github.mczme.arsastra.network.payload.RequestDeductionPayload;
 import com.github.mczme.arsastra.registry.AAAttachments;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,31 +31,26 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
     private static final int BOOK_HEIGHT = 176;
     
     private int activeTab = 1; // 默认为推演工坊 (页签 1)
-    private StarChartWidget starChartWidget;
-    private CompendiumWidget compendiumWidget;
-    private PlayerKnowledge knowledge;
     
+    private final CompendiumTab compendiumTab = new CompendiumTab();
+    private final WorkshopTab workshopTab = new WorkshopTab();
+    private final AtlasTab atlasTab = new AtlasTab();
     private final List<JournalTabButton> tabButtons = new ArrayList<>();
-    
-    // 推演工坊相关
-    private final List<ItemStack> inputSequence = new ArrayList<>(8);
-    private float lastPredictedStability = 1.0f;
 
     public StarChartJournalScreen(StarChartJournalMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         this.imageWidth = BOOK_WIDTH;
         this.imageHeight = BOOK_HEIGHT;
-        
-        // 初始化序列
-        for (int i = 0; i < 8; i++) {
-            inputSequence.add(ItemStack.EMPTY);
-        }
+    }
+
+    public <T extends GuiEventListener & Renderable & NarratableEntry> void addTabWidget(T widget) {
+        this.addRenderableWidget(widget);
     }
 
     @Override
     protected void init() {
         super.init();
-        this.knowledge = Minecraft.getInstance().player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+        Minecraft.getInstance().player.getData(AAAttachments.PLAYER_KNOWLEDGE);
         this.tabButtons.clear();
         
         int x = (this.width - BOOK_WIDTH) / 2;
@@ -65,15 +62,11 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
         createTabButton(2, x, y + 68, "blueprints");
         createTabButton(3, x, y + 92, "atlas");
 
-        // 初始化典籍组件
-        this.compendiumWidget = new CompendiumWidget(x, y, BOOK_WIDTH, BOOK_HEIGHT, this.knowledge);
-        this.addRenderableWidget(this.compendiumWidget);
+        // 初始化各个 Tab
+        this.compendiumTab.init(this, x, y, BOOK_WIDTH, BOOK_HEIGHT);
+        this.workshopTab.init(this, x, y, BOOK_WIDTH, BOOK_HEIGHT);
+        this.atlasTab.init(this, x, y, BOOK_WIDTH, BOOK_HEIGHT);
 
-        // 初始化星图组件
-        this.starChartWidget = new StarChartWidget(x + 10, y + 10, BOOK_WIDTH - 20, BOOK_HEIGHT - 50, Component.empty());
-        this.starChartWidget.setKnowledge(this.knowledge);
-        this.addRenderableWidget(this.starChartWidget);
-        
         switchTab(activeTab);
     }
 
@@ -92,26 +85,32 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
              tabButtons.get(i).updateState(i == tabIndex, x);
         }
 
-        if (this.compendiumWidget != null) {
-            this.compendiumWidget.visible = (tabIndex == 0);
+        if (this.compendiumTab != null) {
+            this.compendiumTab.setVisible(tabIndex == 0);
         }
 
-        if (this.starChartWidget != null) {
-            this.starChartWidget.visible = (tabIndex == 1 || tabIndex == 3);
-            if (tabIndex == 1) {
-                this.starChartWidget.setWidth(BOOK_WIDTH - 20);
-                this.starChartWidget.setHeight(BOOK_HEIGHT - 50);
-            } else if (tabIndex == 3) {
-                this.starChartWidget.setWidth(BOOK_WIDTH - 20);
-                this.starChartWidget.setHeight(BOOK_HEIGHT - 20);
-            }
+        if (this.workshopTab != null) {
+            this.workshopTab.setVisible(tabIndex == 1);
         }
+
+        if (this.atlasTab != null) {
+            this.atlasTab.setVisible(tabIndex == 3);
+        }
+    }
+    
+    private JournalTab getCurrentTab() {
+        if (activeTab == 0) return compendiumTab;
+        if (activeTab == 1) return workshopTab;
+        if (activeTab == 3) return atlasTab;
+        return null;
     }
 
     public void handleDeductionResult(DeductionResultPayload payload) {
-        if (this.starChartWidget != null) {
-            this.starChartWidget.setPrediction(payload.points(), payload.stability());
-            this.lastPredictedStability = payload.stability();
+        if (this.workshopTab != null && this.workshopTab.getViewModel() != null) {
+            this.workshopTab.getViewModel().updatePrediction(payload.points(), payload.stability());
+        }
+        if (this.workshopTab != null && this.workshopTab.getCanvasWidget() != null) {
+             this.workshopTab.getCanvasWidget().setPrediction(payload.points(), payload.stability());
         }
     }
 
@@ -123,73 +122,10 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
         // 1. 绘制书本背景贴图
         guiGraphics.blit(TEXTURE, x, y, 0, 0, BOOK_WIDTH, BOOK_HEIGHT, BOOK_WIDTH, BOOK_HEIGHT);
 
-        // 2. 根据页签绘制特定内容 (工坊仍暂存此处，直到被重构为 Widget)
-        if (activeTab == 1) {
-            renderWorkshopLayout(guiGraphics, x, y);
-        }
-    }
-
-    private void renderWorkshopLayout(GuiGraphics guiGraphics, int x, int y) {
-        int slotStartY = y + BOOK_HEIGHT - 35;
-        guiGraphics.drawString(this.font, Component.translatable("gui.ars_astra.journal.workshop.sequence"), x + 15, slotStartY - 12, 0x404040, false);
-        
-        for (int i = 0; i < 8; i++) {
-            int slotX = x + 15 + i * 20;
-            guiGraphics.fill(slotX, slotStartY, slotX + 18, slotStartY + 18, 0x22000000);
-            
-            ItemStack stack = inputSequence.get(i);
-            if (!stack.isEmpty()) {
-                guiGraphics.renderFakeItem(stack, slotX + 1, slotStartY + 1);
-            }
-        }
-        
-        String stabilityText = String.format("Stability: %.0f%%", lastPredictedStability * 100);
-        int stabilityColor = (lastPredictedStability > 0.8f) ? 0xFF00AA00 : (lastPredictedStability > 0.5f ? 0xFF666600 : 0xFFAA0000);
-        guiGraphics.drawString(this.font, stabilityText, x + BOOK_WIDTH - this.font.width(stabilityText) - 15, slotStartY - 12, stabilityColor, false);
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int x = (this.width - BOOK_WIDTH) / 2;
-        int y = (this.height - BOOK_HEIGHT) / 2;
-
-        if (activeTab == 1) {
-            int slotStartY = y + BOOK_HEIGHT - 35;
-            for (int i = 0; i < 8; i++) {
-                int slotX = x + 10 + i * 20;
-                if (mouseX >= slotX && mouseX <= slotX + 18 && mouseY >= slotStartY && mouseY <= slotStartY + 18) {
-                    handleGhostSlotClick(i, button);
-                    return true;
-                }
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    private void handleGhostSlotClick(int index, int button) {
-        ItemStack carried = menu.getCarried();
-        boolean changed = false;
-        if (button == 0) { // 左键
-            if (!carried.isEmpty()) {
-                ItemStack toPut = carried.copy();
-                toPut.setCount(1);
-                inputSequence.set(index, toPut);
-                changed = true;
-            } else {
-                if (!inputSequence.get(index).isEmpty()) {
-                    inputSequence.set(index, ItemStack.EMPTY);
-                    changed = true;
-                }
-            }
-        } else if (button == 1) { // 右键
-            if (!inputSequence.get(index).isEmpty()) {
-                inputSequence.set(index, ItemStack.EMPTY);
-                changed = true;
-            }
-        }
-        
-        if (changed) {
-            PacketDistributor.sendToServer(new RequestDeductionPayload(new ArrayList<>(inputSequence)));
+        // 2. 根据页签绘制特定内容
+        JournalTab tab = getCurrentTab();
+        if (tab != null) {
+            tab.render(guiGraphics, mouseX, mouseY, partialTick);
         }
     }
 
@@ -201,6 +137,73 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+        if (activeTab == 1 && workshopTab != null) {
+            workshopTab.renderOverlay(guiGraphics, mouseX, mouseY);
+        }
         this.renderTooltip(guiGraphics, mouseX, mouseY);
+    }
+
+    // 事件转发
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        JournalTab tab = getCurrentTab();
+        if (tab != null && tab.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (super.mouseReleased(mouseX, mouseY, button)) return true;
+        JournalTab tab = getCurrentTab();
+        return tab != null && tab.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        // 1. 优先尝试当前 Tab
+        JournalTab tab = getCurrentTab();
+        if (tab != null && tab.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            return true;
+        }
+        
+        // 2. 尝试当前 Focus 的 Widget (跳过 AbstractContainerScreen 的 Slot 逻辑)
+        if (this.getFocused() != null && this.isDragging() && button == 0) {
+            if (this.getFocused().mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+                return true;
+            }
+        }
+
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
+        JournalTab tab = getCurrentTab();
+        return tab != null && tab.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
+    public boolean charTyped(char codePoint, int modifiers) {
+        if (super.charTyped(codePoint, modifiers)) return true;
+        JournalTab tab = getCurrentTab();
+        return tab != null && tab.charTyped(codePoint, modifiers);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (super.keyPressed(keyCode, scanCode, modifiers)) return true;
+        JournalTab tab = getCurrentTab();
+        return tab != null && tab.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    @Override
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        if (super.keyReleased(keyCode, scanCode, modifiers)) return true;
+        JournalTab tab = getCurrentTab();
+        return tab != null && tab.keyReleased(keyCode, scanCode, modifiers);
     }
 }

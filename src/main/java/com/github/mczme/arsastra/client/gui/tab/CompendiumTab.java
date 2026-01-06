@@ -1,5 +1,6 @@
-package com.github.mczme.arsastra.client.gui.widget.compendium;
+package com.github.mczme.arsastra.client.gui.tab;
 
+import com.github.mczme.arsastra.client.gui.StarChartJournalScreen;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
@@ -8,12 +9,11 @@ import com.github.mczme.arsastra.core.element.Element;
 import com.github.mczme.arsastra.core.element.profile.ElementProfile;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
+import com.github.mczme.arsastra.registry.AAAttachments;
 import com.github.mczme.arsastra.registry.AARegistries;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractWidget;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
@@ -23,14 +23,19 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class CompendiumWidget extends AbstractWidget {
+public class CompendiumTab implements JournalTab {
     private enum DisplayMode { ITEMS, ELEMENTS }
 
-    private final PlayerKnowledge knowledge;
-    private final ToolbarWidget toolbar;
-    private final ToolbarTabButton modeSwitchButton;
-    private final ToolbarFilterWidget filterWidget;
+    private PlayerKnowledge knowledge;
     
+    // UI 组件
+    private ToolbarWidget toolbar;
+    private ToolbarTabButton modeSwitchButton;
+    private ToolbarFilterWidget filterWidget;
+    
+    // 布局参数
+    private int x, y;
+
     // 数据字段 - 物品模式
     private List<ItemStack> allAnalyzedItems = new ArrayList<>();
     private List<ItemStack> filteredItems = new ArrayList<>();
@@ -47,12 +52,14 @@ public class CompendiumWidget extends AbstractWidget {
     private static final int ITEMS_PER_PAGE = 20;
     private String currentSearchQuery = "";
 
-    public CompendiumWidget(int x, int y, int width, int height, PlayerKnowledge knowledge) {
-        super(x, y, width, height, Component.empty());
-        this.knowledge = knowledge;
-        
+    @Override
+    public void init(StarChartJournalScreen screen, int x, int y, int width, int height) {
+        this.x = x;
+        this.y = y;
+        this.knowledge = Minecraft.getInstance().player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+
         // 初始化工具栏
-        this.toolbar = new ToolbarWidget(x + 15, y - 20, 200, 22);
+        this.toolbar = new ToolbarWidget(x + 15, y - 13, 200, 22);
         
         // 1. 模式切换按钮 (初始为 ITEMS 模式)
         this.modeSwitchButton = new ToolbarTabButton(0, 0, 20, 22, Component.empty(), 2, 0x4040A0, this::toggleMode);
@@ -67,6 +74,9 @@ public class CompendiumWidget extends AbstractWidget {
         // 3. 筛选组件 (高级筛选)
         this.filterWidget = new ToolbarFilterWidget(0, 0, this::refreshContent);
         this.toolbar.addChild(this.filterWidget);
+        
+        this.toolbar.visible = false;
+        screen.addTabWidget(this.toolbar);
 
         refreshContent();
     }
@@ -94,6 +104,8 @@ public class CompendiumWidget extends AbstractWidget {
     }
 
     private void refreshItems() {
+        if (knowledge == null) return;
+        
         // 1. 获取所有已分析物品
         this.allAnalyzedItems = ElementProfileManager.getInstance().getAllProfiledItems().stream()
                 .map(id -> new ItemStack(BuiltInRegistries.ITEM.get(id)))
@@ -137,7 +149,6 @@ public class CompendiumWidget extends AbstractWidget {
                     boolean hasElement = profile.elements().keySet().stream().anyMatch(key -> {
                         Element e = AARegistries.ELEMENT_REGISTRY.get(key);
                         if (e == null) return false;
-                        // 匹配注册名路径或本地化名称
                         if (key.getPath().contains(q)) return true;
                         if (Component.translatable(e.getDescriptionId()).getString().toLowerCase().contains(q)) return true;
                         return false;
@@ -168,7 +179,6 @@ public class CompendiumWidget extends AbstractWidget {
     private void refreshElements() {
         this.allElements = AARegistries.ELEMENT_REGISTRY.stream().collect(Collectors.toList());
         
-        // 在要素模式下，我们目前只支持基础的名称搜索，忽略高级物品筛选
         if (!currentSearchQuery.isEmpty()) {
             this.filteredElements = this.allElements.stream()
                     .filter(e -> Component.translatable(e.getDescriptionId()).getString().toLowerCase().contains(currentSearchQuery))
@@ -185,8 +195,11 @@ public class CompendiumWidget extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // 先渲染内容
+    public void tick() {
+    }
+
+    @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (currentMode == DisplayMode.ITEMS) {
             renderItemGrid(guiGraphics, mouseX, mouseY);
             renderItemDetails(guiGraphics);
@@ -194,14 +207,18 @@ public class CompendiumWidget extends AbstractWidget {
             renderElementGrid(guiGraphics, mouseX, mouseY);
             renderElementDetails(guiGraphics);
         }
-        
-        // 最后渲染工具栏（确保弹出菜单覆盖在内容之上）
-        toolbar.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
+    public void setVisible(boolean visible) {
+        if (toolbar != null) {
+            toolbar.visible = visible;
+        }
     }
 
     private void renderItemGrid(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        int startX = this.getX() + 15;
-        int startY = this.getY() + 30;
+        int startX = this.x + 25;
+        int startY = this.y + 20; // 调整 Y 坐标以适应新布局
         int startIndex = currentPage * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredItems.size());
 
@@ -225,8 +242,8 @@ public class CompendiumWidget extends AbstractWidget {
     }
 
     private void renderElementGrid(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        int startX = this.getX() + 15;
-        int startY = this.getY() + 30;
+        int startX = this.x + 25;
+        int startY = this.y + 20;
         int startIndex = currentPage * ITEMS_PER_PAGE;
         int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filteredElements.size());
 
@@ -240,7 +257,7 @@ public class CompendiumWidget extends AbstractWidget {
             Element element = filteredElements.get(i);
             
             if (selectedElement == element) {
-                guiGraphics.fill(slotX - 2, slotY - 2, slotX + 18, slotY + 18, 0x40804080); // 紫色高亮
+                guiGraphics.fill(slotX - 2, slotY - 2, slotX + 18, slotY + 18, 0x40804080);
             } else if (mouseX >= slotX && mouseX < slotX + 16 && mouseY >= slotY && mouseY < slotY + 16) {
                 guiGraphics.fill(slotX - 2, slotY - 2, slotX + 18, slotY + 18, 0x20000000); 
             }
@@ -255,16 +272,16 @@ public class CompendiumWidget extends AbstractWidget {
     private void renderPaginator(GuiGraphics guiGraphics, int totalItems) {
         if (totalItems > ITEMS_PER_PAGE) {
             String pageText = (currentPage + 1) + " / " + (int) Math.ceil(totalItems / (double) ITEMS_PER_PAGE);
-            guiGraphics.drawCenteredString(Minecraft.getInstance().font, pageText, this.getX() + 70, this.getY() + 145, 0x404040);
-            if (currentPage > 0) guiGraphics.drawString(Minecraft.getInstance().font, "<", this.getX() + 30, this.getY() + 145, 0x404040, false);
-            if ((currentPage + 1) * ITEMS_PER_PAGE < totalItems) guiGraphics.drawString(Minecraft.getInstance().font, ">", this.getX() + 110, this.getY() + 145, 0x404040, false);
+            guiGraphics.drawCenteredString(Minecraft.getInstance().font, pageText, this.x + 70, this.y + 145, 0x404040);
+            if (currentPage > 0) guiGraphics.drawString(Minecraft.getInstance().font, "<", this.x + 30, this.y + 145, 0x404040, false);
+            if ((currentPage + 1) * ITEMS_PER_PAGE < totalItems) guiGraphics.drawString(Minecraft.getInstance().font, ">", this.x + 110, this.y + 145, 0x404040, false);
         }
     }
 
     private void renderItemDetails(GuiGraphics guiGraphics) {
         if (selectedItem.isEmpty()) return;
-        int rightX = this.getX() + 160;
-        int topY = this.getY() + 20;
+        int rightX = this.x + 160;
+        int topY = this.y + 20;
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(rightX + 60, topY + 30, 0);
@@ -292,10 +309,9 @@ public class CompendiumWidget extends AbstractWidget {
 
     private void renderElementDetails(GuiGraphics guiGraphics) {
         if (selectedElement == null) return;
-        int rightX = this.getX() + 160;
-        int topY = this.getY() + 20;
+        int rightX = this.x + 160;
+        int topY = this.y + 20;
 
-        // 大图标
         RenderSystem.enableBlend();
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(rightX + 60, topY + 30, 0);
@@ -304,23 +320,17 @@ public class CompendiumWidget extends AbstractWidget {
         guiGraphics.pose().popPose();
         RenderSystem.disableBlend();
 
-        // 名称
         Component name = Component.translatable(selectedElement.getDescriptionId());
         guiGraphics.drawCenteredString(Minecraft.getInstance().font, name, rightX + 60, topY + 55, 0x000000);
         guiGraphics.fill(rightX + 10, topY + 68, rightX + 110, topY + 69, 0xFF6B4E38);
         
-        // 简单描述
         guiGraphics.drawWordWrap(Minecraft.getInstance().font, Component.literal("This is a placeholder description for element " + name.getString()), rightX + 10, topY + 75, 100, 0x333333);
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (!this.visible || !this.active) return false;
-
-        if (toolbar.mouseClicked(mouseX, mouseY, button)) return true;
-
-        int startX = this.getX() + 15;
-        int startY = this.getY() + 30;
+        int startX = this.x + 25;
+        int startY = this.y + 20;
         
         int totalItems = (currentMode == DisplayMode.ITEMS) ? filteredItems.size() : filteredElements.size();
         int startIndex = currentPage * ITEMS_PER_PAGE;
@@ -333,7 +343,8 @@ public class CompendiumWidget extends AbstractWidget {
             int slotX = startX + col * 22;
             int slotY = startY + row * 22;
 
-            if (mouseX >= slotX && mouseX < slotX + 16 && mouseY >= slotY && mouseY < slotY + 16) {
+            // 扩大点击范围以匹配高亮背景 (从 slotX-2 到 slotX+18)
+            if (mouseX >= slotX - 2 && mouseX < slotX + 18 && mouseY >= slotY - 2 && mouseY < slotY + 18) {
                 if (currentMode == DisplayMode.ITEMS) {
                     this.selectedItem = filteredItems.get(i);
                 } else {
@@ -345,13 +356,13 @@ public class CompendiumWidget extends AbstractWidget {
         }
         
         // 翻页逻辑
-        if (mouseY >= this.getY() + 140 && mouseY <= this.getY() + 160) {
-            if (mouseX >= this.getX() + 20 && mouseX <= this.getX() + 50 && currentPage > 0) {
+        if (mouseY >= this.y + 140 && mouseY <= this.y + 160) {
+            if (mouseX >= this.x + 20 && mouseX <= this.x + 50 && currentPage > 0) {
                 currentPage--;
                 Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
             }
-            if (mouseX >= this.getX() + 90 && mouseX <= this.getX() + 120 && (currentPage + 1) * ITEMS_PER_PAGE < totalItems) {
+            if (mouseX >= this.x + 90 && mouseX <= this.x + 120 && (currentPage + 1) * ITEMS_PER_PAGE < totalItems) {
                 currentPage++;
                 Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
@@ -362,22 +373,32 @@ public class CompendiumWidget extends AbstractWidget {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (toolbar.keyPressed(keyCode, scanCode, modifiers)) {
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        return false;
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
-        if (toolbar.charTyped(codePoint, modifiers)) {
-            return true;
-        }
-        return super.charTyped(codePoint, modifiers);
+        return false;
     }
 
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        return false;
+    }
+
+    @Override
+    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        return false;
     }
 }

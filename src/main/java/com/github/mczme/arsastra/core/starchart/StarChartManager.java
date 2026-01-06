@@ -56,6 +56,10 @@ public class StarChartManager extends SimpleJsonResourceReloadListener {
         return Optional.ofNullable(charts.get(id));
     }
 
+    public java.util.Set<ResourceLocation> getStarChartIds() {
+        return charts.keySet();
+    }
+
     public Map<ResourceLocation, StarChart> getStarCharts() {
         return charts;
     }

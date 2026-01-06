@@ -55,6 +55,9 @@ public class AACommands {
                         .then(Commands.literal("unlock_all")
                                 .executes(AACommands::unlockAllKnowledge)
                         )
+                        .then(Commands.literal("unlock_starcharts")
+                                .executes(AACommands::unlockAllStarCharts)
+                        )
                 )
                 .then(Commands.literal("debug")
                         .then(Commands.literal("test_env")
@@ -96,18 +99,50 @@ public class AACommands {
             ServerPlayer player = context.getSource().getPlayerOrException();
             PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
             
-            int count = 0;
+            int itemCount = 0;
             for (ResourceLocation itemId : ElementProfileManager.getInstance().getAllProfiledItems()) {
                 if (knowledge.analyzeItem(BuiltInRegistries.ITEM.get(itemId))) {
-                    count++;
+                    itemCount++;
+                }
+            }
+
+            int chartCount = 0;
+            for (ResourceLocation chartId : StarChartManager.getInstance().getStarChartIds()) {
+                if (knowledge.visitStarChart(chartId)) {
+                    chartCount++;
                 }
             }
             
             // 同步到客户端
             PacketDistributor.sendToPlayer(player, new SyncKnowledgePayload(knowledge.serializeNBT(player.registryAccess())));
             
-            int finalCount = count;
-            context.getSource().sendSuccess(() -> Component.literal("Unlocked analysis knowledge for " + finalCount + " items."), true);
+            int finalItemCount = itemCount;
+            int finalChartCount = chartCount;
+            context.getSource().sendSuccess(() -> Component.literal(String.format("Unlocked knowledge: %d items, %d star charts.", finalItemCount, finalChartCount)), true);
+            return 1;
+        } catch (CommandSyntaxException e) {
+            context.getSource().sendFailure(Component.literal(e.getMessage()));
+            return 0;
+        }
+    }
+
+    private static int unlockAllStarCharts(CommandContext<CommandSourceStack> context) {
+        try {
+            ServerPlayer player = context.getSource().getPlayerOrException();
+            PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+            
+            int chartCount = 0;
+            for (ResourceLocation chartId : StarChartManager.getInstance().getStarChartIds()) {
+                if (knowledge.visitStarChart(chartId)) {
+                    chartCount++;
+                }
+            }
+            
+            // 同步到客户端
+            PacketDistributor.sendToPlayer(player, new SyncKnowledgePayload(knowledge.serializeNBT(player.registryAccess())));
+            
+            int finalChartCount = chartCount;
+            context.getSource().sendSuccess(() -> Component.literal(String.format("Unlocked %d star charts.", finalChartCount)), true);
             return 1;
         } catch (CommandSyntaxException e) {
             context.getSource().sendFailure(Component.literal(e.getMessage()));

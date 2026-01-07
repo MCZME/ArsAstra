@@ -13,22 +13,20 @@ in vec3 worldPos;
 out vec4 fragColor;
 
 void main() {
-    // 使用世界坐标计算 UV，以实现全局一致的平铺效果
+    // 1. Sample Hatching Texture
+    // Use worldPos for UVs so the texture stays fixed in screen space ("shower door" effect)
     vec2 hatchUV = (worldPos.xy + UVOffset) * UVScale * 0.01;
-    
-    // 采样排线纹理
     vec4 texColor = texture(Sampler0, hatchUV);
     
-    // 假设纹理是白底黑线
-    // 1.0 - lum 得到墨水浓度
+    // 2. Extract Ink Density
     float lum = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
     float inkDensity = 1.0 - lum;
-    
-    // 增强对比度
     inkDensity = smoothstep(0.1, 0.8, inkDensity);
     
+    // 3. Apply Colors and Alpha
+    // vertexColor.a comes from the Java mesh (1.0 at edge, 0.0 at center)
+    // This provides the "Soft SDF" effect via interpolation.
     vec4 finalColor = InkColor;
-    // 墨水色叠加顶点颜色 Alpha 和 Modulator Alpha
     finalColor.a *= inkDensity * vertexColor.a * ColorModulator.a;
     
     if (finalColor.a < 0.01) {

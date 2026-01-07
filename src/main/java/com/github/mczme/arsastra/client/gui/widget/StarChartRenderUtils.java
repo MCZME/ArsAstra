@@ -339,8 +339,18 @@ public class StarChartRenderUtils {
     }
 
     public static float getScaleCompensatedWidth(float targetPixelWidth, float currentScale) {
-        float safeScale = Math.max(0.01f, currentScale);
-        return Math.min(targetPixelWidth / safeScale, 50.0f);
+        // 基础逻辑：计算保持物理宽度所需的世界宽度
+        float worldWidth = targetPixelWidth / Math.max(0.01f, currentScale);
+        
+        // LOD 优化：当缩小时 (scale < 1.0)，让物理线条也变细一点，防止挤在一起
+        if (currentScale < 1.0f) {
+            // 线细系数：从 1.0 平滑降至 0.4 (在 0.1 缩放时)
+            float thinning = Math.max(0.4f, (float)Math.pow(currentScale, 0.4)); 
+            worldWidth *= thinning;
+        }
+        
+        // 最终限制：不允许线条在世界空间中超过 25 个单位 (防止遮挡环境本身)
+        return Math.min(worldWidth, 25.0f);
     }
 
     public enum LODLevel { MACRO, NORMAL, DETAIL }

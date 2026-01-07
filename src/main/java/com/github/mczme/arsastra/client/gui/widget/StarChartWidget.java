@@ -105,6 +105,8 @@ public class StarChartWidget extends AbstractWidget {
                 basePoints.add(new Vector2f(rect.min().x, rect.max().y));
             } else if (shape instanceof Polygon poly) {
                 basePoints.addAll(poly.vertices());
+            } else if (shape instanceof com.github.mczme.arsastra.core.starchart.shape.ExteriorPolygon extPoly) {
+                basePoints.addAll(extPoly.vertices());
             }
 
             return subdivideAndJitter(basePoints, 10.0f, 1.5f);
@@ -180,7 +182,7 @@ public class StarChartWidget extends AbstractWidget {
         RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
         
-        guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRenderUtils.Palette.INK);
+guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRenderUtils.Palette.INK);
         guiGraphics.disableScissor();
     }
 
@@ -198,15 +200,20 @@ public class StarChartWidget extends AbstractWidget {
             // 使用淡墨色填充 (Alpha ~180)
             int inkColor = (StarChartRenderUtils.Palette.INK & 0x00FFFFFF) | (180 << 24);
             // UV Scale 设为 0.5，保持纹理在世界空间中的大小固定
-            // 这样放大时能看清排线笔触，缩小时排线变密
             float textureDensity = 0.5f; 
             
-            // 1. 绘制内部全填充排线 (使用 Stencil 奇偶规则支持凹多边形)
-            StarChartRenderUtils.drawHatchedPolygonFilled(guiGraphics.pose(), handDrawn, 
-                inkColor, textureDensity, -offsetX, -offsetY);
+            if (env.shape() instanceof com.github.mczme.arsastra.core.starchart.shape.ExteriorPolygon) {
+                // ExteriorPolygon 使用墨水晕染效果
+                StarChartRenderUtils.drawInkWashPolygonHollow(guiGraphics.pose(), handDrawn, 
+                    inkColor, -offsetX, -offsetY);
+            } else {
+                // 普通多边形保留排线效果
+                StarChartRenderUtils.drawHatchedPolygonFilled(guiGraphics.pose(), handDrawn, 
+                    inkColor, textureDensity, -offsetX, -offsetY);
+            }
 
-            // 2. 绘制手绘轮廓线 
-                StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), handDrawn, StarChartRenderUtils.Palette.INK, lineWidth);
+            // 绘制手绘轮廓线 
+            StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), handDrawn, StarChartRenderUtils.Palette.INK, lineWidth);
         }
     }
 
@@ -221,13 +228,11 @@ public class StarChartWidget extends AbstractWidget {
             // 使用 Celestial Field Shader 渲染动态效果
             StarChartRenderUtils.drawCelestialField(guiGraphics.pose(), center, radius, effect.getColor());
 
-            if (this.scale > 0.2f) {
-                TextureAtlasSprite sprite = Minecraft.getInstance()
-                        .getMobEffectTextures().get(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
-                if (sprite != null) {
-                    float iconSize = 24.0f;
-                    StarChartRenderUtils.drawMonochromeIcon(guiGraphics.pose(), sprite, center, iconSize, StarChartRenderUtils.Palette.INK);
-                }
+            TextureAtlasSprite sprite = Minecraft.getInstance()
+                    .getMobEffectTextures().get(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
+            if (sprite != null) {
+                float iconSize = 24.0f;
+                StarChartRenderUtils.drawMonochromeIcon(guiGraphics.pose(), sprite, center, iconSize, StarChartRenderUtils.Palette.INK);
             }
         }
     }
@@ -337,3 +342,4 @@ public class StarChartWidget extends AbstractWidget {
     @Override
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {}
 }
+

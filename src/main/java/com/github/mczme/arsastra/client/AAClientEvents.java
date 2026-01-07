@@ -19,6 +19,8 @@ public class AAClientEvents {
 
     private static ShaderInstance monochromeShader;
     private static ShaderInstance davinciHatchingShader;
+    private static ShaderInstance celestialFieldShader;
+    private static ShaderInstance inkWashShader;
 
     public static ShaderInstance getMonochromeShader() {
         return monochromeShader;
@@ -26,6 +28,14 @@ public class AAClientEvents {
 
     public static ShaderInstance getDavinciHatchingShader() {
         return davinciHatchingShader;
+    }
+
+    public static ShaderInstance getCelestialFieldShader() {
+        return celestialFieldShader;
+    }
+
+    public static ShaderInstance getInkWashShader() {
+        return inkWashShader;
     }
 
     @SubscribeEvent
@@ -43,6 +53,16 @@ public class AAClientEvents {
         event.registerShader(new ShaderInstance(event.getResourceProvider(), ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "davinci_hatching"), DefaultVertexFormat.POSITION_TEX_COLOR),
                 shaderInstance -> {
                     davinciHatchingShader = shaderInstance;
+                });
+
+        event.registerShader(new ShaderInstance(event.getResourceProvider(), ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "celestial_field"), DefaultVertexFormat.POSITION_TEX_COLOR),
+                shaderInstance -> {
+                    celestialFieldShader = shaderInstance;
+                });
+
+        event.registerShader(new ShaderInstance(event.getResourceProvider(), ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "ink_wash"), DefaultVertexFormat.POSITION_COLOR),
+                shaderInstance -> {
+                    inkWashShader = shaderInstance;
                 });
     }
 }

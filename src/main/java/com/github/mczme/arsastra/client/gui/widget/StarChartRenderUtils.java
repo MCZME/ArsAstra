@@ -41,10 +41,6 @@ public class StarChartRenderUtils {
         public static final int NATURE = MALACHITE;
     }
 
-    public enum LODLevel {
-        MACRO, NORMAL, DETAIL
-    }
-
     // --- 纹理与视差层渲染 ---
     public static void drawParallaxLayer(PoseStack poseStack, float x, float y, float w, float h, float offsetX,
             float offsetY, float parallax, float textureSize, ResourceLocation texture, boolean multiply) {
@@ -242,6 +238,164 @@ public class StarChartRenderUtils {
         GL11.glDisable(GL11.GL_STENCIL_TEST);
     }
 
+    /**
+     * 绘制镂空排线（填充多边形外部，保留内部空白）
+     * 适用于 ExteriorPolygon
+     */
+    @SuppressWarnings("null")
+    public static void drawHatchedPolygonHollow(PoseStack poseStack, List<Vector2f> points, int color, float uvScale,
+            float offsetX, float offsetY) {
+        if (points.size() < 3)
+            return;
+
+        // 1. 准备 Stencil 环境
+        Minecraft.getInstance().getMainRenderTarget().enableStencil();
+
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT); 
+        GL11.glStencilMask(0xFF); 
+
+        // 2. 绘制 Mask (多边形内部 Stencil -> Non-Zero)
+        RenderSystem.colorMask(false, false, false, false);
+        RenderSystem.depthMask(false);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 0, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_INVERT); 
+
+        RenderSystem.setShader(GameRenderer::getPositionShader);
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION);
+        Matrix4f matrix = poseStack.last().pose();
+
+        buffer.addVertex(matrix, points.get(0).x, points.get(0).y, 0);
+        for (int i = 1; i < points.size(); i++) {
+            buffer.addVertex(matrix, points.get(i).x, points.get(i).y, 0);
+        }
+        buffer.addVertex(matrix, points.get(1).x, points.get(1).y, 0);
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
+
+        // 3. 绘制填充 (仅在 Stencil == 0 的区域，即外部)
+        RenderSystem.colorMask(true, true, true, true);
+        RenderSystem.depthMask(true);
+        // 使用 EQUAL 0，绘制所有未被 Mask 覆盖的区域
+        GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+
+        // 绘制巨型矩形以覆盖“无限”外部
+        float big = 100000.0f; 
+
+        ShaderInstance shader = AAClientEvents.getDavinciHatchingShader();
+        if (shader != null) {
+            RenderSystem.setShader(() -> shader);
+            RenderSystem.setShaderTexture(0, HATCHING_TEXTURE);
+
+            if (shader.getUniform("InkColor") != null) {
+                float r = (color >> 16 & 255) / 255.0f;
+                float g = (color >> 8 & 255) / 255.0f;
+                float b = (color & 255) / 255.0f;
+                float a = (color >> 24 & 255) / 255.0f;
+                shader.getUniform("InkColor").set(r, g, b, a);
+            }
+            if (shader.getUniform("UVScale") != null)
+                shader.getUniform("UVScale").set(uvScale);
+            if (shader.getUniform("UVOffset") != null)
+                shader.getUniform("UVOffset").set(offsetX, offsetY);
+
+            RenderSystem.enableBlend();
+            RenderSystem.blendFunc(GlStateManager.SourceFactor.DST_COLOR, GlStateManager.DestFactor.ZERO);
+
+            buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+
+            buffer.addVertex(matrix, -big, big, 0).setUv(0, 1).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, big, big, 0).setUv(1, 1).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, big, -big, 0).setUv(1, 0).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, -big, -big, 0).setUv(0, 0).setColor(1f, 1f, 1f, 1f);
+
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
+            RenderSystem.defaultBlendFunc();
+        }
+
+        // 4. 清理状态
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
+    }
+
+    /**
+     * 绘制镂空墨水晕染（填充多边形外部，保留内部空白）
+     * 适用于 ExteriorPolygon
+     */
+    @SuppressWarnings("null")
+    public static void drawInkWashPolygonHollow(PoseStack poseStack, List<Vector2f> points, int color, 
+            float offsetX, float offsetY) {
+        if (points.size() < 3)
+            return;
+
+        // 1. 准备 Stencil 环境
+        Minecraft.getInstance().getMainRenderTarget().enableStencil();
+
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT); 
+        GL11.glStencilMask(0xFF); 
+
+        // 2. 绘制 Mask (多边形内部 Stencil -> Non-Zero)
+        RenderSystem.colorMask(false, false, false, false);
+        RenderSystem.depthMask(false);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 0, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_INVERT); 
+
+        RenderSystem.setShader(GameRenderer::getPositionShader);
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION);
+        Matrix4f matrix = poseStack.last().pose();
+
+        buffer.addVertex(matrix, points.get(0).x, points.get(0).y, 0);
+        for (int i = 1; i < points.size(); i++) {
+            buffer.addVertex(matrix, points.get(i).x, points.get(i).y, 0);
+        }
+        buffer.addVertex(matrix, points.get(1).x, points.get(1).y, 0);
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
+
+        // 3. 绘制填充 (仅在 Stencil == 0 的区域，即外部)
+        RenderSystem.colorMask(true, true, true, true);
+        RenderSystem.depthMask(true);
+        GL11.glStencilFunc(GL11.GL_EQUAL, 0, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+
+        // 调用 Ink Wash Shader
+        ShaderInstance shader = AAClientEvents.getInkWashShader();
+        if (shader != null) {
+            RenderSystem.setShader(() -> shader);
+
+            if (shader.getUniform("InkColor") != null) {
+                float r = (color >> 16 & 255) / 255.0f;
+                float g = (color >> 8 & 255) / 255.0f;
+                float b = (color & 255) / 255.0f;
+                float a = (color >> 24 & 255) / 255.0f;
+                if (a < 0.01f) a = 1.0f; 
+                shader.getUniform("InkColor").set(r, g, b, a);
+            }
+            if (shader.getUniform("Time") != null) {
+                shader.getUniform("Time").set((System.currentTimeMillis() % 100000) / 1000.0f);
+            }
+            if (shader.getUniform("UVOffset") != null) {
+                shader.getUniform("UVOffset").set(offsetX, offsetY);
+            }
+
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+
+            float big = 100000.0f; 
+            buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR);
+            buffer.addVertex(matrix, -big, big, 0).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, big, big, 0).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, big, -big, 0).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, -big, -big, 0).setColor(1f, 1f, 1f, 1f);
+
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
+        }
+
+        // 4. 清理状态
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
+    }
+
     public static float getScaleCompensatedWidth(float targetPixelWidth, float currentScale) {
         // 基础逻辑：计算保持物理宽度所需的世界宽度
         float worldWidth = targetPixelWidth / Math.max(0.01f, currentScale);
@@ -257,15 +411,7 @@ public class StarChartRenderUtils {
         return Math.min(worldWidth, 25.0f);
     }
 
-    public static LODLevel getLODLevel(float scale) {
-        if (scale < 0.2f)
-            return LODLevel.MACRO;
-        if (scale < 1.5f)
-            return LODLevel.NORMAL;
-        return LODLevel.DETAIL;
-    }
-
-    // --- 特效星域渲染 (Shader) ---
+    // --- 效果星域渲染 (Shader) ---
     @SuppressWarnings("null")
     public static void drawCelestialField(PoseStack poseStack, Vector2f center, float radius, int color) {
         ShaderInstance shader = AAClientEvents.getCelestialFieldShader();

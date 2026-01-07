@@ -11,21 +11,20 @@ import com.github.mczme.arsastra.core.starchart.shape.Rectangle;
 import com.github.mczme.arsastra.core.starchart.shape.Shape;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
-import org.joml.Matrix4f;
 import org.joml.Vector2f;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @OnlyIn(Dist.CLIENT)
@@ -33,7 +32,12 @@ public class StarChartWidget extends AbstractWidget {
     protected StarChart starChart;
     protected PlayerKnowledge knowledge;
     
-    // 推演路径数据
+    // 渲染状态
+    private static final int STAR_COUNT = 200;
+    private final List<Vector2f> backgroundStars = new ArrayList<>();
+    private final long seed = 42L;
+    
+    // 推演路径
     protected List<Vector2f> predictionPath;
     protected float predictedStability;
     
@@ -44,13 +48,28 @@ public class StarChartWidget extends AbstractWidget {
     protected boolean isDragging = false;
     protected double lastMouseX, lastMouseY;
 
-    // 缩放限制
+    // 交互状态
+    private EffectField hoveredField = null;
+
     private static final float MIN_SCALE = 0.05f;
     private static final float MAX_SCALE = 5.0f;
 
     public StarChartWidget(int x, int y, int width, int height, Component message) {
-        super(x, y, width, height, message);
+        super(x, y, width, height, Component.empty()); // AbstractWidget requires a Message
+        generateBackgroundStars();
     }
+
+    private void generateBackgroundStars() {
+        java.util.Random random = new java.util.Random(seed);
+        for (int i = 0; i < STAR_COUNT; i++) {
+            backgroundStars.add(new Vector2f(
+                (random.nextFloat() - 0.5f) * 4000,
+                (random.nextFloat() - 0.5f) * 4000
+            ));
+        }
+    }
+
+    // --- 数据设置 ---
 
     public void setStarChart(StarChart starChart) {
         this.starChart = starChart;
@@ -58,7 +77,6 @@ public class StarChartWidget extends AbstractWidget {
 
     public void setKnowledge(PlayerKnowledge knowledge) {
         this.knowledge = knowledge;
-        // 如果当前没有设置星图，尝试从玩家知识库中加载第一个
         if (this.starChart == null && knowledge != null) {
             java.util.Set<ResourceLocation> visited = knowledge.getVisitedStarCharts();
             if (!visited.isEmpty()) {
@@ -75,209 +93,255 @@ public class StarChartWidget extends AbstractWidget {
         this.predictedStability = stability;
     }
 
+    // --- 核心渲染流程 ---
+
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // 1. 剪裁测试，防止绘制到组件外
-        guiGraphics.enableScissor(getX(), getY(), getX() + getWidth(), getY() + getHeight());
-        
-        // 2. 绘制深色背景
-        guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 0xFF08080A);
+        updateHoveredState(mouseX, mouseY);
 
-        // 开启混合并设置正确的混合函数，这是透明显示的关键
+        // 1. 设置裁剪
+        guiGraphics.enableScissor(getX(), getY(), getX() + getWidth(), getY() + getHeight());
+
+        // --- L1: 底层 (纸张层) ---
+        // 视差系数 0.1，模拟最远的背景
+        StarChartRenderUtils.drawParallaxLayer(guiGraphics.pose(), getX(), getY(), getWidth(), getHeight(),
+            offsetX, offsetY, 0.1f, 512.0f, StarChartRenderUtils.PARCHMENT_TEXTURE, false);
+
+        // --- L2: 中层 (背景装饰星) ---
+        
+        PoseStack poseStack = guiGraphics.pose();
+        poseStack.pushPose();
+        // L2 视差变换 (系数 0.4)
+        float parallaxL2 = 0.4f;
+        float centerX = getX() + getWidth() / 2.0f;
+        float centerY = getY() + getHeight() / 2.0f;
+        
+        poseStack.translate(centerX, centerY, 0);
+        poseStack.translate(offsetX * parallaxL2, offsetY * parallaxL2, 0);
+        
+        renderBackgroundStars(guiGraphics, scale);
+        poseStack.popPose();
+
+        // --- L3: 顶层 (核心星图层) ---
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
         RenderSystem.disableDepthTest();
+        RenderSystem.disableCull();
 
-        PoseStack poseStack = guiGraphics.pose();
+        // 3a. Stencil Mask Pass
         poseStack.pushPose();
-        
-        // 3. 应用视口变换
-        poseStack.translate(getX() + getWidth() / 2.0f, getY() + getHeight() / 2.0f, 0);
+        poseStack.translate(centerX, centerY, 0);
         poseStack.translate(offsetX, offsetY, 0);
         poseStack.scale(scale, scale, 1.0f);
 
-        // 4. 绘制参考轴
-        renderAxes(guiGraphics);
-
-        // 5. 绘制星图环境
         if (starChart != null) {
-            renderStarChart(guiGraphics);
+            StarChartRenderUtils.beginStencilMask();
+            renderEnvironmentMasks(guiGraphics);
+            StarChartRenderUtils.applyStencilMask();
+
+            // 3b. Global Hatching Pass
+            poseStack.popPose(); // 暂时回到屏幕空间
+            
+            // 计算 LOD 和排线透明度
+            StarChartRenderUtils.LODLevel lod = StarChartRenderUtils.getLODLevel(scale);
+            int hatchingColor = StarChartRenderUtils.Palette.INK;
+            
+            float hatchingScale;
+            
+            if (scale < 0.1f) {
+                hatchingScale = 1.0f - scale;
+            } else if (scale < 1.0f) {
+                hatchingScale = scale * 0.2f + 0.88f;
+            } else {
+                hatchingScale = 1.08f - scale * 0.3f;
+            }
+
+            if ((hatchingColor >> 24 & 255) > 5) {
+                StarChartRenderUtils.drawGlobalHatching(guiGraphics.pose(), getX(), getY(), getWidth(), getHeight(), 
+                    hatchingScale, offsetX, offsetY, hatchingColor);
+            }
+            
+            StarChartRenderUtils.endStencilMask();
+            
+            // 重新应用 L3 变换
+            poseStack.pushPose();
+            poseStack.translate(centerX, centerY, 0);
+            poseStack.translate(offsetX, offsetY, 0);
+            poseStack.scale(scale, scale, 1.0f);
+
+            // 3c. Outlines & Icons Pass
+            renderEnvironments(guiGraphics);
+            renderEffectFields(guiGraphics);
         }
 
-        // 6. 绘制推演路径
         if (predictionPath != null && !predictionPath.isEmpty()) {
             renderPredictionPath(guiGraphics);
         }
 
         poseStack.popPose();
         
+        // 5. 恢复状态和绘制边框
+        RenderSystem.enableCull();
         RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
         
-        // 7. 绘制边框
-        guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), 0xFF4A3B30);
-
+        guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRenderUtils.Palette.INK);
         guiGraphics.disableScissor();
     }
 
-    private void renderAxes(GuiGraphics guiGraphics) {
-        int axisColor = 0x22FFFFFF;
-        int length = 2000;
-        // 绘制十字参考线
-        guiGraphics.fill(-length, 0, length, 1, axisColor);
-        guiGraphics.fill(0, -length, 1, length, axisColor);
-    }
+    // --- 分层渲染逻辑 ---
 
-    private void renderStarChart(GuiGraphics guiGraphics) {
-        // 1. 渲染环境
+    private void renderEnvironmentMasks(GuiGraphics guiGraphics) {
         for (Environment env : starChart.environments()) {
-            renderEnvironment(guiGraphics, env);
-        }
-        
-        // 2. 渲染效果星域
-        for (EffectField field : starChart.fields()) {
-            renderEffectField(guiGraphics, field);
-        }
-    }
-
-    private void renderEffectField(GuiGraphics guiGraphics, EffectField field) {
-        net.minecraft.world.effect.MobEffect effect = field.getEffect();
-        if (effect == null) return;
-
-        int color = effect.getColor();
-        float radius = field.getRadius();
-        Vector2f center = field.center();
-
-        // 1. 绘制效果范围圆 (半透明实心)
-        // Alpha 设为 0.3 (0x4C) 增加点辨识度
-        int fieldColor = (0x4C << 24) | (color & 0x00FFFFFF);
-        drawCircle(guiGraphics, center, radius, fieldColor);
-
-        // 2. 绘制效果图标 (仅在缩放倍率足够大时显示)
-        if (this.scale > 0.2f) {
-            TextureAtlasSprite sprite = Minecraft.getInstance()
-                    .getMobEffectTextures().get(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
-            
-            if (sprite != null) {
-                PoseStack poseStack = guiGraphics.pose();
-                poseStack.pushPose();
-                poseStack.translate(center.x, center.y, 0);
-                // 增大图标大小至 24x24
-                float iconSize = 24.0f;
-                // 设置图标渲染颜色为纯白
-                RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-                guiGraphics.blit((int)(-iconSize/2), (int)(-iconSize/2), 0, (int)iconSize, (int)iconSize, sprite);
-                poseStack.popPose();
+            Shape shape = env.shape();
+            if (shape instanceof Circle circle) {
+                StarChartRenderUtils.drawSolidCircle(guiGraphics.pose(), circle.center(), circle.radius());
+            } else if (shape instanceof Rectangle rect) {
+                List<Vector2f> poly = Arrays.asList(
+                    new Vector2f(rect.min().x, rect.min().y), new Vector2f(rect.max().x, rect.min().y),
+                    new Vector2f(rect.max().x, rect.max().y), new Vector2f(rect.min().x, rect.max().y)
+                );
+                StarChartRenderUtils.drawSolidPolygon(guiGraphics.pose(), poly);
+            } else if (shape instanceof Polygon poly) {
+                StarChartRenderUtils.drawSolidPolygon(guiGraphics.pose(), poly.vertices());
             }
         }
     }
 
-    private void renderEnvironment(GuiGraphics guiGraphics, Environment env) {
-        Shape shape = env.shape();
-        // 基础颜色方案
-        int color = 0x445588FF; 
-        
-        String typeId = env.getType().getDescriptionId();
-        if (typeId.contains("chaos")) color = 0x44FF55FF;
-        else if (typeId.contains("entropy")) color = 0x4455FF55;
+    private void renderBackgroundStars(GuiGraphics guiGraphics, float currentScale) {
+        // TODO: 重新实现符合达芬奇风格的背景星渲染
+    }
 
-        if (shape instanceof Circle circle) {
-            drawCircle(guiGraphics, circle.center(), circle.radius(), color);
-        } else if (shape instanceof Rectangle rect) {
-            drawRectangle(guiGraphics, rect.min(), rect.max(), color);
-        } else if (shape instanceof Polygon poly) {
-            drawPolygon(guiGraphics, poly.vertices(), color);
+    private void renderEnvironments(GuiGraphics guiGraphics) {
+        float lineWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.5f, scale);
+        StarChartRenderUtils.LODLevel lod = StarChartRenderUtils.getLODLevel(scale);
+        
+        // 宏观视角：墨块显现
+        float blockAlpha = 0.0f;
+        if (lod == StarChartRenderUtils.LODLevel.MACRO) {
+            blockAlpha = 1.0f - Math.max(0.0f, (scale - 0.05f) / (0.2f - 0.05f));
+        }
+
+        for (Environment env : starChart.environments()) {
+            Shape shape = env.shape();
+            String typeId = env.getType().getDescriptionId();
+            
+            // 根据环境类型选择古典颜色
+            int tintColor = StarChartRenderUtils.Palette.INDIGO; // 默认：靛青 (秩序/奥法)
+            if (typeId.contains("chaos") || typeId.contains("crimson")) {
+                tintColor = StarChartRenderUtils.Palette.CINNABAR; // 朱砂 (混沌/血腥)
+            } else if (typeId.contains("nature") || typeId.contains("growth")) {
+                tintColor = StarChartRenderUtils.Palette.MALACHITE; // 孔雀石绿 (自然)
+            }
+
+            // 2. 绘制实心墨块 (LOD: Macro)
+            if (blockAlpha > 0.05f) {
+                int fillColor = (StarChartRenderUtils.Palette.INK & 0x00FFFFFF) | ((int)(blockAlpha * 180) << 24);
+                RenderSystem.setShaderColor(1f, 1f, 1f, blockAlpha * 0.7f);
+                // (此处省略重复的绘制逻辑，由于 blockAlpha 主要用于极远距离，我们直接复用上面的 shapeDrawer 思路)
+                RenderSystem.setShaderColor(
+                    ((fillColor >> 16) & 255) / 255f, 
+                    ((fillColor >> 8) & 255) / 255f, 
+                    (fillColor & 255) / 255f, 
+                    blockAlpha * 0.7f);
+                
+                if (shape instanceof Circle circle) StarChartRenderUtils.drawSolidCircle(guiGraphics.pose(), circle.center(), circle.radius());
+                else if (shape instanceof Rectangle rect) {
+                    List<Vector2f> poly = Arrays.asList(new Vector2f(rect.min().x, rect.min().y), new Vector2f(rect.max().x, rect.min().y), new Vector2f(rect.max().x, rect.max().y), new Vector2f(rect.min().x, rect.max().y));
+                    StarChartRenderUtils.drawSolidPolygon(guiGraphics.pose(), poly);
+                }
+                else if (shape instanceof Polygon poly) StarChartRenderUtils.drawSolidPolygon(guiGraphics.pose(), poly.vertices());
+                
+                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
+            }
+
+            // 3. 绘制轮廓线 (LOD: Normal/Detail)
+            if (lod != StarChartRenderUtils.LODLevel.MACRO || scale > 0.15f) {
+                int outlineColor = StarChartRenderUtils.Palette.INK;
+                if (shape instanceof Circle circle) {
+                    StarChartRenderUtils.drawDynamicCircle(guiGraphics.pose(), circle.center(), circle.radius(), outlineColor, lineWidth);
+                } else if (shape instanceof Rectangle rect) {
+                    List<Vector2f> poly = Arrays.asList(
+                        new Vector2f(rect.min().x, rect.min().y), new Vector2f(rect.max().x, rect.min().y),
+                        new Vector2f(rect.max().x, rect.max().y), new Vector2f(rect.min().x, rect.max().y)
+                    );
+                    StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), poly, outlineColor, lineWidth);
+                } else if (shape instanceof Polygon poly) {
+                    StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), poly.vertices(), outlineColor, lineWidth);
+                }
+            }
+        }
+    }
+
+    private void renderEffectFields(GuiGraphics guiGraphics) {
+        float lineWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.0f, scale);
+        
+        for (EffectField field : starChart.fields()) {
+            net.minecraft.world.effect.MobEffect effect = field.getEffect();
+            if (effect == null) continue;
+
+            Vector2f center = field.center();
+            float radius = field.getRadius();
+
+            // 1. 绘制达芬奇风格测绘圆 (主墨色)
+            StarChartRenderUtils.drawSurveyCircle(guiGraphics.pose(), center, radius, StarChartRenderUtils.Palette.INK, lineWidth);
+
+            // 2. 悬停反馈：增加一圈朱砂色的强调草稿环
+            if (hoveredField == field) {
+                StarChartRenderUtils.drawDynamicCircle(guiGraphics.pose(), center, radius + 3 / scale, StarChartRenderUtils.Palette.CINNABAR, lineWidth * 0.8f);
+            }
+
+            // 3. 绘制图标 (仅在非微缩视角显示)
+            if (this.scale > 0.2f) {
+                TextureAtlasSprite sprite = Minecraft.getInstance()
+                        .getMobEffectTextures().get(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
+                if (sprite != null) {
+                    float iconSize = 24.0f; // 保持世界单位大小
+                    StarChartRenderUtils.drawMonochromeIcon(guiGraphics.pose(), sprite, center, iconSize, StarChartRenderUtils.Palette.INK);
+                }
+            }
         }
     }
 
     private void renderPredictionPath(GuiGraphics guiGraphics) {
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
+        float baseWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.5f, scale);
         
-        Matrix4f matrix = guiGraphics.pose().last().pose();
-
-        for (Vector2f p : predictionPath) {
-            buffer.addVertex(matrix, p.x, p.y, 0).setColor(1.0f, 1.0f, 1.0f, 0.8f);
-        }
+        // 绘制路径
+        StarChartRenderUtils.drawPath(guiGraphics.pose(), predictionPath, baseWidth, 0xE6212A54);
         
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        RenderSystem.lineWidth(2.0f);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
+        // 绘制游标
+        Vector2f lastPoint = predictionPath.get(predictionPath.size() - 1);
+        renderDraftingCursor(guiGraphics, lastPoint);
     }
 
-    // 几何绘制辅助方法
-    
-    private void drawCircle(GuiGraphics guiGraphics, Vector2f center, float radius, int color) {
-        int segments = 32;
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
-        
-        Matrix4f matrix = guiGraphics.pose().last().pose();
-        float r = (color >> 16 & 255) / 255.0f;
-        float g = (color >> 8 & 255) / 255.0f;
-        float b = (color & 255) / 255.0f;
-        float a = (color >> 24 & 255) / 255.0f;
+    private void renderDraftingCursor(GuiGraphics guiGraphics, Vector2f pos) {
+        PoseStack poseStack = guiGraphics.pose();
+        poseStack.pushPose();
+        poseStack.translate(pos.x, pos.y, 0);
+        float cursorSize = 4.0f / scale;
+        cursorSize = Math.max(2.0f, Math.min(8.0f, cursorSize));
 
-        RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
-
-        buffer.addVertex(matrix, center.x, center.y, 0).setColor(r, g, b, a);
-        for (int i = 0; i <= segments; i++) {
-            float angle = (float) (i * 2 * Math.PI / segments);
-            buffer.addVertex(matrix, center.x + (float)Math.cos(angle) * radius, center.y + (float)Math.sin(angle) * radius, 0)
-                  .setColor(r, g, b, a);
-        }
-        
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-        
-        // 绘制边缘描边
-        BufferBuilder lineBuffer = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        for (int i = 0; i <= segments; i++) {
-            float angle = (float) (i * 2 * Math.PI / segments);
-            lineBuffer.addVertex(matrix, center.x + (float)Math.cos(angle) * radius, center.y + (float)Math.sin(angle) * radius, 0)
-                      .setColor(r, g, b, Math.min(1.0f, a * 2.0f));
-        }
-        BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
+        int color = 0xCC212A54;
+        guiGraphics.fill(-(int)cursorSize, 0, (int)cursorSize, 1, color);
+        guiGraphics.fill(0, -(int)cursorSize, 1, (int)cursorSize, color);
+        poseStack.popPose();
     }
 
-    private void drawRectangle(GuiGraphics guiGraphics, Vector2f min, Vector2f max, int color) {
-        guiGraphics.fill((int)min.x, (int)min.y, (int)max.x, (int)max.y, color);
-        // 绘制边框
-        guiGraphics.renderOutline((int)min.x, (int)min.y, (int)(max.x - min.x), (int)(max.y - min.y), color | 0xFF000000);
+    // --- 交互与工具 ---
+
+    private void updateHoveredState(int mouseX, int mouseY) {
+        hoveredField = null;
+        if (starChart == null || !isMouseOver(mouseX, mouseY)) return;
+
+        Vector2f worldPos = screenToWorld(mouseX, mouseY);
+        for (EffectField field : starChart.fields()) {
+            if (worldPos.distance(field.center()) <= field.getRadius()) {
+                hoveredField = field;
+                break;
+            }
+        }
     }
 
-    private void drawPolygon(GuiGraphics guiGraphics, List<Vector2f> vertices, int color) {
-        if (vertices.size() < 3) return;
-        
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION_COLOR);
-        Matrix4f matrix = guiGraphics.pose().last().pose();
-        
-        float r = (color >> 16 & 255) / 255.0f;
-        float g = (color >> 8 & 255) / 255.0f;
-        float b = (color & 255) / 255.0f;
-        float a = (color >> 24 & 255) / 255.0f;
-
-        for (Vector2f v : vertices) {
-            buffer.addVertex(matrix, v.x, v.y, 0).setColor(r, g, b, a);
-        }
-        
-        RenderSystem.enableBlend();
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-        
-        // 描边
-        BufferBuilder lineBuffer = tesselator.begin(VertexFormat.Mode.DEBUG_LINE_STRIP, DefaultVertexFormat.POSITION_COLOR);
-        for (Vector2f v : vertices) {
-            lineBuffer.addVertex(matrix, v.x, v.y, 0).setColor(r, g, b, 0.8f);
-        }
-        // 回到起点
-        lineBuffer.addVertex(matrix, vertices.get(0).x, vertices.get(0).y, 0).setColor(r, g, b, 0.8f);
-        BufferUploader.drawWithShader(lineBuffer.buildOrThrow());
-        RenderSystem.disableBlend();
-    }
-
-    // 交互逻辑
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (this.isMouseOver(mouseX, mouseY) && button == 0) {
@@ -292,22 +356,17 @@ public class StarChartWidget extends AbstractWidget {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (button == 0) {
-            this.isDragging = false;
-        }
+        if (button == 0) this.isDragging = false;
         return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (this.isDragging) {
-            // 手动计算 delta，不依赖 dragX/dragY 参数
             double dx = mouseX - this.lastMouseX;
             double dy = mouseY - this.lastMouseY;
-            
             this.offsetX += (float) dx;
             this.offsetY += (float) dy;
-            
             this.lastMouseX = mouseX;
             this.lastMouseY = mouseY;
             return true;
@@ -328,18 +387,15 @@ public class StarChartWidget extends AbstractWidget {
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
-    /**
-     * 将屏幕坐标转换为世界坐标 (逻辑坐标)
-     */
     public Vector2f screenToWorld(double mouseX, double mouseY) {
         float centerX = getX() + getWidth() / 2.0f;
         float centerY = getY() + getHeight() / 2.0f;
-        float relX = (float) (mouseX - centerX - offsetX) / scale;
-        float relY = (float) (mouseY - centerY - offsetY) / scale;
-        return new Vector2f(relX, relY);
+        return new Vector2f(
+            (float) (mouseX - centerX - offsetX) / scale,
+            (float) (mouseY - centerY - offsetY) / scale
+        );
     }
 
     @Override
-    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
-    }
+    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {}
 }

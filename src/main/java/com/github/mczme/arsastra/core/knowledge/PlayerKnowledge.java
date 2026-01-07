@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,6 +25,10 @@ public class PlayerKnowledge implements INBTSerializable<CompoundTag> {
 
     public boolean hasVisitedStarChart(ResourceLocation starChartId) {
         return visitedStarCharts.contains(starChartId);
+    }
+
+    public Set<ResourceLocation> getVisitedStarCharts() {
+        return Collections.unmodifiableSet(visitedStarCharts);
     }
 
     public boolean visitStarChart(ResourceLocation starChartId) {

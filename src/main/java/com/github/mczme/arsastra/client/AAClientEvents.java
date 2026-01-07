@@ -18,9 +18,14 @@ import java.io.IOException;
 public class AAClientEvents {
 
     private static ShaderInstance monochromeShader;
+    private static ShaderInstance davinciHatchingShader;
 
     public static ShaderInstance getMonochromeShader() {
         return monochromeShader;
+    }
+
+    public static ShaderInstance getDavinciHatchingShader() {
+        return davinciHatchingShader;
     }
 
     @SubscribeEvent
@@ -33,6 +38,11 @@ public class AAClientEvents {
         event.registerShader(new ShaderInstance(event.getResourceProvider(), ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "monochrome"), DefaultVertexFormat.POSITION_TEX_COLOR),
                 shaderInstance -> {
                     monochromeShader = shaderInstance;
+                });
+
+        event.registerShader(new ShaderInstance(event.getResourceProvider(), ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "davinci_hatching"), DefaultVertexFormat.POSITION_TEX_COLOR),
+                shaderInstance -> {
+                    davinciHatchingShader = shaderInstance;
                 });
     }
 }

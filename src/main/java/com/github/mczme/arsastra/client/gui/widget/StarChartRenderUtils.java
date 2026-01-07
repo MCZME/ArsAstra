@@ -14,12 +14,11 @@ import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.lwjgl.opengl.GL11;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
  * 星图渲染工具类
- * 负责处理底层的几何生成、Tesselator 操作以及达芬奇手绘风格的绘制。
+ * 负责处理底层的几何生成、Tesselator 操作以及手绘风格的绘制。
  */
 public class StarChartRenderUtils {
 
@@ -44,7 +43,6 @@ public class StarChartRenderUtils {
     }
 
     // --- 纹理与视差层渲染 ---
-
     public static void drawParallaxLayer(PoseStack poseStack, float x, float y, float w, float h, float offsetX, float offsetY, float parallax, float textureSize, ResourceLocation texture, boolean multiply) {
         RenderSystem.setShaderTexture(0, texture);
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
@@ -73,7 +71,6 @@ public class StarChartRenderUtils {
     }
 
     // --- Stencil 遮罩管理 ---
-
     public static void beginStencilMask() {
         // 确保主 Framebuffer 启用了 Stencil
         Minecraft.getInstance().getMainRenderTarget().enableStencil();
@@ -189,7 +186,6 @@ public class StarChartRenderUtils {
     }
 
     // --- 基础几何体绘制 ---
-
     public static void drawSolidCircle(PoseStack poseStack, Vector2f center, float radius) {
         int segments = 64;
         Tesselator tesselator = Tesselator.getInstance();
@@ -223,6 +219,7 @@ public class StarChartRenderUtils {
     /**
      * 绘制达芬奇风格的多边形内蚀排线
      * 使用 Mesh 构建方案，通过顶点颜色插值实现边缘淡出
+     * 改用 Miter Offset 算法以正确处理凹多边形
      * @param points 多边形顶点列表（应为闭合路径点）
      * @param fadeWidth 淡出带的宽度（像素）
      * @param color 墨水颜色（包含 Alpha 权重）
@@ -231,12 +228,9 @@ public class StarChartRenderUtils {
         ShaderInstance shader = AAClientEvents.getDavinciHatchingShader();
         if (shader == null || points.size() < 3) return;
 
-        // 计算中心点（用于计算收缩方向）
-        Vector2f center = new Vector2f(0, 0);
-        for (Vector2f p : points) {
-            center.add(p);
-        }
-        center.div(points.size());
+        // 1. 检测卷绕方向，确保向“内”偏移
+        boolean isCW = isClockwise(points);
+        float orientation = isCW ? 1.0f : -1.0f;
 
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, HATCHING_TEXTURE);
@@ -259,27 +253,54 @@ public class StarChartRenderUtils {
         float g = (color >> 8 & 255) / 255.0f;
         float b = (color & 255) / 255.0f;
         
-        // 绘制环带
-        for (int i = 0; i <= points.size(); i++) {
-            Vector2f pOuter = points.get(i % points.size());
+        int count = points.size();
+        for (int i = 0; i <= count; i++) {
+            int currIdx = i % count;
+            int prevIdx = (i - 1 + count) % count;
+            int nextIdx = (i + 1) % count;
+
+            Vector2f pCurr = points.get(currIdx);
+            Vector2f pPrev = points.get(prevIdx);
+            Vector2f pNext = points.get(nextIdx);
+
+            // 计算相邻两条边的切线向量
+            Vector2f t1 = new Vector2f(pCurr).sub(pPrev).normalize();
+            Vector2f t2 = new Vector2f(pNext).sub(pCurr).normalize();
+
+            // 计算法线 (旋转90度)
+            // 如果是 CW，法线应该是 (-dy, dx)
+            Vector2f n1 = new Vector2f(-t1.y * orientation, t1.x * orientation);
+            Vector2f n2 = new Vector2f(-t2.y * orientation, t2.x * orientation);
+
+            // 计算 Miter 方向 (平均法线)
+            Vector2f miter = new Vector2f(n1).add(n2).normalize();
+
+            // 计算长度缩放因子 (1 / dot(miter, n1))
+            // 这可以修正斜角处的宽度，使其保持恒定的垂直宽度
+            float dot = miter.dot(n1);
+            float limit = 3.0f; // 限制极度尖锐的角
+            float lengthScale = (dot < 1.0f / limit) ? limit : 1.0f / dot;
             
-            // 计算向中心收缩的内点
-            Vector2f dir = new Vector2f(center).sub(pOuter);
-            float dist = dir.length();
-            Vector2f pInner;
-            if (dist > fadeWidth) {
-                pInner = new Vector2f(dir).normalize().mul(fadeWidth).add(pOuter);
-            } else {
-                pInner = new Vector2f(center);
-            }
+            float offsetLen = fadeWidth * lengthScale;
+            Vector2f pInner = new Vector2f(miter).mul(offsetLen).add(pCurr);
 
             // 外边缘顶点 (Alpha = 1)
-            buffer.addVertex(matrix, pOuter.x, pOuter.y, 0).setUv(0, 0).setColor(r, g, b, 1.0f);
+            buffer.addVertex(matrix, pCurr.x, pCurr.y, 0).setUv(0, 0).setColor(r, g, b, 1.0f);
             // 内边缘顶点 (Alpha = 0)
             buffer.addVertex(matrix, pInner.x, pInner.y, 0).setUv(0, 0).setColor(r, g, b, 0.0f);
         }
         
         BufferUploader.drawWithShader(buffer.buildOrThrow());
+    }
+
+    private static boolean isClockwise(List<Vector2f> points) {
+        float sum = 0.0f;
+        for (int i = 0; i < points.size(); i++) {
+            Vector2f p1 = points.get(i);
+            Vector2f p2 = points.get((i + 1) % points.size());
+            sum += (p2.x - p1.x) * (p2.y + p1.y);
+        }
+        return sum > 0;
     }
 
     public static float getScaleCompensatedWidth(float targetPixelWidth, float currentScale) {
@@ -296,7 +317,6 @@ public class StarChartRenderUtils {
     }
 
     // --- 测绘风格图元 ---
-
     public static void drawSurveyCircle(PoseStack poseStack, Vector2f center, float radius, int color, float baseWidth) {
         // 辅环
         drawRibbonCircle(poseStack, center, radius + 2.0f, baseWidth * 0.8f, color, 0.2f);
@@ -322,7 +342,6 @@ public class StarChartRenderUtils {
     }
 
     // --- 动态描边与图标渲染 ---
-
     public static void drawDynamicLoop(PoseStack poseStack, List<Vector2f> vertices, int color, float baseWidth) {
         if (vertices.size() < 2) return;
         drawRibbonPath(poseStack, vertices, true, baseWidth * 1.8f, color, 0.4f);
@@ -527,15 +546,5 @@ public class StarChartRenderUtils {
         
         RenderSystem.setShader(GameRenderer::getPositionColorShader);
         BufferUploader.drawWithShader(buffer.buildOrThrow());
-    }
-
-    private static void addAAVertices(BufferBuilder buffer, Matrix4f matrix, float x, float y, float nx, float ny, float width, float r, float g, float b, float a) {
-        float halfW = width * 0.5f;
-        float coreW = halfW * 0.5f; 
-        
-        buffer.addVertex(matrix, x + nx * halfW, y + ny * halfW, 0).setColor(r, g, b, 0.0f);
-        buffer.addVertex(matrix, x + nx * coreW, y + ny * coreW, 0).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x - nx * coreW, y - ny * coreW, 0).setColor(r, g, b, a);
-        buffer.addVertex(matrix, x - nx * halfW, y - ny * halfW, 0).setColor(r, g, b, 0.0f);
     }
 }

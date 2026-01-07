@@ -229,8 +229,9 @@ public class StarChartRenderUtils {
         if (shader == null || points.size() < 3) return;
 
         // 1. 检测卷绕方向，确保向“内”偏移
-        boolean isCW = isClockwise(points);
-        float orientation = isCW ? 1.0f : -1.0f;
+        boolean isClockwise = isClockwise(points);
+        // 修正：根据测试反馈，GUI坐标系下需要反转系数以指向内部
+        float orientation = isClockwise ? -1.0f : 1.0f;
 
         RenderSystem.setShader(() -> shader);
         RenderSystem.setShaderTexture(0, HATCHING_TEXTURE);
@@ -268,18 +269,22 @@ public class StarChartRenderUtils {
             Vector2f t2 = new Vector2f(pNext).sub(pCurr).normalize();
 
             // 计算法线 (旋转90度)
-            // 如果是 CW，法线应该是 (-dy, dx)
             Vector2f n1 = new Vector2f(-t1.y * orientation, t1.x * orientation);
             Vector2f n2 = new Vector2f(-t2.y * orientation, t2.x * orientation);
+            
+            // 安全检查：如果向量无效 (NaN)，使用默认值
+            if (Float.isNaN(n1.x) || Float.isNaN(n1.y)) n1.set(0, 0);
+            if (Float.isNaN(n2.x) || Float.isNaN(n2.y)) n2.set(0, 0);
 
             // 计算 Miter 方向 (平均法线)
             Vector2f miter = new Vector2f(n1).add(n2).normalize();
+            if (Float.isNaN(miter.x) || Float.isNaN(miter.y)) miter.set(n1); // Fallback
 
             // 计算长度缩放因子 (1 / dot(miter, n1))
-            // 这可以修正斜角处的宽度，使其保持恒定的垂直宽度
             float dot = miter.dot(n1);
-            float limit = 3.0f; // 限制极度尖锐的角
-            float lengthScale = (dot < 1.0f / limit) ? limit : 1.0f / dot;
+            float limit = 3.0f; 
+            // 强制取绝对值，防止符号反转导致方向错误
+            float lengthScale = Math.abs((Math.abs(dot) < 1.0f / limit) ? limit : 1.0f / dot);
             
             float offsetLen = fadeWidth * lengthScale;
             Vector2f pInner = new Vector2f(miter).mul(offsetLen).add(pCurr);

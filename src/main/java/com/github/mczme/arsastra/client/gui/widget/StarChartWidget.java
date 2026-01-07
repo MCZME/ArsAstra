@@ -50,8 +50,8 @@ public class StarChartWidget extends AbstractWidget {
     // 交互状态
     private EffectField hoveredField = null;
 
-    private static final float MIN_SCALE = 0.05f;
-    private static final float MAX_SCALE = 5.0f;
+    private static final float MIN_SCALE = 0.1f;
+    private static final float MAX_SCALE = 2.0f;
 
     public StarChartWidget(int x, int y, int width, int height, Component message) {
         super(x, y, width, height, Component.empty());
@@ -312,11 +312,24 @@ public class StarChartWidget extends AbstractWidget {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
         if (this.isMouseOver(mouseX, mouseY)) {
+            // 1. 获取缩放前的世界坐标
+            Vector2f worldPosBefore = screenToWorld(mouseX, mouseY);
+            
+            // 2. 计算新缩放
             float zoomFactor = (scrollY > 0) ? 1.1f : 0.9f;
             float nextScale = this.scale * zoomFactor;
-            if (nextScale >= MIN_SCALE && nextScale <= MAX_SCALE) {
-                this.scale = nextScale;
-            }
+            nextScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, nextScale));
+            
+            // 3. 更新缩放
+            this.scale = nextScale;
+            
+            // 4. 获取缩放后的新世界坐标
+            Vector2f worldPosAfter = screenToWorld(mouseX, mouseY);
+            
+            // 5. 计算坐标差，并补偿到 offset，使得鼠标下的点保持不变
+            this.offsetX += (worldPosAfter.x - worldPosBefore.x) * this.scale;
+            this.offsetY += (worldPosAfter.y - worldPosBefore.y) * this.scale;
+
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);

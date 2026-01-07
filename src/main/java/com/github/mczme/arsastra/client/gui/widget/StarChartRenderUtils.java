@@ -265,33 +265,51 @@ public class StarChartRenderUtils {
         return LODLevel.DETAIL;
     }
 
-    // --- 测绘风格图元 ---
-    public static void drawSurveyCircle(PoseStack poseStack, Vector2f center, float radius, int color,
-            float baseWidth) {
-        // 辅环
-        drawRibbonCircle(poseStack, center, radius + 2.0f, baseWidth * 0.8f, color, 0.2f);
-        // 主环
-        drawDynamicCircle(poseStack, center, radius, color, baseWidth);
-        // 针孔
-        drawSolidCircle(poseStack, center, baseWidth * 0.6f);
+    // --- 特效星域渲染 (Shader) ---
+    @SuppressWarnings("null")
+    public static void drawCelestialField(PoseStack poseStack, Vector2f center, float radius, int color) {
+        ShaderInstance shader = AAClientEvents.getCelestialFieldShader();
+        if (shader == null) return;
 
-        // 十字准星
-        float crossSize = 3.0f;
+        RenderSystem.setShader(() -> shader);
+        RenderSystem.enableBlend();
+        // 使用标准混合，Shader 输出的 alpha 包含了所有效果
+        RenderSystem.defaultBlendFunc();
+
+        if (shader.getUniform("EffectColor") != null) {
+            float r = ((color >> 16) & 0xFF) / 255.0f;
+            float g = ((color >> 8) & 0xFF) / 255.0f;
+            float b = (color & 0xFF) / 255.0f;
+            float a = ((color >> 24) & 0xFF) / 255.0f;
+            // 确保传入的颜色不完全透明，否则看不到效果
+            if (a < 0.1f) a = 1.0f; 
+            shader.getUniform("EffectColor").set(r, g, b, a);
+        }
+        
+        if (shader.getUniform("Time") != null) {
+            float time = (System.currentTimeMillis() % 3600000) / 1000.0f;
+            shader.getUniform("Time").set(time);
+        }
+
         Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
+        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
         Matrix4f matrix = poseStack.last().pose();
-        float r = (color >> 16 & 255) / 255.0f, g = (color >> 8 & 255) / 255.0f, b = (color & 255) / 255.0f;
 
-        buffer.addVertex(matrix, center.x - crossSize, center.y, 0).setColor(r, g, b, 0.3f);
-        buffer.addVertex(matrix, center.x + crossSize, center.y, 0).setColor(r, g, b, 0.3f);
-        buffer.addVertex(matrix, center.x, center.y - crossSize, 0).setColor(r, g, b, 0.3f);
-        buffer.addVertex(matrix, center.x, center.y + crossSize, 0).setColor(r, g, b, 0.3f);
+        float x = center.x - radius;
+        float y = center.y - radius;
+        float size = radius * 2;
 
-        RenderSystem.setShader(GameRenderer::getPositionColorShader);
+        // 绘制覆盖圆形的 Quad，UV 映射到 (-1, -1) 至 (1, 1) 的局部坐标系
+        // 用于 Shader 中计算 length(localPos)
+        buffer.addVertex(matrix, x, y + size, 0).setUv(-1, 1).setColor(1f, 1f, 1f, 1f);
+        buffer.addVertex(matrix, x + size, y + size, 0).setUv(1, 1).setColor(1f, 1f, 1f, 1f);
+        buffer.addVertex(matrix, x + size, y, 0).setUv(1, -1).setColor(1f, 1f, 1f, 1f);
+        buffer.addVertex(matrix, x, y, 0).setUv(-1, -1).setColor(1f, 1f, 1f, 1f);
+
         BufferUploader.drawWithShader(buffer.buildOrThrow());
     }
 
-    // --- 动态描边与图标渲染 ---
+    // --- 测绘风格图元 ---
     public static void drawDynamicLoop(PoseStack poseStack, List<Vector2f> vertices, int color, float baseWidth) {
         if (vertices.size() < 2)
             return;

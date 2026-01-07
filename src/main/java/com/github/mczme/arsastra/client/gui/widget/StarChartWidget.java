@@ -85,7 +85,6 @@ public class StarChartWidget extends AbstractWidget {
     }
 
     // --- 几何处理 ---
-
     private List<Vector2f> getHandDrawnGeometry(Environment env) {
         return envGeometryCache.computeIfAbsent(env, e -> {
             List<Vector2f> basePoints = new ArrayList<>();
@@ -135,7 +134,6 @@ public class StarChartWidget extends AbstractWidget {
     }
 
     // --- 核心渲染流程 ---
-
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         updateHoveredState(mouseX, mouseY);
@@ -187,7 +185,6 @@ public class StarChartWidget extends AbstractWidget {
     }
 
     // --- 分层渲染逻辑 ---
-
     private void renderBackgroundStars(GuiGraphics guiGraphics, float currentScale) {
         // TODO: 实现手绘风格的背景装饰星
     }
@@ -200,25 +197,20 @@ public class StarChartWidget extends AbstractWidget {
             
             // 使用淡墨色填充 (Alpha ~180)
             int inkColor = (StarChartRenderUtils.Palette.INK & 0x00FFFFFF) | (180 << 24);
-            // UV Scale 设为 1.0f (或更小)，保持纹理在世界空间中的大小固定
+            // UV Scale 设为 0.5，保持纹理在世界空间中的大小固定
             // 这样放大时能看清排线笔触，缩小时排线变密
             float textureDensity = 0.5f; 
             
             // 1. 绘制内部全填充排线 (使用 Stencil 奇偶规则支持凹多边形)
-            // 使用 0.1f 的视差系数，让排线纹理移动速度慢于地图，产生悬浮感/纸张纹理感
             StarChartRenderUtils.drawHatchedPolygonFilled(guiGraphics.pose(), handDrawn, 
                 inkColor, textureDensity, -offsetX, -offsetY);
 
-            // 2. 绘制手绘轮廓线 (即使在宏观视角也保留线条，除非缩放极小)
-            if (scale > 0.08f) {
+            // 2. 绘制手绘轮廓线 
                 StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), handDrawn, StarChartRenderUtils.Palette.INK, lineWidth);
-            }
         }
     }
 
     private void renderEffectFields(GuiGraphics guiGraphics) {
-        float lineWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.0f, scale);
-        
         for (EffectField field : starChart.fields()) {
             net.minecraft.world.effect.MobEffect effect = field.getEffect();
             if (effect == null) continue;
@@ -226,11 +218,8 @@ public class StarChartWidget extends AbstractWidget {
             Vector2f center = field.center();
             float radius = field.getRadius();
 
-            StarChartRenderUtils.drawSurveyCircle(guiGraphics.pose(), center, radius, StarChartRenderUtils.Palette.INK, lineWidth);
-
-            if (hoveredField == field) {
-                StarChartRenderUtils.drawDynamicCircle(guiGraphics.pose(), center, radius + 3 / scale, StarChartRenderUtils.Palette.CINNABAR, lineWidth * 0.8f);
-            }
+            // 使用 Celestial Field Shader 渲染动态效果
+            StarChartRenderUtils.drawCelestialField(guiGraphics.pose(), center, radius, effect.getColor());
 
             if (this.scale > 0.2f) {
                 TextureAtlasSprite sprite = Minecraft.getInstance()
@@ -265,7 +254,6 @@ public class StarChartWidget extends AbstractWidget {
     }
 
     // --- 交互与工具 ---
-
     private void updateHoveredState(int mouseX, int mouseY) {
         hoveredField = null;
         if (starChart == null || !isMouseOver(mouseX, mouseY)) return;

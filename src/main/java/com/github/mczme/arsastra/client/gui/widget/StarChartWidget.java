@@ -194,20 +194,22 @@ public class StarChartWidget extends AbstractWidget {
 
     private void renderEnvironmentsDaVinci(GuiGraphics guiGraphics) {
         float lineWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.5f, scale);
-        StarChartRenderUtils.LODLevel lod = StarChartRenderUtils.getLODLevel(scale);
         
         for (Environment env : starChart.environments()) {
             List<Vector2f> handDrawn = getHandDrawnGeometry(env);
             
+            // 使用淡墨色填充 (Alpha ~180)
             int inkColor = (StarChartRenderUtils.Palette.INK & 0x00FFFFFF) | (180 << 24);
-            float fadeWidth = 15.0f / scale; 
-            fadeWidth = Math.max(10.0f, Math.min(40.0f, fadeWidth));
+            // UV Scale 设为 1.0f (或更小)，保持纹理在世界空间中的大小固定
+            // 这样放大时能看清排线笔触，缩小时排线变密
+            float textureDensity = 0.5f; 
             
-            // 绘制内部排线
-            StarChartRenderUtils.drawDaVinciHatchedPolygon(guiGraphics.pose(), handDrawn, 
-                fadeWidth, inkColor, 0.5f, offsetX, offsetY);
+            // 1. 绘制内部全填充排线 (使用 Stencil 奇偶规则支持凹多边形)
+            // 使用 0.1f 的视差系数，让排线纹理移动速度慢于地图，产生悬浮感/纸张纹理感
+            StarChartRenderUtils.drawHatchedPolygonFilled(guiGraphics.pose(), handDrawn, 
+                inkColor, textureDensity, -offsetX, -offsetY);
 
-            // 绘制手绘轮廓线 (即使在宏观视角也保留线条，除非缩放极小)
+            // 2. 绘制手绘轮廓线 (即使在宏观视角也保留线条，除非缩放极小)
             if (scale > 0.08f) {
                 StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), handDrawn, StarChartRenderUtils.Palette.INK, lineWidth);
             }

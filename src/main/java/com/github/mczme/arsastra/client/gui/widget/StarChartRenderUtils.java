@@ -25,7 +25,6 @@ public class StarChartRenderUtils {
     // 纹理资源定义
     public static final ResourceLocation PARCHMENT_TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "textures/gui/parchment_background.png");
     public static final ResourceLocation HATCHING_TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "textures/gui/hatching.png");
-    public static final ResourceLocation INK_WASH_TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "textures/gui/ink_wash.png");
 
     /**
      * 炼金术古典色板
@@ -126,63 +125,6 @@ public class StarChartRenderUtils {
 
         BufferUploader.drawWithShader(buffer.buildOrThrow());
         RenderSystem.defaultBlendFunc();
-    }
-
-    // --- 湿画法上色 (后期处理) ---
-
-    /**
-     * 绘制具有“咖啡环效应”的水彩形状
-     */
-    public static void drawWaterColorShape(PoseStack poseStack, Runnable shapeDrawer, int color, float intensity) {
-        // 1. 启用 Stencil，清空
-        GL11.glEnable(GL11.GL_STENCIL_TEST);
-        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
-        GL11.glStencilMask(0xFF);
-        GL11.glStencilFunc(GL11.GL_ALWAYS, 1, 0xFF);
-        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_REPLACE);
-        
-        // 2. 绘制底色 (同时写入 Stencil)
-        // 使用 PositionShader (shapeDrawer 内部调用 drawSolidPolygon/Circle)
-        RenderSystem.setShader(GameRenderer::getPositionShader);
-        RenderSystem.enableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(
-            ((color >> 16) & 255) / 255f,
-            ((color >> 8) & 255) / 255f,
-            (color & 255) / 255f,
-            intensity * 0.4f
-        );
-        shapeDrawer.run();
-        
-        // 3. 切换到“仅在 Stencil 区域绘制”
-        GL11.glStencilFunc(GL11.GL_EQUAL, 1, 0xFF);
-        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
-        
-        // 4. 绘制噪点纹理 (Multiply 混合，模拟纸张纹理叠加)
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.DST_COLOR, GlStateManager.DestFactor.ZERO);
-        RenderSystem.setShaderTexture(0, INK_WASH_TEXTURE);
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        // 纹理层稍微深一点，模拟边缘堆积
-        RenderSystem.setShaderColor(0.8f, 0.8f, 0.8f, intensity * 0.8f); 
-        
-        float big = 5000.0f; // 覆盖足够大的区域
-        float uvScale = 0.005f; // 纹理缩放因子
-        
-        Tesselator tesselator = Tesselator.getInstance();
-        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX);
-        Matrix4f matrix = poseStack.last().pose();
-        
-        buffer.addVertex(matrix, -big, big, 0).setUv(0, big * uvScale);
-        buffer.addVertex(matrix, big, big, 0).setUv(big * uvScale, big * uvScale);
-        buffer.addVertex(matrix, big, -big, 0).setUv(big * uvScale, 0);
-        buffer.addVertex(matrix, -big, -big, 0).setUv(0, 0);
-        
-        BufferUploader.drawWithShader(buffer.buildOrThrow());
-        
-        // 5. 恢复状态
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
-        GL11.glDisable(GL11.GL_STENCIL_TEST);
     }
 
     // --- 基础几何体绘制 ---
@@ -306,6 +248,94 @@ public class StarChartRenderUtils {
             sum += (p2.x - p1.x) * (p2.y + p1.y);
         }
         return sum > 0;
+    }
+
+    /**
+     * 使用排线纹理填充整个多边形内部
+     * 使用 Stencil 奇偶规则 (Even-Odd) 以支持凹多边形
+     */
+    public static void drawHatchedPolygonFilled(PoseStack poseStack, List<Vector2f> points, int color, float uvScale, float offsetX, float offsetY) {
+        if (points.size() < 3) return;
+
+        // 1. 准备 Stencil 环境
+        // 必须显式启用 Stencil Buffer，否则 GL_STENCIL_TEST 无效
+        Minecraft.getInstance().getMainRenderTarget().enableStencil();
+        
+        GL11.glEnable(GL11.GL_STENCIL_TEST);
+        GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT); // 清除当前 Stencil
+        GL11.glStencilMask(0xFF); // 允许写入
+
+        // 2. 绘制遮罩 (使用奇偶规则)
+        RenderSystem.colorMask(false, false, false, false);
+        RenderSystem.depthMask(false);
+        GL11.glStencilFunc(GL11.GL_ALWAYS, 0, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_INVERT); // 核心：反转位，实现奇偶填充
+
+        // 使用 FAN 绘制几何体到 Stencil
+        // 只要顶点顺序是连续的，FAN + INVERT 可以正确处理任意非自交多边形
+        RenderSystem.setShader(GameRenderer::getPositionShader);
+        Tesselator tesselator = Tesselator.getInstance();
+        BufferBuilder buffer = tesselator.begin(VertexFormat.Mode.TRIANGLE_FAN, DefaultVertexFormat.POSITION);
+        Matrix4f matrix = poseStack.last().pose();
+        
+        // 使用第一个点作为 FAN 的中心 (对于 INVERT 规则，中心点在哪里不重要，只要在平面上)
+        buffer.addVertex(matrix, points.get(0).x, points.get(0).y, 0);
+        for (int i = 1; i < points.size(); i++) {
+            buffer.addVertex(matrix, points.get(i).x, points.get(i).y, 0);
+        }
+        // 闭合
+        buffer.addVertex(matrix, points.get(1).x, points.get(1).y, 0); 
+        BufferUploader.drawWithShader(buffer.buildOrThrow());
+
+        // 3. 绘制排线填充 (仅在 Stencil == 1 的区域)
+        RenderSystem.colorMask(true, true, true, true);
+        RenderSystem.depthMask(true);
+        // 使用 NOTEQUAL 0，因为 INVERT 操作会将 0 变为 0xFF (255)，而不是 1
+        GL11.glStencilFunc(GL11.GL_NOTEQUAL, 0, 0xFF);
+        GL11.glStencilOp(GL11.GL_KEEP, GL11.GL_KEEP, GL11.GL_KEEP);
+
+        // 计算包围盒以限制绘制区域
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        for (Vector2f p : points) {
+            if (p.x < minX) minX = p.x;
+            if (p.y < minY) minY = p.y;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y > maxY) maxY = p.y;
+        }
+
+        // 调用 Shader 绘制排线矩形
+        ShaderInstance shader = AAClientEvents.getDavinciHatchingShader();
+        if (shader != null) {
+            RenderSystem.setShader(() -> shader);
+            RenderSystem.setShaderTexture(0, HATCHING_TEXTURE);
+            
+            if (shader.getUniform("InkColor") != null) {
+                float r = (color >> 16 & 255) / 255.0f;
+                float g = (color >> 8 & 255) / 255.0f;
+                float b = (color & 255) / 255.0f;
+                float a = (color >> 24 & 255) / 255.0f;
+                shader.getUniform("InkColor").set(r, g, b, a);
+            }
+            if (shader.getUniform("UVScale") != null) shader.getUniform("UVScale").set(uvScale);
+            if (shader.getUniform("UVOffset") != null) shader.getUniform("UVOffset").set(offsetX, offsetY);
+
+            RenderSystem.enableBlend();
+            RenderSystem.blendFunc(GlStateManager.SourceFactor.DST_COLOR, GlStateManager.DestFactor.ZERO);
+
+            buffer = tesselator.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX_COLOR);
+            
+            buffer.addVertex(matrix, minX, maxY, 0).setUv(0, 1).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, maxX, maxY, 0).setUv(1, 1).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, maxX, minY, 0).setUv(1, 0).setColor(1f, 1f, 1f, 1f);
+            buffer.addVertex(matrix, minX, minY, 0).setUv(0, 0).setColor(1f, 1f, 1f, 1f);
+
+            BufferUploader.drawWithShader(buffer.buildOrThrow());
+            RenderSystem.defaultBlendFunc();
+        }
+
+        // 4. 清理状态
+        GL11.glDisable(GL11.GL_STENCIL_TEST);
     }
 
     public static float getScaleCompensatedWidth(float targetPixelWidth, float currentScale) {

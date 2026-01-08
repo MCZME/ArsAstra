@@ -18,7 +18,9 @@
   "gui.ars_astra.journal.tab.blueprints": "蓝图档案",
   "gui.ars_astra.journal.tab.compendium": "要素典籍",
   "gui.ars_astra.journal.tab.workshop": "推演工坊",
-  "gui.ars_astra.journal.workshop.sequence": "推演序列",
+  "gui.ars_astra.workshop.info": "推演信息",
+  "gui.ars_astra.workshop.sequence": "推演序列",
+  "gui.ars_astra.workshop.source": "原料来源",
   "item.ars_astra.star_chart_journal": "星图日志",
   "itemGroup.ars_astra.ars_astra_tab": "星枢万象"
 }

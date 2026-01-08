@@ -54,6 +54,7 @@ public interface Element {
     * 获取要素的图标纹理位置。
     * 路径为 assets/<namespace>/textures/element/<path>.png
     */
+    @SuppressWarnings("null")
     default ResourceLocation getIcon() {
         ResourceLocation key = AARegistries.ELEMENT_REGISTRY.getKey(this);
         return ResourceLocation.fromNamespaceAndPath(key.getNamespace(), "textures/element/" + key.getPath() + ".png");

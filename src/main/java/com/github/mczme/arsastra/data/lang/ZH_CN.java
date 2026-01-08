@@ -30,7 +30,12 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.journal.compendium.elements", "已解锁要素");
         add("gui.ars_astra.journal.compendium.select_element", "请选择一个要素以查看详情");
         add("gui.ars_astra.journal.compendium.search", "搜索档案...");
-        add("gui.ars_astra.journal.workshop.sequence", "推演序列");
+        // Workshop
+        add("gui.ars_astra.workshop.sequence", "推演序列");
+        add("gui.ars_astra.workshop.source", "原料来源");
+        add("gui.ars_astra.workshop.clear", "清空序列");
+        add("gui.ars_astra.workshop.save", "保存蓝图");
+        
         // 筛选器
         add("gui.ars_astra.filter.elements_hint", "例如：生命, 物质...");
         add("gui.ars_astra.filter.tags_hint", "例如：logs, stones...");

@@ -35,6 +35,10 @@ public class PlayerKnowledge implements INBTSerializable<CompoundTag> {
         return visitedStarCharts.add(starChartId);
     }
 
+    public Set<ResourceLocation> getAnalyzedItems() {
+        return Collections.unmodifiableSet(analyzedItems);
+    }
+
     /**
      * 判断是否已分析某物品
      */

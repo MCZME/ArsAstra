@@ -5,7 +5,6 @@ import com.github.mczme.arsastra.client.gui.tab.CompendiumTab;
 import com.github.mczme.arsastra.client.gui.tab.JournalTab;
 import com.github.mczme.arsastra.client.gui.tab.WorkshopTab;
 import com.github.mczme.arsastra.client.gui.widget.JournalTabButton;
-import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.menu.StarChartJournalMenu;
 import com.github.mczme.arsastra.network.payload.DeductionResultPayload;
 import com.github.mczme.arsastra.registry.AAAttachments;
@@ -19,6 +18,8 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
+
+import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,11 +37,17 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
     private final WorkshopTab workshopTab = new WorkshopTab();
     private final AtlasTab atlasTab = new AtlasTab();
     private final List<JournalTabButton> tabButtons = new ArrayList<>();
+    
+    private PlayerKnowledge playerKnowledge;
 
     public StarChartJournalScreen(StarChartJournalMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         this.imageWidth = BOOK_WIDTH;
         this.imageHeight = BOOK_HEIGHT;
+    }
+    
+    public PlayerKnowledge getPlayerKnowledge() {
+        return playerKnowledge;
     }
 
     public <T extends GuiEventListener & Renderable & NarratableEntry> void addTabWidget(T widget) {
@@ -50,7 +57,7 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
     @Override
     protected void init() {
         super.init();
-        Minecraft.getInstance().player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+        this.playerKnowledge = Minecraft.getInstance().player.getData(AAAttachments.PLAYER_KNOWLEDGE);
         this.tabButtons.clear();
         
         int x = (this.width - BOOK_WIDTH) / 2;
@@ -163,19 +170,12 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        // 1. 优先尝试当前 Tab
+        // 优先交给当前页签处理
         JournalTab tab = getCurrentTab();
         if (tab != null && tab.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
             return true;
         }
         
-        // 2. 尝试当前 Focus 的 Widget (跳过 AbstractContainerScreen 的 Slot 逻辑)
-        if (this.getFocused() != null && this.isDragging() && button == 0) {
-            if (this.getFocused().mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
-                return true;
-            }
-        }
-
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 

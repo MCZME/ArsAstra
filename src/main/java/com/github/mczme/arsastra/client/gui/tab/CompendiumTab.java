@@ -17,6 +17,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +57,7 @@ public class CompendiumTab implements JournalTab {
     public void init(StarChartJournalScreen screen, int x, int y, int width, int height) {
         this.x = x;
         this.y = y;
-        this.knowledge = Minecraft.getInstance().player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+        this.knowledge = screen.getPlayerKnowledge();
 
         // 初始化工具栏
         this.toolbar = new ToolbarWidget(x + 15, y - 13, 200, 22);
@@ -106,10 +107,12 @@ public class CompendiumTab implements JournalTab {
     private void refreshItems() {
         if (knowledge == null) return;
         
-        // 1. 获取所有已分析物品
-        this.allAnalyzedItems = ElementProfileManager.getInstance().getAllProfiledItems().stream()
-                .map(id -> new ItemStack(BuiltInRegistries.ITEM.get(id)))
-                .filter(stack -> knowledge.hasAnalyzed(stack.getItem()))
+        // 直接从玩家已分析的物品开始，过滤掉没有配置的物品
+        this.allAnalyzedItems = knowledge.getAnalyzedItems().stream()
+                .map(id -> BuiltInRegistries.ITEM.get(id))
+                .filter(item -> item != Items.AIR)
+                .filter(item -> ElementProfileManager.getInstance().getElementProfile(item).isPresent())
+                .map(ItemStack::new)
                 .collect(Collectors.toList());
         
         // 2. 准备筛选器

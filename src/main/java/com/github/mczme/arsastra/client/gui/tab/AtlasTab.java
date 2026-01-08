@@ -27,7 +27,7 @@ public class AtlasTab implements JournalTab {
     @Override
     public void init(StarChartJournalScreen screen, int x, int y, int width, int height) {
         this.screen = screen;
-        PlayerKnowledge knowledge = Minecraft.getInstance().player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+        PlayerKnowledge knowledge = screen.getPlayerKnowledge();
         if (knowledge != null) {
             this.visitedCharts = new ArrayList<>(knowledge.getVisitedStarCharts());
         }
@@ -112,21 +112,30 @@ public class AtlasTab implements JournalTab {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (toolbar != null && toolbar.mouseClicked(mouseX, mouseY, button)) return true;
+        if (starChartWidget != null && starChartWidget.mouseClicked(mouseX, mouseY, button)) return true;
         return false;
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return false;
+        boolean handled = false;
+        if (toolbar != null && toolbar.mouseReleased(mouseX, mouseY, button)) handled = true;
+        if (starChartWidget != null && starChartWidget.mouseReleased(mouseX, mouseY, button)) handled = true;
+        return handled;
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        // StarChartWidget 需要处理拖拽事件
+        if (starChartWidget != null && starChartWidget.mouseDragged(mouseX, mouseY, button, dragX, dragY)) return true;
         return false;
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (toolbar != null && toolbar.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
+        if (starChartWidget != null && starChartWidget.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
         return false;
     }
 

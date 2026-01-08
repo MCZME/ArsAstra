@@ -45,7 +45,6 @@ public class StarChartWidget extends AbstractWidget {
     protected float offsetX = 0;
     protected float offsetY = 0;
     protected boolean isDragging = false;
-    protected double lastMouseX, lastMouseY;
 
     // 交互状态
     private EffectField hoveredField = null;
@@ -276,8 +275,6 @@ guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRend
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (this.isMouseOver(mouseX, mouseY) && button == 0) {
             this.isDragging = true;
-            this.lastMouseX = mouseX;
-            this.lastMouseY = mouseY;
             this.setFocused(true);
             return true;
         }
@@ -293,12 +290,8 @@ guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRend
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (this.isDragging) {
-            double dx = mouseX - this.lastMouseX;
-            double dy = mouseY - this.lastMouseY;
-            this.offsetX += (float) dx;
-            this.offsetY += (float) dy;
-            this.lastMouseX = mouseX;
-            this.lastMouseY = mouseY;
+            this.offsetX += (float) dragX;
+            this.offsetY += (float) dragY;
             return true;
         }
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);

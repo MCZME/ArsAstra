@@ -54,6 +54,7 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
         this.addRenderableWidget(widget);
     }
 
+    @SuppressWarnings("null")
     @Override
     protected void init() {
         super.init();

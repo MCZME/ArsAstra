@@ -9,7 +9,6 @@ import com.github.mczme.arsastra.core.element.Element;
 import com.github.mczme.arsastra.core.element.profile.ElementProfile;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
-import com.github.mczme.arsastra.registry.AAAttachments;
 import com.github.mczme.arsastra.registry.AARegistries;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;

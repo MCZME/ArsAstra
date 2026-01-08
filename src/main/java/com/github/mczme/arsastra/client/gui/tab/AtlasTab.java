@@ -7,7 +7,6 @@ import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
-import com.github.mczme.arsastra.registry.AAAttachments;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;

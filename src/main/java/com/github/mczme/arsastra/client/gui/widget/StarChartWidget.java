@@ -1,11 +1,14 @@
 package com.github.mczme.arsastra.client.gui.widget;
 
+import com.github.mczme.arsastra.client.gui.util.Palette;
+import com.github.mczme.arsastra.client.gui.util.StarChartRenderUtils;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.EffectField;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
 import com.github.mczme.arsastra.core.starchart.shape.Circle;
+import com.github.mczme.arsastra.core.starchart.shape.ExteriorPolygon;
 import com.github.mczme.arsastra.core.starchart.shape.Polygon;
 import com.github.mczme.arsastra.core.starchart.shape.Rectangle;
 import com.github.mczme.arsastra.core.starchart.shape.Shape;
@@ -19,6 +22,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffect;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 import org.joml.Vector2f;
@@ -104,7 +108,7 @@ public class StarChartWidget extends AbstractWidget {
                 basePoints.add(new Vector2f(rect.min().x, rect.max().y));
             } else if (shape instanceof Polygon poly) {
                 basePoints.addAll(poly.vertices());
-            } else if (shape instanceof com.github.mczme.arsastra.core.starchart.shape.ExteriorPolygon extPoly) {
+            } else if (shape instanceof ExteriorPolygon extPoly) {
                 basePoints.addAll(extPoly.vertices());
             }
 
@@ -181,7 +185,7 @@ public class StarChartWidget extends AbstractWidget {
         RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
         
-guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRenderUtils.Palette.INK);
+guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), Palette.INK);
         guiGraphics.disableScissor();
     }
 
@@ -197,11 +201,11 @@ guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRend
             List<Vector2f> handDrawn = getHandDrawnGeometry(env);
             
             // 使用淡墨色填充 (Alpha ~180)
-            int inkColor = (StarChartRenderUtils.Palette.INK & 0x00FFFFFF) | (180 << 24);
+            int inkColor = (Palette.INK & 0x00FFFFFF) | (180 << 24);
             // UV Scale 设为 0.5，保持纹理在世界空间中的大小固定
             float textureDensity = 0.5f; 
             
-            if (env.shape() instanceof com.github.mczme.arsastra.core.starchart.shape.ExteriorPolygon) {
+            if (env.shape() instanceof ExteriorPolygon) {
                 // ExteriorPolygon 使用墨水晕染效果
                 StarChartRenderUtils.drawInkWashPolygonHollow(guiGraphics.pose(), handDrawn, 
                     inkColor, -offsetX, -offsetY);
@@ -212,13 +216,13 @@ guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRend
             }
 
             // 绘制手绘轮廓线 
-            StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), handDrawn, StarChartRenderUtils.Palette.INK, lineWidth);
+            StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), handDrawn, Palette.INK, lineWidth);
         }
     }
 
     private void renderEffectFields(GuiGraphics guiGraphics) {
         for (EffectField field : starChart.fields()) {
-            net.minecraft.world.effect.MobEffect effect = field.getEffect();
+            MobEffect effect = field.getEffect();
             if (effect == null) continue;
 
             Vector2f center = field.center();
@@ -231,7 +235,7 @@ guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), StarChartRend
                     .getMobEffectTextures().get(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
             if (sprite != null) {
                 float iconSize = 24.0f;
-                StarChartRenderUtils.drawMonochromeIcon(guiGraphics.pose(), sprite, center, iconSize, StarChartRenderUtils.Palette.INK);
+                StarChartRenderUtils.drawMonochromeIcon(guiGraphics.pose(), sprite, center, iconSize, Palette.INK);
             }
         }
     }

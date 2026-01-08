@@ -1,4 +1,4 @@
-package com.github.mczme.arsastra.client.gui.widget;
+package com.github.mczme.arsastra.client.gui.util;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.client.AAClientEvents;
@@ -27,19 +27,6 @@ public class StarChartRenderUtils {
             "textures/gui/parchment_background.png");
     public static final ResourceLocation HATCHING_TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID,
             "textures/gui/hatching.png");
-
-    // --- 渲染配置 ---
-    public static class Palette {
-        public static final int CINNABAR = 0xFFA52A2A; // 朱砂/赭石 (红)
-        public static final int INDIGO = 0xFF081D40; // 靛青/普鲁士蓝 (蓝)
-        public static final int MALACHITE = 0xFF0BDA51; // 孔雀石绿 (绿)
-        public static final int INK = 0xFF1A1714; // 铁胆墨色 (主线条颜色)
-        public static final int PAPER = 0xFFE6D5AC; // 陈年纸黄色
-
-        public static final int MANA = INDIGO;
-        public static final int LIFE = CINNABAR;
-        public static final int NATURE = MALACHITE;
-    }
 
     // --- 纹理与视差层渲染 ---
     public static void drawParallaxLayer(PoseStack poseStack, float x, float y, float w, float h, float offsetX,

@@ -6,6 +6,7 @@ import com.github.mczme.arsastra.client.gui.util.Palette;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -14,8 +15,10 @@ public class SequenceStripWidget extends FloatingWidget {
     private final WorkshopViewModel viewModel;
     private final DragHandler dragHandler;
     private int scrollOffset = 0;
+    private boolean isScrolling = false; // 是否正在拖动滚动条
     private static final int SLOT_SIZE = 20;
     private static final int GAP = 12; // 增加间距以放置箭头
+    private static final int SCROLLBAR_HEIGHT = 4; // 滚动条高度
 
     public SequenceStripWidget(int x, int y, int width, WorkshopViewModel viewModel, DragHandler dragHandler) {
         super(x, y, width, 40, Component.translatable("gui.ars_astra.workshop.sequence"));
@@ -34,6 +37,12 @@ public class SequenceStripWidget extends FloatingWidget {
         guiGraphics.fill(getX() + 5, centerY, getX() + getWidth() - 5, centerY + 1, Palette.INK_LIGHT);
 
         List<ItemStack> sequence = viewModel.getSequence();
+        int contentWidth = (sequence.size() + 1) * (SLOT_SIZE + GAP) + 30; // 预留额外空间
+        int maxScroll = Math.max(0, contentWidth - getWidth());
+        
+        // 限制滚动偏移
+        scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
+
         int startX = getX() + 15 - scrollOffset;
 
         // 启用剪裁以防止滚动内容溢出
@@ -62,10 +71,35 @@ public class SequenceStripWidget extends FloatingWidget {
             int indicatorX = startX + dropIndex * (SLOT_SIZE + GAP) - (GAP / 2);
             
             // 绘制朱砂色的垂直指示线，高度覆盖整个组件高度
-            guiGraphics.fill(indicatorX, getY() + 8, indicatorX + 1, getY() + getHeight() - 8, Palette.CINNABAR);
+            guiGraphics.fill(indicatorX, getY() + 4, indicatorX + 1, getY() + getHeight() - 4, Palette.CINNABAR);
+            
+            // 额外高亮：如果正好悬停在某个槽位上，绘制一个外框
+            int hoverSlotX = startX + dropIndex * (SLOT_SIZE + GAP);
+            if (dropIndex < sequence.size()) {
+                guiGraphics.renderOutline(hoverSlotX - 1, centerY - SLOT_SIZE / 2 - 1, SLOT_SIZE + 2, SLOT_SIZE + 2, Palette.CINNABAR);
+            }
         }
-
+        
         guiGraphics.disableScissor();
+
+        // 4. 绘制滚动条 (仅当内容超出可视范围时)
+        if (maxScroll > 0) {
+            int scrollbarY = getY() + getHeight() - SCROLLBAR_HEIGHT - 2;
+            int trackWidth = getWidth() - 10;
+            int trackX = getX() + 5;
+            
+            // 绘制轨道
+            guiGraphics.fill(trackX, scrollbarY, trackX + trackWidth, scrollbarY + SCROLLBAR_HEIGHT, Palette.INK_LIGHT & 0x80FFFFFF); // 半透明轨道
+            
+            // 计算滑块
+            float ratio = (float) getWidth() / contentWidth;
+            int thumbWidth = Math.max(20, (int) (trackWidth * ratio));
+            int thumbX = trackX + (int) ((float) scrollOffset / maxScroll * (trackWidth - thumbWidth));
+            
+            // 绘制滑块 (正常为墨色，拖动/悬停为朱砂色)
+            int thumbColor = (isScrolling || (mouseY >= scrollbarY && mouseY <= scrollbarY + SCROLLBAR_HEIGHT)) ? Palette.CINNABAR : Palette.INK;
+            guiGraphics.fill(thumbX, scrollbarY, thumbX + thumbWidth, scrollbarY + SCROLLBAR_HEIGHT, thumbColor);
+        }
     }
 
     /**
@@ -96,6 +130,11 @@ public class SequenceStripWidget extends FloatingWidget {
                 guiGraphics.renderTooltip(Minecraft.getInstance().font, stack, mouseX, mouseY);
             }
         }
+
+        // 拖拽悬停反馈
+        if (isHovered && dragHandler.isDragging()) {
+            guiGraphics.renderOutline(x - 1, y - 1, SLOT_SIZE + 2, SLOT_SIZE + 2, Palette.CINNABAR);
+        }
     }
 
     /**
@@ -125,10 +164,6 @@ public class SequenceStripWidget extends FloatingWidget {
         if (isMouseOver(mouseX, mouseY)) {
             // 滚轮控制左右滚动
             scrollOffset -= (int) (scrollY * 20);
-            // 限制滚动范围
-            int totalWidth = viewModel.getSequence().size() * (SLOT_SIZE + GAP);
-            int maxScroll = Math.max(0, totalWidth - getWidth() + 40);
-            scrollOffset = Math.max(0, Math.min(scrollOffset, maxScroll));
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
@@ -141,6 +176,17 @@ public class SequenceStripWidget extends FloatingWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // 检查是否点击了滚动条区域 (判定区域扩大，方便点击)
+        int listSize = viewModel.getSequence().size();
+        int contentWidth = (listSize + 1) * (SLOT_SIZE + GAP) + 30;
+        int maxScroll = Math.max(0, contentWidth - getWidth());
+        
+        // 判定区域：从底部向上 10 像素 (包含 SCROLLBAR_HEIGHT + 额外缓冲)
+        if (maxScroll > 0 && mouseY >= getY() + getHeight() - 10 && mouseY <= getY() + getHeight()) {
+             isScrolling = true;
+             return true;
+        }
+
         if (isMouseOver(mouseX, mouseY) && button == 0 && !dragHandler.isDragging()) {
             List<ItemStack> sequence = viewModel.getSequence();
             int centerY = getY() + getHeight() / 2;
@@ -160,9 +206,37 @@ public class SequenceStripWidget extends FloatingWidget {
         }
         return super.mouseClicked(mouseX, mouseY, button);
     }
+    
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (isScrolling) {
+            int listSize = viewModel.getSequence().size();
+            int contentWidth = (listSize + 1) * (SLOT_SIZE + GAP) + 30;
+            int maxScroll = Math.max(0, contentWidth - getWidth());
+            int trackWidth = getWidth() - 10;
+            
+            if (maxScroll > 0 && trackWidth > 0) {
+                // 计算滑块宽度
+                float ratio = (float) getWidth() / contentWidth;
+                int thumbWidth = Math.max(20, (int) (trackWidth * ratio));
+                int availableTrack = trackWidth - thumbWidth;
+                
+                if (availableTrack > 0) {
+                    // 鼠标每移动 1 像素，对应的滚动量
+                    float scrollPerPixel = (float) maxScroll / availableTrack;
+                    scrollOffset += (int) (dragX * scrollPerPixel);
+                    scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
+                }
+            }
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        isScrolling = false; // 停止滚动
+        
         if (isMouseOver(mouseX, mouseY) && dragHandler.isDragging()) {
             int index = calculateDropIndex(mouseX);
             ItemStack stack = dragHandler.getDraggingStack();

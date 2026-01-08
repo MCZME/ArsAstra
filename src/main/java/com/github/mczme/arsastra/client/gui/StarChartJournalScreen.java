@@ -164,47 +164,57 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (super.mouseReleased(mouseX, mouseY, button)) return true;
         JournalTab tab = getCurrentTab();
-        return tab != null && tab.mouseReleased(mouseX, mouseY, button);
+        if (tab != null && tab.mouseReleased(mouseX, mouseY, button)) {
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        // 优先交给当前页签处理
         JournalTab tab = getCurrentTab();
         if (tab != null && tab.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
             return true;
         }
-        
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (super.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
         JournalTab tab = getCurrentTab();
-        return tab != null && tab.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+        if (tab != null && tab.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
-        if (super.charTyped(codePoint, modifiers)) return true;
         JournalTab tab = getCurrentTab();
-        return tab != null && tab.charTyped(codePoint, modifiers);
+        if (tab != null && tab.charTyped(codePoint, modifiers)) {
+            return true;
+        }
+        return super.charTyped(codePoint, modifiers);
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (super.keyPressed(keyCode, scanCode, modifiers)) return true;
         JournalTab tab = getCurrentTab();
-        return tab != null && tab.keyPressed(keyCode, scanCode, modifiers);
+        if (tab != null && tab.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
-        if (super.keyReleased(keyCode, scanCode, modifiers)) return true;
         JournalTab tab = getCurrentTab();
-        return tab != null && tab.keyReleased(keyCode, scanCode, modifiers);
+        if (tab != null && tab.keyReleased(keyCode, scanCode, modifiers)) {
+            return true;
+        }
+        return super.keyReleased(keyCode, scanCode, modifiers);
+
     }
+
 }

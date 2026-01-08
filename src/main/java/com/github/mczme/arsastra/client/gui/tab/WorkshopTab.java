@@ -8,8 +8,6 @@ import com.github.mczme.arsastra.client.gui.widget.workshop.SourceFloatingPanel;
 import com.github.mczme.arsastra.client.gui.widget.workshop.WorkshopCanvasWidget;
 import com.github.mczme.arsastra.client.gui.widget.workshop.WorkshopToolbar;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
-import com.github.mczme.arsastra.registry.AAAttachments;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.world.item.ItemStack;
@@ -19,7 +17,6 @@ public class WorkshopTab implements JournalTab, DragHandler {
     private SourceFloatingPanel sourcePanel;
     private SequenceStripWidget sequenceStrip;
     private WorkshopToolbar toolbar;
-    private StarChartJournalScreen screen;
     private WorkshopViewModel viewModel;
     
     private ItemStack draggingStack = ItemStack.EMPTY;
@@ -30,7 +27,6 @@ public class WorkshopTab implements JournalTab, DragHandler {
 
     @Override
     public void init(StarChartJournalScreen screen, int x, int y, int width, int height) {
-        this.screen = screen;
         if (this.viewModel == null) {
             this.viewModel = new WorkshopViewModel();
         }
@@ -119,10 +115,44 @@ public class WorkshopTab implements JournalTab, DragHandler {
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         boolean handled = false;
+
+        // Special handling for Drag & Drop
+        if (isDragging) {
+            // Check potential drop targets in reverse Z-order (topmost first)
+            // Toolbar
+            if (toolbar != null && toolbar.isMouseOver(mouseX, mouseY)) {
+                if (toolbar.mouseReleased(mouseX, mouseY, button)) handled = true;
+            }
+            // Source Panel (Self-drop or cancel)
+            else if (sourcePanel != null && sourcePanel.isMouseOver(mouseX, mouseY)) {
+                if (sourcePanel.mouseReleased(mouseX, mouseY, button)) handled = true;
+            }
+            // Sequence Strip (Drop Target)
+            else if (sequenceStrip != null && sequenceStrip.isMouseOver(mouseX, mouseY)) {
+                if (sequenceStrip.mouseReleased(mouseX, mouseY, button)) handled = true;
+            }
+            // Canvas (Background)
+            else if (canvasWidget != null && canvasWidget.isMouseOver(mouseX, mouseY)) {
+                if (canvasWidget.mouseReleased(mouseX, mouseY, button)) handled = true;
+            }
+
+            // If drag wasn't handled by a specific drop target, we might need to cancel it explicitly
+            // But usually widgets call endDrag() if they accept it.
+            // If nothing accepted it, we should probably cancel the drag here to be safe.
+            if (!handled && isDragging) {
+                endDrag();
+            }
+            
+            activeWidget = null; // Reset active widget interaction
+            return true;
+        }
+
+        // Standard Click Release
         if (activeWidget != null) {
             handled = activeWidget.mouseReleased(mouseX, mouseY, button);
             activeWidget = null;
         } else {
+            // Fallback dispatch if no widget was active (unlikely for clicks, but possible)
             if (toolbar != null && toolbar.mouseReleased(mouseX, mouseY, button)) handled = true;
             if (sourcePanel != null && sourcePanel.mouseReleased(mouseX, mouseY, button)) handled = true;
             if (sequenceStrip != null && sequenceStrip.mouseReleased(mouseX, mouseY, button)) handled = true;

@@ -1,7 +1,9 @@
 package com.github.mczme.arsastra.client.gui.widget.workshop;
 
 import com.github.mczme.arsastra.client.gui.logic.WorkshopViewModel;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarClearWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarInfoWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSettingsWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
@@ -15,9 +17,9 @@ public class WorkshopToolbar extends ToolbarWidget {
     
     private ToolbarSearchWidget searchWidget;
     private ToolbarFilterWidget filterWidget;
-    private ToolbarTabButton clearBtn;
+    private ToolbarClearWidget clearBtn;
     private ToolbarTabButton saveBtn;
-    private ToolbarTabButton infoBtn;
+    private ToolbarInfoWidget infoBtn;
     private ToolbarSettingsWidget settingsBtn;
     private String currentSearchQuery = "";
 
@@ -29,8 +31,10 @@ public class WorkshopToolbar extends ToolbarWidget {
     }
     
     private void initButtons() {
-        // 1. [Clear] 清空按钮: 红色 (0xFF5555), 图标索引 8 (橡皮擦)
-        this.clearBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.clear"), 7, 0xFF5555, this::onClear);
+        // 1. [Clear] 清空组件
+        this.clearBtn = new ToolbarClearWidget(0, 0, () -> {
+            if (handler != null) handler.onClearRequest();
+        });
         this.addChild(clearBtn);
 
         // 2. [Save] 保存按钮: 灰色 (0x888888), 图标索引 9 (墨水瓶与羽毛笔)
@@ -51,8 +55,8 @@ public class WorkshopToolbar extends ToolbarWidget {
         });
         this.addChild(this.filterWidget);
 
-        // 5. [Info] 信息按钮: 图标索引 10 (羊皮纸), 靛蓝色
-        this.infoBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.info"), 9, 0x406080, this::onToggleInfo);
+        // 5. [Info] 信息组件
+        this.infoBtn = new ToolbarInfoWidget(0, 0);
         this.addChild(infoBtn);
 
         // 6. [Settings] 设置组件
@@ -127,17 +131,7 @@ public class WorkshopToolbar extends ToolbarWidget {
         return filterWidget != null ? filterWidget.getTagFilter() : "";
     }
 
-    private void onClear() {
-        if (handler != null) handler.onClearRequest();
-        Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
-    }
-
     private void onSave() {
         if (handler != null) handler.onSaveRequest();
-    }
-
-    private void onToggleInfo() {
-        if (handler != null) handler.onInfoToggle();
-        Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
     }
 }

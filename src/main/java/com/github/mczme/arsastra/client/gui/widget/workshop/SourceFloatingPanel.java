@@ -1,6 +1,7 @@
 package com.github.mczme.arsastra.client.gui.widget.workshop;
 
 import com.github.mczme.arsastra.client.gui.logic.DragHandler;
+import com.github.mczme.arsastra.client.gui.logic.ItemFilterLogic;
 import com.github.mczme.arsastra.client.gui.util.Palette;
 import com.github.mczme.arsastra.core.element.Element;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
@@ -15,19 +16,26 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class SourceFloatingPanel extends FloatingWidget {
     private final PlayerKnowledge knowledge;
     private final DragHandler dragHandler;
     private SourceMode mode = SourceMode.INVENTORY;
     private final List<ItemStack> displayItems = new ArrayList<>();
+    
+    // 过滤状态
+    private String searchQuery = "";
+    private String elementFilter = "";
+    private String tagFilter = "";
     
     // Grid settings
     private static final int COLS = 4;
@@ -42,26 +50,42 @@ public class SourceFloatingPanel extends FloatingWidget {
         refreshItems();
     }
     
+    public void updateFilter(String searchQuery, String elementFilter, String tagFilter) {
+        this.searchQuery = searchQuery.toLowerCase();
+        this.elementFilter = elementFilter;
+        this.tagFilter = tagFilter;
+        refreshItems();
+    }
+
     private void refreshItems() {
         displayItems.clear();
+        Predicate<ItemStack> advancedFilter = ItemFilterLogic.create(elementFilter, tagFilter);
+        Predicate<ItemStack> searchPredicate = stack -> searchQuery.isEmpty() || stack.getHoverName().getString().toLowerCase().contains(searchQuery);
+        
+        Stream<ItemStack> itemStream;
+        
         if (mode == SourceMode.INVENTORY) {
             Inventory inv = Minecraft.getInstance().player.getInventory();
-            // Just grab items to fill grid
-            for (int i = 0; i < inv.getContainerSize() && displayItems.size() < COLS * ROWS; i++) {
+            List<ItemStack> invItems = new ArrayList<>();
+            for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (!stack.isEmpty()) {
-                    displayItems.add(stack);
-                }
+                if (!stack.isEmpty()) invItems.add(stack);
             }
-        } else if (mode == SourceMode.COMPENDIUM && knowledge != null) {
-            for (ResourceLocation itemId : knowledge.getAnalyzedItems()) {
-                if (displayItems.size() >= COLS * ROWS) break;
-                Item item = BuiltInRegistries.ITEM.get(itemId);
-                if (item != Items.AIR) {
-                    displayItems.add(new ItemStack(item));
-                }
-            }
+            itemStream = invItems.stream();
+        } else {
+            // COMPENDIUM mode
+            itemStream = (knowledge == null) ? Stream.empty() : 
+                knowledge.getAnalyzedItems().stream()
+                    .map(id -> BuiltInRegistries.ITEM.get(id))
+                    .filter(item -> item != Items.AIR)
+                    .map(ItemStack::new);
         }
+
+        this.displayItems.addAll(itemStream
+            .filter(advancedFilter)
+            .filter(searchPredicate)
+            .limit(COLS * ROWS)
+            .collect(Collectors.toList()));
     }
 
     @Override

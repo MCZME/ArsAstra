@@ -64,12 +64,15 @@ public class ToolbarFilterWidget extends ToolbarExpandableWidget {
     @Override
     protected void updatePopupLayout() {
         int bgY = this.getY() + 22;
+        // 使用 getPopupX() 确保子控件位置与背景对齐
+        int bgX = getPopupX();
+        
         if (elementsInput != null) {
-            this.elementsInput.setX(this.getX() + 5);
+            this.elementsInput.setX(bgX + 5);
             this.elementsInput.setY(bgY + 18 + 3);
         }
         if (tagsInput != null) {
-            this.tagsInput.setX(this.getX() + 5);
+            this.tagsInput.setX(bgX + 5);
             this.tagsInput.setY(bgY + 48 + 3);
         }
     }

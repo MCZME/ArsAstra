@@ -37,7 +37,7 @@ public class ToolbarSettingsWidget extends ToolbarExpandableWidget {
 
     @Override
     protected void updatePopupLayout() {
-        int bgX = this.getX();
+        int bgX = getPopupX();
         int bgY = this.getY() + 22;
         
         if (baseChartButton != null) {

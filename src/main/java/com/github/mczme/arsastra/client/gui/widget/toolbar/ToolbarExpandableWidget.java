@@ -8,17 +8,34 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 
 public abstract class ToolbarExpandableWidget extends AbstractWidget {
+    public enum ExpandDirection {
+        RIGHT, LEFT
+    }
+
     protected final ToolbarTabButton mainButton;
     protected boolean expanded = false;
     protected float animationProgress = 0.0f;
     protected final int popupWidth;
     protected final int popupHeight;
+    protected ExpandDirection expandDirection = ExpandDirection.RIGHT;
 
     public ToolbarExpandableWidget(int x, int y, int popupWidth, int popupHeight, int iconIndex, int color) {
         super(x, y, 20, 22, Component.empty());
         this.popupWidth = popupWidth;
         this.popupHeight = popupHeight;
         this.mainButton = new ToolbarTabButton(x, y, 20, 22, Component.empty(), iconIndex, color, null);
+    }
+
+    public void setExpandDirection(ExpandDirection direction) {
+        this.expandDirection = direction;
+        updatePopupLayout();
+    }
+
+    protected int getPopupX() {
+        if (expandDirection == ExpandDirection.LEFT) {
+            return this.getX() + this.width - popupWidth;
+        }
+        return this.getX();
     }
 
     protected void toggleExpand() {
@@ -80,6 +97,9 @@ public abstract class ToolbarExpandableWidget extends AbstractWidget {
             int currentH = (int) (popupHeight * animationProgress);
             
             int bgX = this.getX();
+            if (expandDirection == ExpandDirection.LEFT) {
+                bgX = this.getX() + this.width - currentW;
+            }
             int bgY = this.getY() + 22; 
             
             guiGraphics.pose().pushPose();
@@ -97,7 +117,8 @@ public abstract class ToolbarExpandableWidget extends AbstractWidget {
                 // 渲染内容（仅当面板展开足够大时）
                 if (animationProgress > 0.8f) {
                     guiGraphics.enableScissor(bgX + 2, bgY + 2, bgX + currentW - 2, bgY + currentH - 2);
-                    renderPopupContent(guiGraphics, mouseX, mouseY, partialTick, bgX, bgY);
+                    // 传递完全展开时的 X 坐标 (getPopupX)，以确保内容位置固定
+                    renderPopupContent(guiGraphics, mouseX, mouseY, partialTick, getPopupX(), bgY);
                     guiGraphics.disableScissor();
                 }
             } finally {
@@ -119,7 +140,8 @@ public abstract class ToolbarExpandableWidget extends AbstractWidget {
 
         // 2. 检查弹出面板点击
         if (expanded) {
-            boolean inPopup = mouseX >= this.getX() && mouseX <= this.getX() + popupWidth 
+            int finalBgX = getPopupX();
+            boolean inPopup = mouseX >= finalBgX && mouseX <= finalBgX + popupWidth 
                            && mouseY >= this.getY() + 22 && mouseY <= this.getY() + 22 + popupHeight;
 
             if (inPopup) {

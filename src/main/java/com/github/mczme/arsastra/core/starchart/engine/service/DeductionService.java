@@ -2,6 +2,8 @@ package com.github.mczme.arsastra.core.starchart.engine.service;
 
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
+import com.github.mczme.arsastra.core.starchart.engine.DeductionResult;
+
 import org.joml.Vector2f;
 
 import java.util.List;

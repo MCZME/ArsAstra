@@ -7,7 +7,6 @@ import com.github.mczme.arsastra.client.gui.widget.workshop.*;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 public class WorkshopTab implements JournalTab, DragHandler {

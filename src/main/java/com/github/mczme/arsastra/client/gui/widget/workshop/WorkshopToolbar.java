@@ -8,11 +8,9 @@ import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSettingsWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
 public class WorkshopToolbar extends ToolbarWidget {
-    private final WorkshopViewModel viewModel;
     private final WorkshopActionHandler handler;
     
     private ToolbarSearchWidget searchWidget;
@@ -25,7 +23,6 @@ public class WorkshopToolbar extends ToolbarWidget {
 
     public WorkshopToolbar(int x, int y, int width, int height, WorkshopViewModel viewModel, WorkshopActionHandler handler) {
         super(x, y, width, height);
-        this.viewModel = viewModel;
         this.handler = handler;
         initButtons();
     }

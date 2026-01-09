@@ -1,8 +1,7 @@
-package com.github.mczme.arsastra.core.starchart.engine.service;
+package com.github.mczme.arsastra.core.starchart.engine;
 
 import com.github.mczme.arsastra.core.starchart.EffectField;
-import com.github.mczme.arsastra.core.starchart.engine.PotionData;
-import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
+
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;

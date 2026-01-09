@@ -6,6 +6,7 @@ import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
+import com.github.mczme.arsastra.core.starchart.engine.DeductionResult;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.engine.service.*;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;

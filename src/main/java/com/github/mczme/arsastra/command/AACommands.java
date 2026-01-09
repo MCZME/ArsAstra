@@ -5,7 +5,6 @@ import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
-import com.github.mczme.arsastra.core.starchart.engine.InteractionResult;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.engine.service.*;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
@@ -187,133 +186,74 @@ public class AACommands {
     }
 
     private static int testDeduction(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
-
-                ResourceLocation chartId = ResourceLocationArgument.getId(context, "chart");
-
-                int count = IntegerArgumentType.getInteger(context, "count");
-
-                float rotation = 0;
-
-                try {
-
-                    rotation = FloatArgumentType.getFloat(context, "rotation");
-
-                } catch (IllegalArgumentException ignored) {}
-
-        
-
-                ItemStack stack = ItemArgument.getItem(context, "item").createItemStack(1, false);
-
-                java.util.List<AlchemyInput> inputs = new java.util.ArrayList<>();
-
-                for (int i = 0; i < count; i++) {
-
-                    inputs.add(new AlchemyInput(stack, rotation));
-
-                }
-
-        
-
-                Optional<StarChart> chartOpt = StarChartManager.getInstance().getStarChart(chartId);
-
-                if (chartOpt.isEmpty()) {
-
-                    context.getSource().sendFailure(Component.literal("StarChart not found: " + chartId));
-
-                    return 0;
-
-                }
-
-        
-
-                Vector2f startPos = new Vector2f(0, 0);
-
-                var profileOpt = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
-
-                profileOpt.ifPresent(p -> startPos.set(p.launchPoint()));
-
-        
-
-                DeductionService deductionService = new DeductionServiceImpl();
-
-                DeductionResult result = deductionService.deduce(chartOpt.get(), inputs, startPos);
-
-        
-
-                // 准备输出内容
-
-                StringBuilder sb = new StringBuilder();
-
-                sb.append(String.format("Deduction Report for %s x%d (Rot: %.2f rad):\n", stack.getItem(), count, rotation));
-
-                sb.append(String.format(" - Final Stability: %.3f\n", result.finalStability()));
-
-                sb.append(String.format(" - Success: %b\n", result.isSuccess()));
-
-                sb.append(String.format(" - Total Path Segments: %d\n", result.segments().size()));
-
-                sb.append("\n--- Segment Details ---\n");
-
-        
-
-                for (int i = 0; i < result.segments().size(); i++) {
-
-                    SegmentData seg = result.segments().get(i);
-
-                    sb.append(String.format("Segment %d:\n", i));
-
-                    sb.append(String.format("  Start:  (%.3f, %.3f)\n", seg.path().getStartPoint().x, seg.path().getStartPoint().y));
-
-                    sb.append(String.format("  End:    (%.3f, %.3f)\n", seg.path().getEndPoint().x, seg.path().getEndPoint().y));
-
-                    sb.append(String.format("  Length: %.3f\n", seg.path().getLength()));
-
-                    sb.append(String.format("  Interactions: %d\n", seg.interactions().size()));
-
-                    for (InteractionResult ir : seg.interactions()) {
-
-                        sb.append(String.format("    -> Field: %s, ArcLen: %.2f, MinDist: %.2f\n", 
-
-                                ir.field().effect().toString(), ir.arcLength(), ir.periapsisDistance()));
-
-                    }
-
-                    sb.append("\n");
-
-                }
-
-        
-
-                // 写入文件
-
-                try {
-
-                    File debugDir = new File("ars_astra_debug");
-
-                    if (!debugDir.exists()) debugDir.mkdirs();
-
-                    String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
-
-                    File file = new File(debugDir, "deduction_" + timestamp + ".txt");
-
-                    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
-
-                        writer.write(sb.toString());
-
-                    }
-
-                    context.getSource().sendSuccess(() -> Component.literal("Deduction report saved: " + file.getName()), true);
-
-                } catch (IOException e) {
-
-                    context.getSource().sendFailure(Component.literal("Failed to save report: " + e.getMessage()));
-
-                }
-
-        
-
-                return 1;
-
-            }
-
+        ResourceLocation chartId = ResourceLocationArgument.getId(context, "chart");
+        int count = IntegerArgumentType.getInteger(context, "count");
+        float rotation = 0;
+        try {
+            rotation = FloatArgumentType.getFloat(context, "rotation");
+        } catch (IllegalArgumentException ignored) {}
+
+        ItemStack stack = ItemArgument.getItem(context, "item").createItemStack(1, false);
+        java.util.List<AlchemyInput> inputs = new java.util.ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            inputs.add(new AlchemyInput(stack, rotation));
         }
+
+        Optional<StarChart> chartOpt = StarChartManager.getInstance().getStarChart(chartId);
+        if (chartOpt.isEmpty()) {
+            context.getSource().sendFailure(Component.literal("StarChart not found: " + chartId));
+            return 0;
+        }
+
+        Vector2f startPos = new Vector2f(0, 0);
+        var profileOpt = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
+        profileOpt.ifPresent(p -> startPos.set(p.launchPoint()));
+
+        DeductionService deductionService = new DeductionServiceImpl();
+        DeductionResult result = deductionService.deduce(chartOpt.get(), inputs, startPos);
+
+        // 准备输出内容
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("Deduction Report for %s x%d (Rot: %.2f rad):\n", stack.getItem(), count, rotation));
+        sb.append(String.format(" - Final Stability: %.3f\n", result.finalStability()));
+        sb.append(String.format(" - Total Path Segments: %d\n", result.route().segments().size()));
+        sb.append(String.format(" - Total Path Length: %.3f\n", result.route().getTotalLength()));
+
+        sb.append("\n--- Predicted Effects ---\n");
+        if (result.predictedEffects().isEmpty()) {
+            sb.append(" None\n");
+        } else {
+            result.predictedEffects().forEach((field, data) -> {
+                sb.append(String.format(" - %s: Level %d, Duration %d ticks\n", 
+                        field.effect(), data.level() + 1, data.duration()));
+            });
+        }
+
+        sb.append("\n--- Path Segment Details ---\n");
+        int i = 0;
+        for (StarChartPath path : result.route().segments()) {
+            sb.append(String.format("Segment %d [%s]:\n", i++, path.getClass().getSimpleName()));
+            sb.append(String.format("  Start:  (%.3f, %.3f)\n", path.getStartPoint().x, path.getStartPoint().y));
+            sb.append(String.format("  End:    (%.3f, %.3f)\n", path.getEndPoint().x, path.getEndPoint().y));
+            sb.append(String.format("  Length: %.3f\n", path.getLength()));
+            sb.append("\n");
+        }
+
+        // 写入文件
+        try {
+            File debugDir = new File("ars_astra_debug");
+            if (!debugDir.exists()) debugDir.mkdirs();
+            String timestamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
+            File file = new File(debugDir, "deduction_" + timestamp + ".txt");
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+                writer.write(sb.toString());
+            }
+            context.getSource().sendSuccess(() -> Component.literal("Deduction report saved: " + file.getName()), true);
+        } catch (IOException e) {
+            context.getSource().sendFailure(Component.literal("Failed to save report: " + e.getMessage()));
+        }
+
+        return 1;
+    }
+
+}

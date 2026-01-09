@@ -19,9 +19,4 @@ public interface RouteGenerationService {
      * @return 生成的星图航线
      */
     StarChartRoute computeRoute(List<AlchemyInput> inputs, Vector2f startPoint, StarChart chart);
-
-    /**
-     * 计算分段航线数据，包含交互信息。用于推演和渲染。
-     */
-    List<SegmentData> computeSegmentedRoute(List<AlchemyInput> inputs, Vector2f startPoint, StarChart chart);
 }

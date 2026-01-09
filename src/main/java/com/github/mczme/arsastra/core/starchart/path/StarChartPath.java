@@ -1,6 +1,9 @@
 package com.github.mczme.arsastra.core.starchart.path;
 
 import com.github.mczme.arsastra.core.starchart.shape.Shape;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
 import org.joml.Vector2f;
 
 /**
@@ -8,6 +11,34 @@ import org.joml.Vector2f;
  * 它可以是线性的，也可以是曲线。
  */
 public interface StarChartPath {
+
+    StreamCodec<FriendlyByteBuf, StarChartPath> STREAM_CODEC = new StreamCodec<>() {
+        @Override
+        public StarChartPath decode(FriendlyByteBuf buf) {
+            byte type = buf.readByte();
+            if (type == 0) {
+                Vector2f start = new Vector2f(buf.readFloat(), buf.readFloat());
+                Vector2f end = new Vector2f(buf.readFloat(), buf.readFloat());
+                return new LinearStarChartPath(start, end);
+            }
+            throw new UnsupportedOperationException("Unknown path type: " + type);
+        }
+
+        @Override
+        public void encode(FriendlyByteBuf buf, StarChartPath path) {
+            if (path instanceof LinearStarChartPath linear) {
+                buf.writeByte(0);
+                Vector2f start = linear.getStartPoint();
+                Vector2f end = linear.getEndPoint();
+                buf.writeFloat(start.x);
+                buf.writeFloat(start.y);
+                buf.writeFloat(end.x);
+                buf.writeFloat(end.y);
+            } else {
+                throw new UnsupportedOperationException("Unknown path implementation: " + path.getClass());
+            }
+        }
+    };
 
     /**
      * 获取路径的起始点坐标。

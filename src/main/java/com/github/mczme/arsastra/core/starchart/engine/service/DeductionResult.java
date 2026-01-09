@@ -1,18 +1,32 @@
 package com.github.mczme.arsastra.core.starchart.engine.service;
 
-import java.util.List;
+import com.github.mczme.arsastra.core.starchart.EffectField;
+import com.github.mczme.arsastra.core.starchart.engine.PotionData;
+import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 推演系统的结果汇总。
- * 包含完整的路径片段、最终稳定度以及是否炼金成功的判定。
+ * 包含完整的路径、最终稳定度以及预测的产物信息。
  *
- * @param segments       分段路径列表，供客户端渲染动画
+ * @param route          生成的完整几何路径，供客户端渲染
  * @param finalStability 最终稳定度 (0.0 - 1.0)
- * @param isSuccess      是否成功完成炼金（未因稳定度归零而崩溃）
+ * @param predictedEffects 预测的产物效果列表
  */
 public record DeductionResult(
-        List<SegmentData> segments,
+        StarChartRoute route,
         float finalStability,
-        boolean isSuccess
+        Map<EffectField, PotionData> predictedEffects
 ) {
+    public static final StreamCodec<FriendlyByteBuf, DeductionResult> STREAM_CODEC = StreamCodec.composite(
+            StarChartRoute.STREAM_CODEC, DeductionResult::route,
+            ByteBufCodecs.FLOAT, DeductionResult::finalStability,
+            ByteBufCodecs.map(HashMap::new, EffectField.STREAM_CODEC, PotionData.STREAM_CODEC), DeductionResult::predictedEffects,
+            DeductionResult::new
+    );
 }

@@ -3,18 +3,20 @@ package com.github.mczme.arsastra.core.starchart.engine.service;
 import com.github.mczme.arsastra.core.starchart.EffectField;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.engine.InteractionResult;
+import com.github.mczme.arsastra.core.starchart.engine.PotionData;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 
 public class InteractionServiceImpl implements InteractionService {
 
     private static final float SAMPLE_STEP = 1.0f; // 采样步长
+    private static final float DURATION_MULTIPLIER = 20.0f; // 每 1.0 弧长 = 1秒 (20 ticks)
 
     @Override
     public List<InteractionResult> computeInteractions(StarChartRoute route, StarChart chart) {
@@ -75,6 +77,35 @@ public class InteractionServiceImpl implements InteractionService {
 
             if (interacted) {
                 results.add(new InteractionResult(field, totalArcLength, minDistance));
+            }
+        }
+        return results;
+    }
+
+    @Override
+    public Map<EffectField, PotionData> calculateEffects(List<InteractionResult> interactions) {
+        Map<EffectField, PotionData> results = new HashMap<>();
+
+        for (InteractionResult result : interactions) {
+            EffectField field = result.field();
+            
+            // 计算等级：阶梯式计算
+            // 规则：最近距离 <= n * 20 时，等级 = maxLevel - n + 1
+            float dist = result.periapsisDistance();
+            int n = (int) Math.ceil(dist / 20.0f);
+            if (n < 1) n = 1; // 即使在圆心，n 也是 1
+            
+            int displayLevel = field.maxLevel() - n + 1;
+            
+            // 药水等级 (Amplifier) = 显示等级 - 1
+            // 确保等级不会低于 0 (Level 1)
+            int amplifier = Math.max(0, displayLevel - 1);
+
+            // 计算时长：基于场内弧长累加
+            int calculatedDuration = Math.round(result.arcLength() * DURATION_MULTIPLIER);
+
+            if (calculatedDuration > 0) {
+                 results.merge(field, new PotionData(amplifier, calculatedDuration), PotionData::merge);
             }
         }
         return results;

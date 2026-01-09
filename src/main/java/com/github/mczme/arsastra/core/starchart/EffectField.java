@@ -5,6 +5,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import org.joml.Vector2f;
@@ -26,6 +29,13 @@ public record EffectField(
             CodecUtils.VECTOR2F_CODEC.fieldOf("center").forGetter(EffectField::center),
             Codec.INT.fieldOf("max_level").forGetter(EffectField::maxLevel)
     ).apply(instance, EffectField::new));
+
+    public static final StreamCodec<FriendlyByteBuf, EffectField> STREAM_CODEC = StreamCodec.composite(
+            ResourceLocation.STREAM_CODEC, EffectField::effect,
+            CodecUtils.VECTOR2F_STREAM_CODEC.mapStream(buf -> (FriendlyByteBuf) buf), EffectField::center,
+            ByteBufCodecs.INT, EffectField::maxLevel,
+            EffectField::new
+    );
 
     public MobEffect getEffect() {
         return BuiltInRegistries.MOB_EFFECT.get(effect);

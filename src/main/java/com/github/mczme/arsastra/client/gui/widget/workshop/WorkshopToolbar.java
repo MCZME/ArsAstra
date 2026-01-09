@@ -1,40 +1,143 @@
 package com.github.mczme.arsastra.client.gui.widget.workshop;
 
 import com.github.mczme.arsastra.client.gui.logic.WorkshopViewModel;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSettingsWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 
 public class WorkshopToolbar extends ToolbarWidget {
     private final WorkshopViewModel viewModel;
+    private final WorkshopActionHandler handler;
+    
+    private ToolbarSearchWidget searchWidget;
+    private ToolbarFilterWidget filterWidget;
+    private ToolbarTabButton clearBtn;
+    private ToolbarTabButton saveBtn;
+    private ToolbarTabButton infoBtn;
+    private ToolbarSettingsWidget settingsBtn;
+    private String currentSearchQuery = "";
 
-    public WorkshopToolbar(int x, int y, int width, int height, WorkshopViewModel viewModel) {
+    public WorkshopToolbar(int x, int y, int width, int height, WorkshopViewModel viewModel, WorkshopActionHandler handler) {
         super(x, y, width, height);
         this.viewModel = viewModel;
+        this.handler = handler;
         initButtons();
     }
-
+    
     private void initButtons() {
-        // [Clear] 按钮: 红色 (0xFF5555), 图标索引暂定 0
-        ToolbarTabButton clearBtn = new ToolbarTabButton(0, 0, 20, 20, Component.translatable("gui.ars_astra.workshop.clear"), 0, 0xFF5555, this::onClear);
-        clearBtn.setTooltip(Tooltip.create(Component.translatable("gui.ars_astra.workshop.clear")));
+        // 1. [Clear] 清空按钮: 红色 (0xFF5555), 图标索引 8 (橡皮擦)
+        this.clearBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.clear"), 7, 0xFF5555, this::onClear);
         this.addChild(clearBtn);
 
-        // [Save] 按钮: 蓝色 (0x5555FF), 图标索引暂定 1
-        ToolbarTabButton saveBtn = new ToolbarTabButton(0, 0, 20, 20, Component.translatable("gui.ars_astra.workshop.save"), 1, 0x5555FF, this::onSave);
-        saveBtn.setTooltip(Tooltip.create(Component.translatable("gui.ars_astra.workshop.save")));
+        // 2. [Save] 保存按钮: 灰色 (0x888888), 图标索引 9 (墨水瓶与羽毛笔)
+        this.saveBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.save"), 8, 0x888888, this::onSave);
+        saveBtn.active = false;
         this.addChild(saveBtn);
+
+        // 3. [Search] 搜索组件
+        this.searchWidget = new ToolbarSearchWidget(0, 0, (query) -> {
+            this.currentSearchQuery = query.toLowerCase();
+            if (handler != null) handler.onFilterChanged();
+        });
+        this.addChild(this.searchWidget);
+
+        // 4. [Filter] 筛选组件
+        this.filterWidget = new ToolbarFilterWidget(0, 0, () -> {
+            if (handler != null) handler.onFilterChanged();
+        });
+        this.addChild(this.filterWidget);
+
+        // 5. [Info] 信息按钮: 图标索引 10 (羊皮纸), 靛蓝色
+        this.infoBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.info"), 9, 0x406080, this::onToggleInfo);
+        this.addChild(infoBtn);
+
+        // 6. [Settings] 设置组件
+        this.settingsBtn = new ToolbarSettingsWidget(0, 0, (type) -> {
+            if (handler != null) handler.onChartTypeChanged(type);
+        });
+        this.addChild(settingsBtn);
+    }
+    
+    @Override
+    public void arrange() {
+        // 确保所有组件都已初始化
+        if (settingsBtn == null || searchWidget == null || filterWidget == null || 
+            clearBtn == null || saveBtn == null || infoBtn == null) {
+            return;
+        }
+
+        int padding = 2;
+        int currentX = this.getX() + padding;
+
+        // Left Group: Settings -> Search -> Filter
+        if (settingsBtn.visible) {
+            settingsBtn.setX(currentX);
+            settingsBtn.setY(this.getY() + (this.height - settingsBtn.getHeight()));
+            currentX += settingsBtn.getWidth() + padding;
+        }
+
+        if (searchWidget.visible) {
+            searchWidget.setX(currentX);
+            searchWidget.setY(this.getY() + (this.height - searchWidget.getHeight()));
+            currentX += searchWidget.getWidth() + padding;
+        }
+
+        if (filterWidget.visible) {
+            filterWidget.setX(currentX);
+            filterWidget.setY(this.getY() + (this.height - filterWidget.getHeight()));
+        }
+
+        // Right Group: Clear -> Save -> Info (Aligned to Right)
+        int rightX = this.getX() + this.width - padding;
+
+        if (infoBtn.visible) {
+            rightX -= infoBtn.getWidth();
+            infoBtn.setX(rightX);
+            infoBtn.setY(this.getY() + (this.height - infoBtn.getHeight()));
+            rightX -= padding;
+        }
+
+        if (saveBtn.visible) {
+            rightX -= saveBtn.getWidth();
+            saveBtn.setX(rightX);
+            saveBtn.setY(this.getY() + (this.height - saveBtn.getHeight()));
+            rightX -= padding;
+        }
+
+        if (clearBtn.visible) {
+            rightX -= clearBtn.getWidth();
+            clearBtn.setX(rightX);
+            clearBtn.setY(this.getY() + (this.height - clearBtn.getHeight()));
+        }
+    }
+
+    public String getSearchQuery() {
+        return currentSearchQuery;
+    }
+
+    public String getElementFilter() {
+        return filterWidget != null ? filterWidget.getElementFilter() : "";
+    }
+
+    public String getTagFilter() {
+        return filterWidget != null ? filterWidget.getTagFilter() : "";
     }
 
     private void onClear() {
-        viewModel.clear();
+        if (handler != null) handler.onClearRequest();
         Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
     }
 
     private void onSave() {
-        // TODO: Implement save logic
+        if (handler != null) handler.onSaveRequest();
+    }
+
+    private void onToggleInfo() {
+        if (handler != null) handler.onInfoToggle();
         Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
     }
 }

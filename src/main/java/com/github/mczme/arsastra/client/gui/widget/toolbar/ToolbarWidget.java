@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ToolbarWidget extends AbstractWidget {
-    private final List<AbstractWidget> children = new ArrayList<>();
+    protected final List<AbstractWidget> children = new ArrayList<>();
     private final int padding = 2;
 
     public ToolbarWidget(int x, int y, int width, int height) {

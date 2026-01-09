@@ -33,8 +33,8 @@ public class ZH_CN extends LanguageProvider  {
         // Workshop
         add("gui.ars_astra.workshop.sequence", "推演序列");
         add("gui.ars_astra.workshop.source", "原料来源");
-        add("gui.ars_astra.workshop.clear", "清空序列");
-        add("gui.ars_astra.workshop.save", "保存蓝图");
+        add("gui.ars_astra.workshop.clear.title", "重构推演");
+        add("gui.ars_astra.workshop.clear.message", "这将会抹除当前所有的推演序列，确定吗？");
         
         // 筛选器
         add("gui.ars_astra.filter.elements_hint", "例如：生命, 物质...");

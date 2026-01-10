@@ -19,6 +19,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
     
     private ItemStack draggingStack = ItemStack.EMPTY;
     private boolean isDragging = false;
+    private int dragSourceIndex = -1;
     
     // 当前正在交互的组件
     private GuiEventListener activeWidget = null;
@@ -88,10 +89,11 @@ public class WorkshopTab implements JournalTab, DragHandler {
     }
 
     @Override
-    public void startDrag(ItemStack stack) {
+    public void startDrag(ItemStack stack, int sourceIndex) {
         if (!stack.isEmpty()) {
             this.draggingStack = stack.copy();
             this.isDragging = true;
+            this.dragSourceIndex = sourceIndex;
         }
     }
 
@@ -106,9 +108,15 @@ public class WorkshopTab implements JournalTab, DragHandler {
     }
 
     @Override
+    public int getDragSourceIndex() {
+        return dragSourceIndex;
+    }
+
+    @Override
     public void endDrag() {
         this.draggingStack = ItemStack.EMPTY;
         this.isDragging = false;
+        this.dragSourceIndex = -1;
     }
     
     public void renderOverlay(GuiGraphics guiGraphics, int mouseX, int mouseY) {

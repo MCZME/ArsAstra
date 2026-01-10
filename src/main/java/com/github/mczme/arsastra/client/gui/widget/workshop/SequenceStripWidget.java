@@ -197,7 +197,7 @@ public class SequenceStripWidget extends FloatingWidget {
                 int slotY = centerY - SLOT_SIZE / 2;
 
                 if (mouseX >= slotX && mouseX < slotX + SLOT_SIZE && mouseY >= slotY && mouseY < slotY + SLOT_SIZE) {
-                    dragHandler.startDrag(sequence.get(i));
+                    dragHandler.startDrag(sequence.get(i), i);
                     session.removeInput(i);
                     Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;

@@ -1,11 +1,13 @@
 package com.github.mczme.arsastra.core.starchart.engine.service;
 
 import com.github.mczme.arsastra.core.element.SpecialElement;
+import com.github.mczme.arsastra.core.element.profile.ElementProfile;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
+import com.github.mczme.arsastra.core.starchart.path.LinearStarChartPath;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
 import com.github.mczme.arsastra.registry.AARegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -96,7 +98,7 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
         return null;
     }
 
-    private List<StarChartPath> generatePathsForItem(com.github.mczme.arsastra.core.element.profile.ElementProfile profile) {
+    private List<StarChartPath> generatePathsForItem(ElementProfile profile) {
         List<StarChartPath> itemPaths = new ArrayList<>();
         Map<ResourceLocation, Float> elements = profile.elements();
 
@@ -113,16 +115,27 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
             });
         }
 
-        for (Map.Entry<ResourceLocation, Float> entry : basicElements.entrySet()) {
-            AARegistries.ELEMENT_REGISTRY.getOptional(entry.getKey()).ifPresent(element -> {
-                itemPaths.add(element.getPath(entry.getValue()));
-            });
-        }
+        if (!specialElements.isEmpty()) {
+            // 存在特殊要素：由特殊要素决定路径形态
+            // 特殊要素会利用基础要素提供的总能量/方向来“塑形”
+            for (Map.Entry<ResourceLocation, Float> entry : specialElements.entrySet()) {
+                AARegistries.ELEMENT_REGISTRY.getOptional(entry.getKey()).ifPresent(element -> {
+                    itemPaths.add(element.getPath(entry.getValue(), basicElements));
+                });
+            }
+        } else {
+            // 仅有基础要素：计算矢量和，生成单一直线路径
+            Vector2f totalVector = new Vector2f(0, 0);
+            for (Map.Entry<ResourceLocation, Float> entry : basicElements.entrySet()) {
+                AARegistries.ELEMENT_REGISTRY.getOptional(entry.getKey()).ifPresent(element -> {
+                    Vector2f component = new Vector2f(element.getVector()).mul(entry.getValue());
+                    totalVector.add(component);
+                });
+            }
 
-        for (Map.Entry<ResourceLocation, Float> entry : specialElements.entrySet()) {
-            AARegistries.ELEMENT_REGISTRY.getOptional(entry.getKey()).ifPresent(element -> {
-                itemPaths.add(element.getPath(entry.getValue(), basicElements));
-            });
+            if (totalVector.lengthSquared() > 0.0001f) {
+                itemPaths.add(new LinearStarChartPath(new Vector2f(0, 0), totalVector));
+            }
         }
 
         return itemPaths;

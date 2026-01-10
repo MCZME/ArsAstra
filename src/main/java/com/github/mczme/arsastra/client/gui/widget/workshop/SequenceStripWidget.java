@@ -3,9 +3,12 @@ package com.github.mczme.arsastra.client.gui.widget.workshop;
 import com.github.mczme.arsastra.client.gui.logic.DragHandler;
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.util.Palette;
+import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
 
@@ -19,6 +22,13 @@ public class SequenceStripWidget extends FloatingWidget {
     private static final int SLOT_SIZE = 20;
     private static final int GAP = 12; // 增加间距以放置箭头
     private static final int SCROLLBAR_HEIGHT = 4; // 滚动条高度
+    private static final int HIGHLIGHT_COLOR = 0xFFD4AF37; // 选中高亮色 (金色)
+    
+    // 拖拽逻辑状态
+    private int pendingDragIndex = -1;
+    private double clickX = 0;
+    private double clickY = 0;
+    private static final double DRAG_THRESHOLD = 3.0;
 
     public SequenceStripWidget(int x, int y, int width, WorkshopSession session, DragHandler dragHandler) {
         super(x, y, width, 40, Component.translatable("gui.ars_astra.workshop.sequence"));
@@ -36,7 +46,7 @@ public class SequenceStripWidget extends FloatingWidget {
         int centerY = getY() + getHeight() / 2;
         guiGraphics.fill(getX() + 5, centerY, getX() + getWidth() - 5, centerY + 1, Palette.INK_LIGHT);
 
-        List<ItemStack> sequence = session.getInputItems();
+        List<AlchemyInput> sequence = session.getInputs(); // 改用 getInputs 以访问旋转信息
         int contentWidth = (sequence.size() + 1) * (SLOT_SIZE + GAP) + 30; // 预留额外空间
         int maxScroll = Math.max(0, contentWidth - getWidth());
         
@@ -54,13 +64,14 @@ public class SequenceStripWidget extends FloatingWidget {
 
             if (i < sequence.size()) {
                 // 渲染已有的物品节点
-                renderSlot(guiGraphics, slotX, slotY, sequence.get(i), mouseX, mouseY, false);
+                boolean isSelected = (i == session.getSelectedIndex());
+                renderSlot(guiGraphics, slotX, slotY, sequence.get(i), mouseX, mouseY, false, isSelected);
                 
                 // 在节点之间绘制指向右侧的小箭头
                 drawArrow(guiGraphics, slotX + SLOT_SIZE + 2, centerY);
             } else {
                 // 渲染序列末尾的占位符 (带有 "+" 号的虚线感槽位)
-                renderSlot(guiGraphics, slotX, slotY, ItemStack.EMPTY, mouseX, mouseY, true);
+                renderSlot(guiGraphics, slotX, slotY, null, mouseX, mouseY, true, false);
             }
         }
 
@@ -105,8 +116,9 @@ public class SequenceStripWidget extends FloatingWidget {
     /**
      * 渲染单个物品槽位
      */
-    private void renderSlot(GuiGraphics guiGraphics, int x, int y, ItemStack stack, int mouseX, int mouseY, boolean isPlaceholder) {
+    private void renderSlot(GuiGraphics guiGraphics, int x, int y, AlchemyInput input, int mouseX, int mouseY, boolean isPlaceholder, boolean isSelected) {
         boolean isHovered = mouseX >= x && mouseX < x + SLOT_SIZE && mouseY >= y && mouseY < y + SLOT_SIZE;
+        ItemStack stack = isPlaceholder ? ItemStack.EMPTY : input.stack();
         
         // 节点底色 (遮挡背后的轴线)
         guiGraphics.fill(x, y, x + SLOT_SIZE, y + SLOT_SIZE, Palette.PARCHMENT_BG);
@@ -117,17 +129,30 @@ public class SequenceStripWidget extends FloatingWidget {
             guiGraphics.drawString(Minecraft.getInstance().font, "+", x + 7, y + 6, Palette.INK_LIGHT, false);
         } else {
             // 物品槽：实线轮廓 + 装饰角标
-            guiGraphics.renderOutline(x, y, SLOT_SIZE, SLOT_SIZE, Palette.INK);
+            int outlineColor = isSelected ? HIGHLIGHT_COLOR : Palette.INK;
+            guiGraphics.renderOutline(x, y, SLOT_SIZE, SLOT_SIZE, outlineColor);
+            
             // 装饰角标 (手绘感)
-            guiGraphics.fill(x, y, x + 2, y + 1, Palette.INK); // 左上
-            guiGraphics.fill(x, y, x + 1, y + 2, Palette.INK);
-            guiGraphics.fill(x + SLOT_SIZE - 2, y, x + SLOT_SIZE, y + 1, Palette.INK); // 右上
+            guiGraphics.fill(x, y, x + 2, y + 1, outlineColor); // 左上
+            guiGraphics.fill(x, y, x + 1, y + 2, outlineColor);
+            guiGraphics.fill(x + SLOT_SIZE - 2, y, x + SLOT_SIZE, y + 1, outlineColor); // 右上
             
             guiGraphics.renderFakeItem(stack, x + 2, y + 2);
 
+            // 如果未选中且有旋转，显示旋转标记
+            if (!isSelected && Math.abs(input.rotation()) > 0.001f) {
+                // 在物品上方绘制一个小点或符号
+                // 这里用一个小矩形表示
+                guiGraphics.fill(x + SLOT_SIZE / 2 - 1, y - 3, x + SLOT_SIZE / 2 + 1, y - 1, Palette.CINNABAR);
+            }
+
             if (isHovered && !dragHandler.isDragging()) {
-                guiGraphics.renderOutline(x - 1, y - 1, SLOT_SIZE + 2, SLOT_SIZE + 2, Palette.CINNABAR);
+                // 悬停时显示朱砂色高亮，如果是选中状态则叠加
+                guiGraphics.renderOutline(x - 1, y - 1, SLOT_SIZE + 2, SLOT_SIZE + 2, isSelected ? HIGHLIGHT_COLOR : Palette.CINNABAR);
                 guiGraphics.renderTooltip(Minecraft.getInstance().font, stack, mouseX, mouseY);
+            } else if (isSelected) {
+                 // 仅仅选中状态的高亮
+                 guiGraphics.renderOutline(x - 1, y - 1, SLOT_SIZE + 2, SLOT_SIZE + 2, HIGHLIGHT_COLOR);
             }
         }
 
@@ -164,6 +189,8 @@ public class SequenceStripWidget extends FloatingWidget {
         if (isMouseOver(mouseX, mouseY)) {
             // 滚轮控制左右滚动
             scrollOffset -= (int) (scrollY * 20);
+            // 滚动时取消选中
+            session.setSelectedIndex(-1);
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
@@ -197,9 +224,10 @@ public class SequenceStripWidget extends FloatingWidget {
                 int slotY = centerY - SLOT_SIZE / 2;
 
                 if (mouseX >= slotX && mouseX < slotX + SLOT_SIZE && mouseY >= slotY && mouseY < slotY + SLOT_SIZE) {
-                    dragHandler.startDrag(sequence.get(i), i);
-                    session.removeInput(i);
-                    Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                    // 记录点击，准备拖拽或选中
+                    pendingDragIndex = i;
+                    clickX = mouseX;
+                    clickY = mouseY;
                     return true;
                 }
             }
@@ -230,6 +258,24 @@ public class SequenceStripWidget extends FloatingWidget {
             }
             return true;
         }
+        
+        // 延迟拖拽逻辑
+        if (pendingDragIndex != -1 && !dragHandler.isDragging()) {
+            double dist = Math.sqrt(Math.pow(mouseX - clickX, 2) + Math.pow(mouseY - clickY, 2));
+            if (dist > DRAG_THRESHOLD) {
+                List<ItemStack> sequence = session.getInputItems();
+                if (pendingDragIndex < sequence.size()) {
+                    dragHandler.startDrag(sequence.get(pendingDragIndex), pendingDragIndex);
+                    session.removeInput(pendingDragIndex);
+                    // 拖拽开始，清除选中状态
+                    session.setSelectedIndex(-1);
+                    Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                }
+                pendingDragIndex = -1; // 重置
+                return true;
+            }
+        }
+        
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
@@ -237,6 +283,21 @@ public class SequenceStripWidget extends FloatingWidget {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         isScrolling = false; // 停止滚动
         
+        // 处理单击选中/反选
+        if (pendingDragIndex != -1 && !dragHandler.isDragging()) {
+            if (session.getSelectedIndex() == pendingDragIndex) {
+                // 如果已选中，则取消选中
+                session.setSelectedIndex(-1);
+            } else {
+                // 否则选中
+                session.setSelectedIndex(pendingDragIndex);
+            }
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+            pendingDragIndex = -1;
+            return true;
+        }
+        pendingDragIndex = -1; // 确保重置
+
         if (isMouseOver(mouseX, mouseY) && dragHandler.isDragging()) {
             int index = calculateDropIndex(mouseX);
             ItemStack stack = dragHandler.getDraggingStack();
@@ -244,7 +305,7 @@ public class SequenceStripWidget extends FloatingWidget {
             session.insertInput(index, stack);
             dragHandler.endDrag();
             
-            Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
             return true;
         }
         return super.mouseReleased(mouseX, mouseY, button);

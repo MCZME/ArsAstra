@@ -15,6 +15,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
     private SourceFloatingPanel sourcePanel;
     private SequenceStripWidget sequenceStrip;
     private WorkshopToolbar toolbar;
+    private SelectionInfoCard selectionInfoCard;
     private WorkshopSession session;
     
     private ItemStack draggingStack = ItemStack.EMPTY;
@@ -86,6 +87,11 @@ public class WorkshopTab implements JournalTab, DragHandler {
         this.sourcePanel = new SourceFloatingPanel(x + 15, y + 15, knowledge, this);
         this.sourcePanel.visible = false;
         screen.addTabWidget(this.sourcePanel);
+
+        // 5. 选中项详情卡片 (位于序列条上方)
+        this.selectionInfoCard = new SelectionInfoCard(x + 15, y + height - 45, session);
+        this.selectionInfoCard.visible = false;
+        screen.addTabWidget(this.selectionInfoCard);
     }
 
     @Override
@@ -139,6 +145,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
         if (sourcePanel != null) sourcePanel.visible = visible;
         if (sequenceStrip != null) sequenceStrip.visible = visible;
         if (toolbar != null) toolbar.visible = visible;
+        if (selectionInfoCard != null) selectionInfoCard.visible = visible;
 
         if (!visible) activeWidget = null;
     }
@@ -155,10 +162,14 @@ public class WorkshopTab implements JournalTab, DragHandler {
         // 2. Source Panel
         if (sourcePanel != null && sourcePanel.mouseClicked(mouseX, mouseY, button)) { activeWidget = sourcePanel; return true; }
         
-        // 3. Sequence Strip
+        // 3. Selection Info Card (如果可以交互)
+        // 目前不接受交互，但可能会阻挡点击，所以放在这里
+        // if (selectionInfoCard != null && selectionInfoCard.mouseClicked(mouseX, mouseY, button)) { activeWidget = selectionInfoCard; return true; }
+        
+        // 4. Sequence Strip
         if (sequenceStrip != null && sequenceStrip.mouseClicked(mouseX, mouseY, button)) { activeWidget = sequenceStrip; return true; }
         
-        // 4. Canvas (Background)
+        // 5. Canvas (Background)
         if (canvasWidget != null && canvasWidget.mouseClicked(mouseX, mouseY, button)) { activeWidget = canvasWidget; return true; }
         
         return false;

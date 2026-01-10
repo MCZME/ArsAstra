@@ -4,6 +4,8 @@ import com.github.mczme.arsastra.client.gui.logic.DragHandler;
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.util.Palette;
 import com.github.mczme.arsastra.client.gui.widget.StarChartWidget;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
+import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -13,6 +15,9 @@ import net.minecraft.sounds.SoundEvents;
 public class WorkshopCanvasWidget extends StarChartWidget {
     private final DragHandler dragHandler;
     private final WorkshopSession session;
+    
+    private final ToolbarTabButton btnRotateCCW;
+    private final ToolbarTabButton btnRotateCW;
 
     // 垃圾桶区域定义
     private static final int TRASH_WIDTH = 30;
@@ -22,6 +27,21 @@ public class WorkshopCanvasWidget extends StarChartWidget {
         super(x, y, width, height, Component.empty());
         this.dragHandler = dragHandler;
         this.session = session;
+        
+        // 初始化旋转按钮
+        // 逆时针 (-5度)
+        this.btnRotateCCW = new ToolbarTabButton(0, 0, 24, 20, Component.empty(), 12, Palette.CINNABAR, () -> {
+            session.stirInput(session.getSelectedIndex(), session.getSelectedInput().rotation() - (float)Math.toRadians(5));
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        });
+        this.btnRotateCCW.setDirection(ToolbarTabButton.Direction.RIGHT);
+        
+        // 顺时针 (+5度)
+        this.btnRotateCW = new ToolbarTabButton(0, 0, 24, 20, Component.empty(), 11, Palette.CINNABAR, () -> {
+            session.stirInput(session.getSelectedIndex(), session.getSelectedInput().rotation() + (float)Math.toRadians(5));
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+        });
+        this.btnRotateCW.setDirection(ToolbarTabButton.Direction.RIGHT);
     }
 
     @Override
@@ -33,9 +53,25 @@ public class WorkshopCanvasWidget extends StarChartWidget {
         
         super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
 
-        // 绘制垃圾桶 (仅在拖拽时显示)
         if (dragHandler.isDragging()) {
+            // 拖拽中：显示垃圾桶
             renderTrashBin(guiGraphics, mouseX, mouseY);
+        } else {
+            // 未拖拽：如果选中了物品，显示旋转按钮
+            AlchemyInput selected = session.getSelectedInput();
+            if (selected != null) {
+                // 更新按钮位置 (贴右边缘外部，留2px重叠)
+                int btnX = getX() + getWidth() - 2;
+                int centerY = getY() + getHeight() / 2;
+                
+                this.btnRotateCCW.setX(btnX);
+                this.btnRotateCCW.setY(centerY - 22); // 上方
+                this.btnRotateCCW.render(guiGraphics, mouseX, mouseY, partialTick);
+                
+                this.btnRotateCW.setX(btnX);
+                this.btnRotateCW.setY(centerY + 2); // 下方
+                this.btnRotateCW.render(guiGraphics, mouseX, mouseY, partialTick);
+            }
         }
     }
 
@@ -75,6 +111,15 @@ public class WorkshopCanvasWidget extends StarChartWidget {
         int tx = getX() + getWidth() - TRASH_WIDTH - 10;
         int ty = getY() + (getHeight() - TRASH_HEIGHT) / 2;
         return mouseX >= tx && mouseX < tx + TRASH_WIDTH && mouseY >= ty && mouseY < ty + TRASH_HEIGHT;
+    }
+    
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!dragHandler.isDragging() && session.getSelectedInput() != null) {
+            if (btnRotateCCW.mouseClicked(mouseX, mouseY, button)) return true;
+            if (btnRotateCW.mouseClicked(mouseX, mouseY, button)) return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

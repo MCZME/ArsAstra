@@ -1,13 +1,14 @@
 package com.github.mczme.arsastra.data.lang;
 
+import java.util.function.Supplier;
+
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.core.element.Element;
 import com.github.mczme.arsastra.registry.AAElements;
 import com.github.mczme.arsastra.registry.AAItems;
+
 import net.minecraft.data.PackOutput;
 import net.neoforged.neoforge.common.data.LanguageProvider;
-
-import java.util.function.Supplier;
 
 public class ZH_CN extends LanguageProvider  {
 
@@ -36,6 +37,7 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.workshop.clear.title", "重构推演");
         add("gui.ars_astra.workshop.clear.confirm", "确认重构");
         add("gui.ars_astra.workshop.remove", "垃圾桶");
+        add("gui.ars_astra.workshop.rotation", "旋转角度: %s°");
         
         // 筛选器
         add("gui.ars_astra.filter.elements_hint", "例如：生命, 物质...");

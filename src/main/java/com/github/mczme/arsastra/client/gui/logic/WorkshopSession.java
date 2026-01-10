@@ -21,6 +21,9 @@ public class WorkshopSession {
     private DeductionResult deductionResult;
     private Runnable onUpdateListener;
     private ResourceLocation currentStarChartId;
+    
+    // 当前选中的步骤索引 (-1 表示未选中)
+    private int selectedIndex = -1;
 
     public WorkshopSession(ResourceLocation initialStarChartId) {
         this.currentStarChartId = initialStarChartId;
@@ -48,6 +51,37 @@ public class WorkshopSession {
     }
 
     // --- 输入序列管理 ---
+    
+    /**
+     * 设置当前选中的输入步骤索引。
+     */
+    public void setSelectedIndex(int index) {
+        if (index >= -1 && index < inputs.size()) {
+            this.selectedIndex = index;
+            // 触发 UI 更新以重绘高亮
+            if (onUpdateListener != null) {
+                onUpdateListener.run();
+            }
+        }
+    }
+
+    /**
+     * 获取当前选中的输入步骤索引。
+     */
+    public int getSelectedIndex() {
+        return selectedIndex;
+    }
+
+    /**
+     * 获取当前选中的输入对象。
+     * @return 选中的 AlchemyInput，如果未选中则返回 null。
+     */
+    public AlchemyInput getSelectedInput() {
+        if (selectedIndex >= 0 && selectedIndex < inputs.size()) {
+            return inputs.get(selectedIndex);
+        }
+        return null;
+    }
 
     /**
      * 获取当前的输入序列副本。
@@ -75,6 +109,8 @@ public class WorkshopSession {
             ItemStack copy = stack.copy();
             copy.setCount(1);
             inputs.add(AlchemyInput.of(copy));
+            // 自动选中新添加的项
+            this.selectedIndex = inputs.size() - 1;
             notifyUpdate();
         }
     }
@@ -86,6 +122,9 @@ public class WorkshopSession {
         if (index >= 0 && index < inputs.size()) {
             if (stack.isEmpty()) {
                 inputs.remove(index);
+                // 修正选中索引
+                if (selectedIndex == index) selectedIndex = -1;
+                else if (selectedIndex > index) selectedIndex--;
             } else {
                 ItemStack copy = stack.copy();
                 copy.setCount(1);
@@ -104,6 +143,8 @@ public class WorkshopSession {
             ItemStack copy = stack.copy();
             copy.setCount(1);
             inputs.add(index, AlchemyInput.of(copy));
+            // 选中新插入的项
+            this.selectedIndex = index;
             notifyUpdate();
         }
     }
@@ -114,6 +155,9 @@ public class WorkshopSession {
     public void removeInput(int index) {
         if (index >= 0 && index < inputs.size()) {
             inputs.remove(index);
+            // 修正选中索引
+            if (selectedIndex == index) selectedIndex = -1;
+            else if (selectedIndex > index) selectedIndex--;
             notifyUpdate();
         }
     }
@@ -136,6 +180,7 @@ public class WorkshopSession {
      */
     public void clear() {
         inputs.clear();
+        selectedIndex = -1;
         notifyUpdate();
     }
 

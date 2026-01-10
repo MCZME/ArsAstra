@@ -15,12 +15,21 @@ public class ToolbarTabButton extends AbstractButton {
     private final Runnable onPress;
     private boolean isSelected;
     private boolean forceLeftAlign = false;
+    private Direction direction = Direction.DOWN;
+
+    public enum Direction {
+        UP, DOWN, RIGHT
+    }
 
     public ToolbarTabButton(int x, int y, int width, int height, Component message, int iconIndex, int color, Runnable onPress) {
         super(x, y, width, height, message);
         this.iconIndex = iconIndex;
         this.color = color;
         this.onPress = onPress;
+    }
+
+    public void setDirection(Direction direction) {
+        this.direction = direction;
     }
 
     public void setSelected(boolean selected) {
@@ -83,8 +92,18 @@ public class ToolbarTabButton extends AbstractButton {
         // 2. 绘制图层
         guiGraphics.fill(x, y, x + w, y + h, borderColor);
         guiGraphics.fill(x + 2, y + 2, x + w - 2, y + h - 2, mainColor);
-        // Layer 3: 底部装饰条 (在内轮廓内部的底部，高 2px)
-        guiGraphics.fill(x + 2, y + h - 4, x + w - 2, y + h - 2, accentColor);
+        
+        // Layer 3: 装饰条 (根据方向)
+        if (direction == Direction.DOWN) {
+            // 底部装饰
+            guiGraphics.fill(x + 2, y + h - 4, x + w - 2, y + h - 2, accentColor);
+        } else if (direction == Direction.UP) {
+            // 顶部装饰
+            guiGraphics.fill(x + 2, y + 2, x + w - 2, y + 4, accentColor);
+        } else if (direction == Direction.RIGHT) {
+            // 左侧装饰 (作为标签根部)
+            guiGraphics.fill(x + 2, y + 2, x + 4, y + h - 2, accentColor);
+        }
 
         // 3. 渲染图标
         guiGraphics.setColor(1.0f, 1.0f, 1.0f, 1.0f);

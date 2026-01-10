@@ -57,6 +57,8 @@ public class SourceFloatingPanel extends FloatingWidget {
         refreshItems();
     }
 
+    
+    @SuppressWarnings("null")
     private void refreshItems() {
         displayItems.clear();
         Predicate<ItemStack> advancedFilter = ItemFilterLogic.create(elementFilter, tagFilter);
@@ -69,7 +71,12 @@ public class SourceFloatingPanel extends FloatingWidget {
             List<ItemStack> invItems = new ArrayList<>();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (!stack.isEmpty()) invItems.add(stack);
+                if (!stack.isEmpty()) {
+                    // 仅显示已分析（解锁）的物品
+                    if (knowledge != null && knowledge.hasAnalyzed(stack.getItem())) {
+                        invItems.add(stack);
+                    }
+                }
             }
             itemStream = invItems.stream();
         } else {

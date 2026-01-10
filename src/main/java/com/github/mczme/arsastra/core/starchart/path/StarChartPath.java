@@ -5,7 +5,6 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import org.joml.Vector2f;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**

@@ -1,15 +1,10 @@
 package com.github.mczme.arsastra.item;
 
 import com.github.mczme.arsastra.client.renderer.StarChartJournalItemRenderer;
-import com.github.mczme.arsastra.menu.StarChartJournalMenu;
 import com.github.mczme.arsastra.registry.AAComponents;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
-import net.minecraft.world.MenuProvider;
-import net.minecraft.world.SimpleMenuProvider;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -45,12 +40,8 @@ public class StarChartJournalItem extends Item implements GeoItem {
 
     @Override
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
-        if (!level.isClientSide && player instanceof ServerPlayer serverPlayer) {
-            MenuProvider container = new SimpleMenuProvider(
-                (id, inventory, p) -> new StarChartJournalMenu(id, inventory),
-                Component.translatable("item.ars_astra.star_chart_journal")
-            );
-            serverPlayer.openMenu(container, buf -> {});
+        if (level.isClientSide) {
+            net.minecraft.client.Minecraft.getInstance().setScreen(new com.github.mczme.arsastra.client.gui.StarChartJournalScreen());
         }
         return InteractionResultHolder.success(player.getItemInHand(hand));
     }

@@ -5,7 +5,6 @@ import com.github.mczme.arsastra.client.gui.tab.CompendiumTab;
 import com.github.mczme.arsastra.client.gui.tab.JournalTab;
 import com.github.mczme.arsastra.client.gui.tab.WorkshopTab;
 import com.github.mczme.arsastra.client.gui.widget.JournalTabButton;
-import com.github.mczme.arsastra.menu.StarChartJournalMenu;
 import com.github.mczme.arsastra.network.payload.DeductionResultPayload;
 import com.github.mczme.arsastra.registry.AAAttachments;
 import net.minecraft.client.Minecraft;
@@ -14,17 +13,16 @@ import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.narration.NarratableEntry;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.player.Inventory;
 
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJournalMenu> {
+public class StarChartJournalScreen extends Screen {
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath("ars_astra", "textures/gui/star_chart_journal_gui.png");
     
     // UI 尺寸常量
@@ -40,10 +38,8 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
     
     private PlayerKnowledge playerKnowledge;
 
-    public StarChartJournalScreen(StarChartJournalMenu menu, Inventory playerInventory, Component title) {
-        super(menu, playerInventory, title);
-        this.imageWidth = BOOK_WIDTH;
-        this.imageHeight = BOOK_HEIGHT;
+    public StarChartJournalScreen() {
+        super(Component.translatable("item.ars_astra.star_chart_journal"));
     }
     
     public PlayerKnowledge getPlayerKnowledge() {
@@ -119,11 +115,10 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
         }
     }
 
-    @Override
-    protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
+    private void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         int x = (this.width - BOOK_WIDTH) / 2;
         int y = (this.height - BOOK_HEIGHT) / 2;
-        
+
         // 1. 绘制书本背景贴图
         guiGraphics.blit(TEXTURE, x, y, 0, 0, BOOK_WIDTH, BOOK_HEIGHT, BOOK_WIDTH, BOOK_HEIGHT);
 
@@ -133,19 +128,24 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
             tab.render(guiGraphics, mouseX, mouseY, partialTick);
         }
     }
-
+    
     @Override
-    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+    public void renderBackground(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        
     }
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(guiGraphics, mouseX, mouseY, partialTick);
+        this.renderBg(guiGraphics, partialTick, mouseX, mouseY);
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         if (activeTab == 1 && workshopTab != null) {
             workshopTab.renderOverlay(guiGraphics, mouseX, mouseY);
         }
-        this.renderTooltip(guiGraphics, mouseX, mouseY);
+    }
+
+    @Override
+    public boolean isPauseScreen() {
+        return false;
     }
 
     // 事件转发

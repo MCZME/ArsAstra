@@ -74,19 +74,7 @@ public interface StarChartPath {
      * @param stepSize 采样步长
      * @return 采样点列表
      */
-    default List<Vector2f> sample(float stepSize) {
-        List<Vector2f> points = new ArrayList<>();
-        float length = getLength();
-        if (length <= 0) {
-            points.add(getStartPoint());
-            return points;
-        }
-        for (float d = 0; d < length; d += stepSize) {
-            points.add(getPointAtDistance(d));
-        }
-        points.add(getEndPoint()); // 确保终点总是被包含
-        return points;
-    }
+    List<Vector2f> sample(float stepSize);
 
     /**
      * 将路径平移指定的偏移量，并返回一个新的路径对象。

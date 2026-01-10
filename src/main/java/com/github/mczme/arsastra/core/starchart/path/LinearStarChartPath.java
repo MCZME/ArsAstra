@@ -2,6 +2,9 @@ package com.github.mczme.arsastra.core.starchart.path;
 
 import org.joml.Vector2f;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class LinearStarChartPath implements StarChartPath {
     private final Vector2f startPoint;
     private final Vector2f endPoint;
@@ -38,6 +41,19 @@ public class LinearStarChartPath implements StarChartPath {
         // 根据距离计算比例
         float t = distance / length;
         return new Vector2f(this.startPoint).lerp(this.endPoint, t);
+    }
+
+    @Override
+    public List<Vector2f> sample(float stepSize) {
+        List<Vector2f> points = new ArrayList<>();
+        float length = getLength();
+        if (length <= 0) {
+            points.add(getStartPoint());
+            return points;
+        }
+        points.add(getStartPoint());
+        points.add(getEndPoint());
+        return points;
     }
 
     @Override

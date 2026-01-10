@@ -2,6 +2,8 @@ package com.github.mczme.arsastra.core.starchart.path;
 
 import org.joml.Vector2f;
 
+import java.util.List;
+
 public class ArcStarChartPath implements StarChartPath {
 
     public ArcStarChartPath(Vector2f startPoint, Vector2f endPoint, float curvature) {
@@ -25,6 +27,11 @@ public class ArcStarChartPath implements StarChartPath {
 
     @Override
     public Vector2f getPointAtDistance(float distance) {
+        throw new UnsupportedOperationException("Arc path calculation is not yet implemented.");
+    }
+
+    @Override
+    public List<Vector2f> sample(float stepSize) {
         throw new UnsupportedOperationException("Arc path calculation is not yet implemented.");
     }
 

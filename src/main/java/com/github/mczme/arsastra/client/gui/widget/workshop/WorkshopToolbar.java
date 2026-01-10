@@ -3,7 +3,6 @@ package com.github.mczme.arsastra.client.gui.widget.workshop;
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarClearWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
-import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarInfoWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSettingsWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
@@ -17,7 +16,7 @@ public class WorkshopToolbar extends ToolbarWidget {
     private ToolbarFilterWidget filterWidget;
     private ToolbarClearWidget clearBtn;
     private ToolbarTabButton saveBtn;
-    private ToolbarInfoWidget infoBtn;
+    private ToolbarTabButton infoBtn;
     private ToolbarSettingsWidget settingsBtn;
     private String currentSearchQuery = "";
 
@@ -52,8 +51,10 @@ public class WorkshopToolbar extends ToolbarWidget {
         });
         this.addChild(this.filterWidget);
 
-        // 5. [Info] 信息组件
-        this.infoBtn = new ToolbarInfoWidget(0, 0);
+        // 5. [Info] 信息按钮: 靛蓝色 (0x406080), 图标索引 9 (信息)
+        this.infoBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.info"), 9, 0x406080, () -> {
+            if (handler != null) handler.onInfoToggle();
+        });
         this.addChild(infoBtn);
 
         // 6. [Settings] 设置组件

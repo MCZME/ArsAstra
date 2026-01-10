@@ -15,6 +15,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
     private SourceFloatingPanel sourcePanel;
     private SequenceStripWidget sequenceStrip;
     private WorkshopToolbar toolbar;
+    private StickyNoteWidget stickyNote;
     private SelectionInfoCard selectionInfoCard;
     private WorkshopSession session;
     
@@ -34,13 +35,25 @@ public class WorkshopTab implements JournalTab, DragHandler {
         
         PlayerKnowledge knowledge = screen.getPlayerKnowledge();
 
+        // RENDER ORDER: Bottom -> Top
+        
         // 1. 画布 (最底层)
         this.canvasWidget = new WorkshopCanvasWidget(x + 10, y + 10, width - 20, height - 20, this, session);
         this.canvasWidget.setKnowledge(knowledge);
         this.canvasWidget.visible = false;
         screen.addTabWidget(this.canvasWidget);
 
-        // 2. 工具栏
+        // 2. 序列条
+        this.sequenceStrip = new SequenceStripWidget(x + 15, y + height - 45, width - 30, session, this);
+        this.sequenceStrip.visible = false;
+        screen.addTabWidget(this.sequenceStrip);
+        
+        // 3. 选中项详情卡片 (位于序列条上方)
+        this.selectionInfoCard = new SelectionInfoCard(x + 15, y + height - 45, session);
+        this.selectionInfoCard.visible = false;
+        screen.addTabWidget(this.selectionInfoCard);
+
+        // 4. 工具栏 (中层)
         this.toolbar = new WorkshopToolbar(x + 15, y - 13, 270, 22, session, new WorkshopActionHandler() {
             @Override
             public void onFilterChanged() {
@@ -56,7 +69,9 @@ public class WorkshopTab implements JournalTab, DragHandler {
 
             @Override
             public void onInfoToggle() {
-                // Handled internally by toolbar widget
+                if (stickyNote != null) {
+                    stickyNote.visible = !stickyNote.visible;
+                }
             }
 
             @Override
@@ -77,21 +92,16 @@ public class WorkshopTab implements JournalTab, DragHandler {
         });
         this.toolbar.visible = false;
         screen.addTabWidget(this.toolbar);
-        
-        // 3. 序列条
-        this.sequenceStrip = new SequenceStripWidget(x + 15, y + height - 45, width - 30, session, this);
-        this.sequenceStrip.visible = false;
-        screen.addTabWidget(this.sequenceStrip);
 
-        // 4. 原料面板
+        // 5. 原料面板 (悬浮层)
         this.sourcePanel = new SourceFloatingPanel(x + 15, y + 15, knowledge, this);
         this.sourcePanel.visible = false;
         screen.addTabWidget(this.sourcePanel);
 
-        // 5. 选中项详情卡片 (位于序列条上方)
-        this.selectionInfoCard = new SelectionInfoCard(x + 15, y + height - 45, session);
-        this.selectionInfoCard.visible = false;
-        screen.addTabWidget(this.selectionInfoCard);
+        // 6. 便签纸 (悬浮层 - 最顶层)
+        this.stickyNote = new StickyNoteWidget(x + width - 150, y + 50, session);
+        this.stickyNote.visible = false;
+        screen.addTabWidget(this.stickyNote);
     }
 
     @Override
@@ -146,30 +156,32 @@ public class WorkshopTab implements JournalTab, DragHandler {
         if (sequenceStrip != null) sequenceStrip.visible = visible;
         if (toolbar != null) toolbar.visible = visible;
         if (selectionInfoCard != null) selectionInfoCard.visible = visible;
-
-        if (!visible) activeWidget = null;
+        // StickyNote visibility is managed by user toggle, but hidden when tab is hidden
+        if (!visible && stickyNote != null) stickyNote.visible = false;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         activeWidget = null;
         
-        // 处理悬浮面板点击 (按 Z 轴倒序检查)
+        // HIT TEST ORDER: Top -> Bottom (Reverse Render Order)
         
-        // 1. Toolbar
-        if (toolbar != null && toolbar.mouseClicked(mouseX, mouseY, button)) { activeWidget = toolbar; return true; }
+        // 1. Sticky Note (Topmost Floating)
+        if (stickyNote != null && stickyNote.mouseClicked(mouseX, mouseY, button)) { activeWidget = stickyNote; return true; }
         
-        // 2. Source Panel
+        // 2. Source Panel (Floating)
         if (sourcePanel != null && sourcePanel.mouseClicked(mouseX, mouseY, button)) { activeWidget = sourcePanel; return true; }
         
-        // 3. Selection Info Card (如果可以交互)
-        // 目前不接受交互，但可能会阻挡点击，所以放在这里
-        // if (selectionInfoCard != null && selectionInfoCard.mouseClicked(mouseX, mouseY, button)) { activeWidget = selectionInfoCard; return true; }
+        // 3. Toolbar
+        if (toolbar != null && toolbar.mouseClicked(mouseX, mouseY, button)) { activeWidget = toolbar; return true; }
         
-        // 4. Sequence Strip
+        // 4. Selection Info Card
+        if (selectionInfoCard != null && selectionInfoCard.mouseClicked(mouseX, mouseY, button)) { activeWidget = selectionInfoCard; return true; }
+        
+        // 5. Sequence Strip
         if (sequenceStrip != null && sequenceStrip.mouseClicked(mouseX, mouseY, button)) { activeWidget = sequenceStrip; return true; }
         
-        // 5. Canvas (Background)
+        // 6. Canvas (Background)
         if (canvasWidget != null && canvasWidget.mouseClicked(mouseX, mouseY, button)) { activeWidget = canvasWidget; return true; }
         
         return false;
@@ -177,25 +189,42 @@ public class WorkshopTab implements JournalTab, DragHandler {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        boolean handled = false;
-        
         // Special handling for Drag & Drop
         if (isDragging) {
-            // Check potential drop targets in reverse Z-order (topmost first)
-            if (toolbar != null && toolbar.isMouseOver(mouseX, mouseY)) {
-                if (toolbar.mouseReleased(mouseX, mouseY, button)) handled = true;
+            boolean intercepted = false;
+
+            // Check Drop Targets: Top -> Bottom
+            // If mouse is over a component, we consider the drop "intercepted" by that layer.
+            // Whether the component accepts the drop or not is up to its mouseReleased implementation.
+            
+            if (stickyNote != null && stickyNote.visible && stickyNote.isMouseOver(mouseX, mouseY)) {
+                 stickyNote.mouseReleased(mouseX, mouseY, button);
+                 intercepted = true;
             }
-            else if (sourcePanel != null && sourcePanel.isMouseOver(mouseX, mouseY)) {
-                if (sourcePanel.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (sourcePanel != null && sourcePanel.visible && sourcePanel.isMouseOver(mouseX, mouseY)) {
+                sourcePanel.mouseReleased(mouseX, mouseY, button);
+                intercepted = true;
             }
-            else if (sequenceStrip != null && sequenceStrip.isMouseOver(mouseX, mouseY)) {
-                if (sequenceStrip.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (toolbar != null && toolbar.visible && toolbar.isMouseOver(mouseX, mouseY)) {
+                toolbar.mouseReleased(mouseX, mouseY, button);
+                intercepted = true;
             }
-            else if (canvasWidget != null && canvasWidget.isMouseOver(mouseX, mouseY)) {
-                if (canvasWidget.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (selectionInfoCard != null && selectionInfoCard.visible && selectionInfoCard.isMouseOver(mouseX, mouseY)) {
+                selectionInfoCard.mouseReleased(mouseX, mouseY, button);
+                intercepted = true;
+            }
+            else if (sequenceStrip != null && sequenceStrip.visible && sequenceStrip.isMouseOver(mouseX, mouseY)) {
+                sequenceStrip.mouseReleased(mouseX, mouseY, button);
+                intercepted = true;
+            }
+            else if (canvasWidget != null && canvasWidget.visible && canvasWidget.isMouseOver(mouseX, mouseY)) {
+                canvasWidget.mouseReleased(mouseX, mouseY, button);
+                intercepted = true;
             }
 
-            if (!handled && isDragging) {
+            // If drag is still active (meaning no component consumed it and called endDrag),
+            // we forcefully end it here (cancel the drag).
+            if (isDragging) {
                 endDrag();
             }
             
@@ -204,15 +233,18 @@ public class WorkshopTab implements JournalTab, DragHandler {
         }
 
         // Standard Click Release
+        boolean handled = false;
         if (activeWidget != null) {
             handled = activeWidget.mouseReleased(mouseX, mouseY, button);
             activeWidget = null;
         } else {
-            // Fallback dispatch
-            if (toolbar != null && toolbar.mouseReleased(mouseX, mouseY, button)) handled = true;
-            if (sourcePanel != null && sourcePanel.mouseReleased(mouseX, mouseY, button)) handled = true;
-            if (sequenceStrip != null && sequenceStrip.mouseReleased(mouseX, mouseY, button)) handled = true;
-            if (canvasWidget != null && canvasWidget.mouseReleased(mouseX, mouseY, button)) handled = true;
+            // Fallback dispatch: Top -> Bottom
+            if (stickyNote != null && stickyNote.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (sourcePanel != null && sourcePanel.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (toolbar != null && toolbar.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (selectionInfoCard != null && selectionInfoCard.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (sequenceStrip != null && sequenceStrip.mouseReleased(mouseX, mouseY, button)) handled = true;
+            else if (canvasWidget != null && canvasWidget.mouseReleased(mouseX, mouseY, button)) handled = true;
         }
         return handled;
     }
@@ -227,8 +259,11 @@ public class WorkshopTab implements JournalTab, DragHandler {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        if (toolbar != null && toolbar.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
+        // Scroll: Top -> Bottom
+        if (stickyNote != null && stickyNote.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
         if (sourcePanel != null && sourcePanel.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
+        if (toolbar != null && toolbar.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
+        if (selectionInfoCard != null && selectionInfoCard.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
         if (sequenceStrip != null && sequenceStrip.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
         if (canvasWidget != null && canvasWidget.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
         return false;

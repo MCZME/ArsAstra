@@ -16,6 +16,10 @@ public class FloatingWidget extends AbstractWidget {
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        guiGraphics.pose().pushPose();
+        // 提升 Z 轴层级 (200 应该足够盖住普通组件绘制的物品)
+        guiGraphics.pose().translate(0, 0, 200);
+        
         // Render Background
         guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + getHeight(), 0xCC101010);
         guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), 0xFF404040);
@@ -23,6 +27,8 @@ public class FloatingWidget extends AbstractWidget {
         // Render Title Bar
         guiGraphics.fill(getX(), getY(), getX() + getWidth(), getY() + titleHeight, 0xFF303030);
         guiGraphics.drawString(net.minecraft.client.Minecraft.getInstance().font, getMessage(), getX() + 4, getY() + 2, 0xFFFFFF, false);
+        
+        guiGraphics.pose().popPose();
     }
     
     protected boolean isMouseOverTitle(double mouseX, double mouseY) {

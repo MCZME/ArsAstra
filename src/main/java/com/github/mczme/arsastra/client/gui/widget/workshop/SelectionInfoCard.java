@@ -8,17 +8,18 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.Mth;
 
 public class SelectionInfoCard extends AbstractWidget {
     private final WorkshopSession session;
     private float animationProgress = 0f;
     private static final int MAX_HEIGHT = 50;
     private static final int CARD_WIDTH = 120;
+    private final int bottomY;
 
     // y 坐标作为卡片的底部锚点
     public SelectionInfoCard(int x, int bottomY, WorkshopSession session) {
         super(x, bottomY, CARD_WIDTH, 0, Component.empty());
+        this.bottomY = bottomY;
         this.session = session;
     }
 
@@ -27,25 +28,34 @@ public class SelectionInfoCard extends AbstractWidget {
         AlchemyInput input = session.getSelectedInput();
         boolean shouldShow = (input != null);
 
-        // 简单的动画平滑 (每帧逼近目标值)
+        // 简单的动画平滑
         float target = shouldShow ? 1.0f : 0.0f;
-        float speed = 0.2f; // 动画速度
+        float speed = 0.2f;
         
-        // 考虑到帧率波动，这里做一个简单的线性插值
         if (Math.abs(target - animationProgress) > 0.001f) {
             animationProgress = animationProgress + (target - animationProgress) * speed;
         } else {
             animationProgress = target;
         }
         
-        if (this.animationProgress < 0.01f) return;
+        if (this.animationProgress < 0.01f) {
+            this.height = 0;
+            return;
+        }
+
+        guiGraphics.pose().pushPose();
+        // 提升 Z 轴层级，盖住下方的物品
+        guiGraphics.pose().translate(0, 0, 180);
 
         int currentHeight = (int) (MAX_HEIGHT * this.animationProgress);
         // 计算绘制的起始 Y (向上展开)
-        int drawY = getY() - currentHeight; 
+        int drawY = this.bottomY - currentHeight; 
         
+        // 关键修复：SelectionInfoCard 不应有逻辑高度来遮挡下方组件
+        this.height = 0;
+
         // 绘制卡片背景
-        guiGraphics.fill(getX(), drawY, getX() + width, getY(), Palette.PARCHMENT_BG);
+        guiGraphics.fill(getX(), drawY, getX() + width, this.bottomY, Palette.PARCHMENT_BG);
         guiGraphics.renderOutline(getX(), drawY, width, currentHeight, Palette.INK);
         
         // 绘制装饰性顶部横条
@@ -53,28 +63,22 @@ public class SelectionInfoCard extends AbstractWidget {
             guiGraphics.fill(getX(), drawY, getX() + width, drawY + 4, Palette.INK);
         }
 
-        // 仅当展开程度足够时显示内容，并进行淡入处理 (这里通过透明度或裁剪简化)
+        // 内容显示
         if (this.animationProgress > 0.5f && input != null) {
-            // 启用剪裁以防止文字溢出边界
-            guiGraphics.enableScissor(getX(), drawY, getX() + width, getY());
+            guiGraphics.enableScissor(getX(), drawY, getX() + width, this.bottomY);
             
             int padding = 8;
             int contentY = drawY + 10;
             
-            // 物品图标
             guiGraphics.renderFakeItem(input.stack(), getX() + padding, contentY);
             
-            // 物品名称
             int textX = getX() + padding + 20;
             guiGraphics.drawString(Minecraft.getInstance().font, input.stack().getHoverName(), textX, contentY + 4, Palette.INK, false);
             
             contentY += 20;
-            
-            // 分割线
             guiGraphics.fill(getX() + padding, contentY, getX() + width - padding, contentY + 1, Palette.INK_LIGHT);
             contentY += 6;
 
-            // 旋转信息
             float degrees = (float) Math.toDegrees(input.rotation());
             Component rotComp = Component.translatable("gui.ars_astra.workshop.rotation", String.format("%.1f", degrees));
             guiGraphics.drawString(Minecraft.getInstance().font, rotComp, getX() + padding, contentY, Palette.INK_LIGHT, false);
@@ -82,11 +86,13 @@ public class SelectionInfoCard extends AbstractWidget {
             guiGraphics.disableScissor();
         }
         
-        // 更新 widget 的实际高度以响应点击 (虽然目前卡片不响应点击，但保持状态一致是好的)
-        this.height = currentHeight;
-        // 注意：getY() 是底部，所以 Widget 的逻辑 Y 应该是 drawY。
-        // 但 AbstractWidget 的 setY 会改变 getY() 的返回值。
-        // 我们保持构造函数传入的 Y 为底部锚点不动，只在渲染时计算 drawY。
+        guiGraphics.pose().popPose();
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // 该组件纯显示，不消耗点击事件，确保下方的序列槽能正常工作
+        return false;
     }
 
     @Override

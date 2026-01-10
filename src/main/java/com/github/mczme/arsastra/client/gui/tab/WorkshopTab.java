@@ -2,11 +2,12 @@ package com.github.mczme.arsastra.client.gui.tab;
 
 import com.github.mczme.arsastra.client.gui.StarChartJournalScreen;
 import com.github.mczme.arsastra.client.gui.logic.DragHandler;
-import com.github.mczme.arsastra.client.gui.logic.WorkshopViewModel;
+import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.widget.workshop.*;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 public class WorkshopTab implements JournalTab, DragHandler {
@@ -14,7 +15,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
     private SourceFloatingPanel sourcePanel;
     private SequenceStripWidget sequenceStrip;
     private WorkshopToolbar toolbar;
-    private WorkshopViewModel viewModel;
+    private WorkshopSession session;
     
     private ItemStack draggingStack = ItemStack.EMPTY;
     private boolean isDragging = false;
@@ -24,20 +25,21 @@ public class WorkshopTab implements JournalTab, DragHandler {
 
     @Override
     public void init(StarChartJournalScreen screen, int x, int y, int width, int height) {
-        if (this.viewModel == null) {
-            this.viewModel = new WorkshopViewModel();
+        if (this.session == null) {
+            // 默认加载基础星图，后续可根据玩家选择切换
+            this.session = new WorkshopSession(ResourceLocation.fromNamespaceAndPath("ars_astra", "base_chart"));
         }
         
         PlayerKnowledge knowledge = screen.getPlayerKnowledge();
 
         // 1. 画布 (最底层)
-        this.canvasWidget = new WorkshopCanvasWidget(x + 10, y + 10, width - 20, height - 20, this, viewModel);
+        this.canvasWidget = new WorkshopCanvasWidget(x + 10, y + 10, width - 20, height - 20, this, session);
         this.canvasWidget.setKnowledge(knowledge);
         this.canvasWidget.visible = false;
         screen.addTabWidget(this.canvasWidget);
 
         // 2. 工具栏
-        this.toolbar = new WorkshopToolbar(x + 15, y - 13, 270, 22, viewModel, new WorkshopActionHandler() {
+        this.toolbar = new WorkshopToolbar(x + 15, y - 13, 270, 22, session, new WorkshopActionHandler() {
             @Override
             public void onFilterChanged() {
                 if (sourcePanel != null && toolbar != null) {
@@ -47,7 +49,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
 
             @Override
             public void onClearRequest() {
-                viewModel.clear();
+                session.clear();
             }
 
             @Override
@@ -68,13 +70,14 @@ public class WorkshopTab implements JournalTab, DragHandler {
             @Override
             public void onChartTypeChanged(String type) {
                 // TODO: 切换星图类型逻辑
+                // session.setStarChartId(...);
             }
         });
         this.toolbar.visible = false;
         screen.addTabWidget(this.toolbar);
         
         // 3. 序列条
-        this.sequenceStrip = new SequenceStripWidget(x + 15, y + height - 45, width - 30, viewModel, this);
+        this.sequenceStrip = new SequenceStripWidget(x + 15, y + height - 45, width - 30, session, this);
         this.sequenceStrip.visible = false;
         screen.addTabWidget(this.sequenceStrip);
 
@@ -233,7 +236,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
         return canvasWidget;
     }
     
-    public WorkshopViewModel getViewModel() {
-        return viewModel;
+    public WorkshopSession getSession() {
+        return session;
     }
 }

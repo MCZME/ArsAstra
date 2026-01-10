@@ -1,10 +1,12 @@
 package com.github.mczme.arsastra.core.starchart.path;
 
 import com.github.mczme.arsastra.core.starchart.shape.Shape;
-import io.netty.buffer.ByteBuf;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import org.joml.Vector2f;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 代表一段在星图上生成的路径。
@@ -21,6 +23,7 @@ public interface StarChartPath {
                 Vector2f end = new Vector2f(buf.readFloat(), buf.readFloat());
                 return new LinearStarChartPath(start, end);
             }
+            // Future: type 1 for ArcStarChartPath
             throw new UnsupportedOperationException("Unknown path type: " + type);
         }
 
@@ -65,6 +68,25 @@ public interface StarChartPath {
      * @return 路径上对应点的坐标
      */
     Vector2f getPointAtDistance(float distance);
+
+    /**
+     * 对路径进行采样，返回一系列用于绘制的点。
+     * @param stepSize 采样步长
+     * @return 采样点列表
+     */
+    default List<Vector2f> sample(float stepSize) {
+        List<Vector2f> points = new ArrayList<>();
+        float length = getLength();
+        if (length <= 0) {
+            points.add(getStartPoint());
+            return points;
+        }
+        for (float d = 0; d < length; d += stepSize) {
+            points.add(getPointAtDistance(d));
+        }
+        points.add(getEndPoint()); // 确保终点总是被包含
+        return points;
+    }
 
     /**
      * 将路径平移指定的偏移量，并返回一个新的路径对象。

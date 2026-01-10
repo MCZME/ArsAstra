@@ -114,11 +114,8 @@ public class StarChartJournalScreen extends AbstractContainerScreen<StarChartJou
     }
 
     public void handleDeductionResult(DeductionResultPayload payload) {
-        if (this.workshopTab != null && this.workshopTab.getViewModel() != null) {
-            this.workshopTab.getViewModel().updatePrediction(payload.points(), payload.stability());
-        }
-        if (this.workshopTab != null && this.workshopTab.getCanvasWidget() != null) {
-             this.workshopTab.getCanvasWidget().setPrediction(payload.points(), payload.stability());
+        if (this.workshopTab != null && this.workshopTab.getSession() != null) {
+            this.workshopTab.getSession().setDeductionResult(payload.result());
         }
     }
 

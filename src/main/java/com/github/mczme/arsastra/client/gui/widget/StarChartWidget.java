@@ -6,7 +6,10 @@ import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.EffectField;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
+import com.github.mczme.arsastra.core.starchart.engine.DeductionResult;
+import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
 import com.github.mczme.arsastra.core.starchart.environment.Environment;
+import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
 import com.github.mczme.arsastra.core.starchart.shape.Circle;
 import com.github.mczme.arsastra.core.starchart.shape.ExteriorPolygon;
 import com.github.mczme.arsastra.core.starchart.shape.Polygon;
@@ -40,9 +43,8 @@ public class StarChartWidget extends AbstractWidget {
     // 几何缓存：存储经过细分和抖动处理后的手绘多边形顶点
     private final Map<Environment, List<Vector2f>> envGeometryCache = new WeakHashMap<>();
     
-    // 推演路径
-    protected List<Vector2f> predictionPath;
-    protected float predictedStability;
+    // 推演结果
+    protected DeductionResult deductionResult;
     
     // 视口状态
     protected float scale = 0.1f;
@@ -82,9 +84,8 @@ public class StarChartWidget extends AbstractWidget {
         }
     }
 
-    public void setPrediction(List<Vector2f> path, float stability) {
-        this.predictionPath = path;
-        this.predictedStability = stability;
+    public void setDeductionResult(DeductionResult result) {
+        this.deductionResult = result;
     }
 
     // --- 几何处理 ---
@@ -175,7 +176,7 @@ public class StarChartWidget extends AbstractWidget {
             renderEnvironmentsDaVinci(guiGraphics);
             renderEffectFields(guiGraphics);
             
-            if (predictionPath != null && !predictionPath.isEmpty()) {
+            if (deductionResult != null) {
                 renderPredictionPath(guiGraphics);
             }
             poseStack.popPose();
@@ -185,7 +186,7 @@ public class StarChartWidget extends AbstractWidget {
         RenderSystem.enableDepthTest();
         RenderSystem.disableBlend();
         
-guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), Palette.INK);
+        guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), Palette.INK);
         guiGraphics.disableScissor();
     }
 
@@ -241,11 +242,26 @@ guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), Palette.INK);
     }
 
     private void renderPredictionPath(GuiGraphics guiGraphics) {
-        float baseWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.5f, scale);
-        StarChartRenderUtils.drawPath(guiGraphics.pose(), predictionPath, baseWidth, 0xE6212A54);
+        if (deductionResult == null) return;
         
-        Vector2f lastPoint = predictionPath.get(predictionPath.size() - 1);
-        renderDraftingCursor(guiGraphics, lastPoint);
+        float baseWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.5f, scale);
+        StarChartRoute route = deductionResult.route();
+        
+        if (route.segments().isEmpty()) return;
+
+        List<Vector2f> allPoints = new ArrayList<>();
+        
+        for (StarChartPath segment : route.segments()) {
+            // 使用统一采样接口，步长设为 2.0
+            allPoints.addAll(segment.sample(2.0f));
+        }
+        
+        StarChartRenderUtils.drawPath(guiGraphics.pose(), allPoints, baseWidth, 0xE6212A54);
+        
+        if (!allPoints.isEmpty()) {
+            Vector2f lastPoint = allPoints.get(allPoints.size() - 1);
+            renderDraftingCursor(guiGraphics, lastPoint);
+        }
     }
 
     private void renderDraftingCursor(GuiGraphics guiGraphics, Vector2f pos) {
@@ -339,4 +355,3 @@ guiGraphics.renderOutline(getX(), getY(), getWidth(), getHeight(), Palette.INK);
     @Override
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {}
 }
-

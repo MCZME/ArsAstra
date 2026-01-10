@@ -1,6 +1,6 @@
 package com.github.mczme.arsastra.client.gui.widget.workshop;
 
-import com.github.mczme.arsastra.client.gui.logic.WorkshopViewModel;
+import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarClearWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarInfoWidget;
@@ -21,7 +21,7 @@ public class WorkshopToolbar extends ToolbarWidget {
     private ToolbarSettingsWidget settingsBtn;
     private String currentSearchQuery = "";
 
-    public WorkshopToolbar(int x, int y, int width, int height, WorkshopViewModel viewModel, WorkshopActionHandler handler) {
+    public WorkshopToolbar(int x, int y, int width, int height, WorkshopSession session, WorkshopActionHandler handler) {
         super(x, y, width, height);
         this.handler = handler;
         initButtons();

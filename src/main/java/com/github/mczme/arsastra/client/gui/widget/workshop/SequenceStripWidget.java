@@ -1,7 +1,7 @@
 package com.github.mczme.arsastra.client.gui.widget.workshop;
 
 import com.github.mczme.arsastra.client.gui.logic.DragHandler;
-import com.github.mczme.arsastra.client.gui.logic.WorkshopViewModel;
+import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.util.Palette;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -12,7 +12,7 @@ import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 public class SequenceStripWidget extends FloatingWidget {
-    private final WorkshopViewModel viewModel;
+    private final WorkshopSession session;
     private final DragHandler dragHandler;
     private int scrollOffset = 0;
     private boolean isScrolling = false; // 是否正在拖动滚动条
@@ -20,9 +20,9 @@ public class SequenceStripWidget extends FloatingWidget {
     private static final int GAP = 12; // 增加间距以放置箭头
     private static final int SCROLLBAR_HEIGHT = 4; // 滚动条高度
 
-    public SequenceStripWidget(int x, int y, int width, WorkshopViewModel viewModel, DragHandler dragHandler) {
+    public SequenceStripWidget(int x, int y, int width, WorkshopSession session, DragHandler dragHandler) {
         super(x, y, width, 40, Component.translatable("gui.ars_astra.workshop.sequence"));
-        this.viewModel = viewModel;
+        this.session = session;
         this.dragHandler = dragHandler;
     }
 
@@ -36,7 +36,7 @@ public class SequenceStripWidget extends FloatingWidget {
         int centerY = getY() + getHeight() / 2;
         guiGraphics.fill(getX() + 5, centerY, getX() + getWidth() - 5, centerY + 1, Palette.INK_LIGHT);
 
-        List<ItemStack> sequence = viewModel.getSequence();
+        List<ItemStack> sequence = session.getInputItems();
         int contentWidth = (sequence.size() + 1) * (SLOT_SIZE + GAP) + 30; // 预留额外空间
         int maxScroll = Math.max(0, contentWidth - getWidth());
         
@@ -149,7 +149,7 @@ public class SequenceStripWidget extends FloatingWidget {
     }
 
     private int calculateDropIndex(double mouseX) {
-        int listSize = viewModel.getSequence().size();
+        int listSize = session.getInputItems().size();
         int startX = getX() + 15 - scrollOffset;
         int relativeX = (int) mouseX - startX;
         
@@ -177,7 +177,7 @@ public class SequenceStripWidget extends FloatingWidget {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         // 检查是否点击了滚动条区域 (判定区域扩大，方便点击)
-        int listSize = viewModel.getSequence().size();
+        int listSize = session.getInputItems().size();
         int contentWidth = (listSize + 1) * (SLOT_SIZE + GAP) + 30;
         int maxScroll = Math.max(0, contentWidth - getWidth());
         
@@ -188,7 +188,7 @@ public class SequenceStripWidget extends FloatingWidget {
         }
 
         if (isMouseOver(mouseX, mouseY) && button == 0 && !dragHandler.isDragging()) {
-            List<ItemStack> sequence = viewModel.getSequence();
+            List<ItemStack> sequence = session.getInputItems();
             int centerY = getY() + getHeight() / 2;
             int startX = getX() + 15 - scrollOffset;
 
@@ -198,7 +198,7 @@ public class SequenceStripWidget extends FloatingWidget {
 
                 if (mouseX >= slotX && mouseX < slotX + SLOT_SIZE && mouseY >= slotY && mouseY < slotY + SLOT_SIZE) {
                     dragHandler.startDrag(sequence.get(i));
-                    viewModel.removeFromSequence(i);
+                    session.removeInput(i);
                     Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
                     return true;
                 }
@@ -210,7 +210,7 @@ public class SequenceStripWidget extends FloatingWidget {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (isScrolling) {
-            int listSize = viewModel.getSequence().size();
+            int listSize = session.getInputItems().size();
             int contentWidth = (listSize + 1) * (SLOT_SIZE + GAP) + 30;
             int maxScroll = Math.max(0, contentWidth - getWidth());
             int trackWidth = getWidth() - 10;
@@ -241,7 +241,7 @@ public class SequenceStripWidget extends FloatingWidget {
             int index = calculateDropIndex(mouseX);
             ItemStack stack = dragHandler.getDraggingStack();
             
-            viewModel.insertToSequence(index, stack);
+            session.insertInput(index, stack);
             dragHandler.endDrag();
             
             Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));

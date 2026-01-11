@@ -51,7 +51,7 @@ public class WorkshopCanvasWidget extends StarChartWidget {
         // 从 Session 同步最新的推演结果和预览状态
         if (this.session != null) {
             this.setDeductionResult(this.session.getDeductionResult());
-            this.setIsPreviewMode(this.session.isPreviewing());
+            this.setGhostStartIndex(this.session.getGhostStartIndex());
         }
         
         super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);

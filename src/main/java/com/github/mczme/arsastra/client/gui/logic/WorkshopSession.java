@@ -30,6 +30,9 @@ public class WorkshopSession {
     // 预览状态
     private int previewIndex = -1;
     private ItemStack previewStack = ItemStack.EMPTY;
+    
+    // 渲染状态追踪
+    private int confirmedSegmentCount = 0;
 
     public WorkshopSession(ResourceLocation initialStarChartId) {
         this.currentStarChartId = initialStarChartId;
@@ -236,6 +239,13 @@ public class WorkshopSession {
      */
     public void setDeductionResult(DeductionResult result) {
         this.deductionResult = result;
+        
+        // 如果当前不在预览模式，说明这是最新的确定的状态
+        // 我们更新确认的段数，以便后续预览时能区分出哪部分是新增的
+        if (!isPreviewing() && result != null) {
+            this.confirmedSegmentCount = result.route().segments().size();
+        }
+        
         if (onUpdateListener != null) {
             onUpdateListener.run();
         }
@@ -243,6 +253,14 @@ public class WorkshopSession {
 
     public DeductionResult getDeductionResult() {
         return deductionResult;
+    }
+    
+    /**
+     * 获取幽灵路径（预览部分）的起始段索引。
+     * @return 索引值。如果当前不在预览模式，返回 -1。
+     */
+    public int getGhostStartIndex() {
+        return isPreviewing() ? confirmedSegmentCount : -1;
     }
 
     // --- 内部同步逻辑 ---

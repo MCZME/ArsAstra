@@ -45,7 +45,7 @@ public class StarChartWidget extends AbstractWidget {
     
     // 推演结果
     protected DeductionResult deductionResult;
-    protected boolean isPreviewMode = false;
+    private int ghostStartIndex = -1;
     
     // 视口状态
     protected float scale = 0.1f;
@@ -89,8 +89,12 @@ public class StarChartWidget extends AbstractWidget {
         this.deductionResult = result;
     }
 
-    public void setIsPreviewMode(boolean isPreviewMode) {
-        this.isPreviewMode = isPreviewMode;
+    /**
+     * 设置幽灵路径的起始段索引。
+     * @param index 起始索引，-1 表示没有幽灵路径。
+     */
+    public void setGhostStartIndex(int index) {
+        this.ghostStartIndex = index;
     }
 
     // --- 几何处理 ---
@@ -254,18 +258,41 @@ public class StarChartWidget extends AbstractWidget {
         
         if (route.segments().isEmpty()) return;
 
-        List<Vector2f> allPoints = new ArrayList<>();
+        List<Vector2f> confirmedPoints = new ArrayList<>();
+        List<Vector2f> ghostPoints = new ArrayList<>();
         
-        for (StarChartPath segment : route.segments()) {
+        List<StarChartPath> segments = route.segments();
+        for (int i = 0; i < segments.size(); i++) {
             // 使用统一采样接口，步长设为 2.0
-            allPoints.addAll(segment.sample(2.0f));
+            List<Vector2f> points = segments.get(i).sample(2.0f);
+            
+            if (ghostStartIndex >= 0 && i >= ghostStartIndex) {
+                // 幽灵段
+                ghostPoints.addAll(points);
+            } else {
+                // 确认段
+                confirmedPoints.addAll(points);
+            }
         }
         
-        int pathColor = isPreviewMode ? 0x80212A54 : 0xE6212A54;
-        StarChartRenderUtils.drawPath(guiGraphics.pose(), allPoints, baseWidth, pathColor);
+        // 渲染确认路径 (深色实线)
+        if (!confirmedPoints.isEmpty()) {
+            StarChartRenderUtils.drawPath(guiGraphics.pose(), confirmedPoints, baseWidth, 0xE6212A54);
+        }
+
+        // 渲染幽灵路径 (半透明)
+        if (!ghostPoints.isEmpty()) {
+            // 为了连接连续，如果存在确认段，将确认段的最后一点添加到幽灵段开头（仅用于绘制连接）
+            // 注意：StarChartRenderUtils.drawPath 绘制的是连续线段。
+            // 实际上由于采样包含端点，ghostPoints 的起点应该已经是 confirmedPoints 的终点（在空间上）。
+            // 只要位置重合，视觉上就是连接的。
+            StarChartRenderUtils.drawPath(guiGraphics.pose(), ghostPoints, baseWidth, 0x80212A54);
+        }
         
-        if (!allPoints.isEmpty()) {
-            Vector2f lastPoint = allPoints.get(allPoints.size() - 1);
+        // 绘制末端光标
+        List<Vector2f> activePoints = ghostPoints.isEmpty() ? confirmedPoints : ghostPoints;
+        if (!activePoints.isEmpty()) {
+            Vector2f lastPoint = activePoints.get(activePoints.size() - 1);
             renderDraftingCursor(guiGraphics, lastPoint);
         }
     }

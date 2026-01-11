@@ -13,8 +13,10 @@ import com.github.mczme.arsastra.registry.AARegistries;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
@@ -290,6 +292,10 @@ public class CompendiumTab implements JournalTab {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (toolbar != null && toolbar.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+
         int startX = this.x + 25;
         int startY = this.y + 20;
         
@@ -311,7 +317,7 @@ public class CompendiumTab implements JournalTab {
                 } else {
                     this.selectedElement = filteredElements.get(i);
                 }
-                Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
             }
         }
@@ -320,12 +326,12 @@ public class CompendiumTab implements JournalTab {
         if (mouseY >= this.y + 140 && mouseY <= this.y + 160) {
             if (mouseX >= this.x + 20 && mouseX <= this.x + 50 && currentPage > 0) {
                 currentPage--;
-                Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
             }
             if (mouseX >= this.x + 90 && mouseX <= this.x + 120 && (currentPage + 1) * ITEMS_PER_PAGE < totalItems) {
                 currentPage++;
-                Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
             }
         }
@@ -335,31 +341,49 @@ public class CompendiumTab implements JournalTab {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (toolbar != null && toolbar.mouseReleased(mouseX, mouseY, button)) {
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (toolbar != null && toolbar.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (toolbar != null && toolbar.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) {
+        if (toolbar != null && toolbar.charTyped(codePoint, modifiers)) {
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (toolbar != null && toolbar.keyPressed(keyCode, scanCode, modifiers)) {
+            return true;
+        }
         return false;
     }
 
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+        if (toolbar != null && toolbar.keyReleased(keyCode, scanCode, modifiers)) {
+            return true;
+        }
         return false;
     }
 }

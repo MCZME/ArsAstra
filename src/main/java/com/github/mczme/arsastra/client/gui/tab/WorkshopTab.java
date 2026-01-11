@@ -4,6 +4,7 @@ import com.github.mczme.arsastra.client.gui.StarChartJournalScreen;
 import com.github.mczme.arsastra.client.gui.logic.DragHandler;
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.widget.workshop.*;
+import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.events.GuiEventListener;
@@ -32,6 +33,15 @@ public class WorkshopTab implements JournalTab, DragHandler {
             // 默认加载基础星图，后续可根据玩家选择切换
             this.session = new WorkshopSession(ResourceLocation.fromNamespaceAndPath("ars_astra", "base_chart"));
         }
+        
+        // 注册第一个物品添加时的视角定位逻辑
+        this.session.setOnFirstItemAddedListener(stack -> {
+            ElementProfileManager.getInstance().getElementProfile(stack.getItem()).ifPresent(profile -> {
+                if (canvasWidget != null) {
+                    canvasWidget.centerOn(profile.launchPoint());
+                }
+            });
+        });
         
         PlayerKnowledge knowledge = screen.getPlayerKnowledge();
 

@@ -9,6 +9,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 推演工坊会话类，负责管理推演的输入（AlchemyInput 序列）和输出（DeductionResult）。
@@ -20,6 +21,7 @@ public class WorkshopSession {
     
     private DeductionResult deductionResult;
     private Runnable onUpdateListener;
+    private Consumer<ItemStack> onFirstItemAddedListener;
     private ResourceLocation currentStarChartId;
     
     // 当前选中的步骤索引 (-1 表示未选中)
@@ -34,6 +36,10 @@ public class WorkshopSession {
      */
     public void setOnUpdateListener(Runnable listener) {
         this.onUpdateListener = listener;
+    }
+
+    public void setOnFirstItemAddedListener(Consumer<ItemStack> listener) {
+        this.onFirstItemAddedListener = listener;
     }
 
     /**
@@ -106,9 +112,15 @@ public class WorkshopSession {
      */
     public void addInput(ItemStack stack) {
         if (inputs.size() < MAX_INPUTS && !stack.isEmpty()) {
+            boolean wasEmpty = inputs.isEmpty();
             ItemStack copy = stack.copy();
             copy.setCount(1);
             inputs.add(AlchemyInput.of(copy));
+            
+            if (wasEmpty && onFirstItemAddedListener != null) {
+                onFirstItemAddedListener.accept(copy);
+            }
+
             // 自动选中新添加的项
             this.selectedIndex = inputs.size() - 1;
             notifyUpdate();
@@ -140,9 +152,15 @@ public class WorkshopSession {
      */
     public void insertInput(int index, ItemStack stack) {
         if (index >= 0 && index <= inputs.size() && inputs.size() < MAX_INPUTS && !stack.isEmpty()) {
+            boolean wasEmpty = inputs.isEmpty();
             ItemStack copy = stack.copy();
             copy.setCount(1);
             inputs.add(index, AlchemyInput.of(copy));
+            
+            if (wasEmpty && onFirstItemAddedListener != null) {
+                onFirstItemAddedListener.accept(copy);
+            }
+
             // 选中新插入的项
             this.selectedIndex = index;
             notifyUpdate();

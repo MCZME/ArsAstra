@@ -343,6 +343,11 @@ public class StarChartWidget extends AbstractWidget {
         return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
+    public void centerOn(Vector2f pos) {
+        this.offsetX = -pos.x * scale;
+        this.offsetY = -pos.y * scale;
+    }
+
     public Vector2f screenToWorld(double mouseX, double mouseY) {
         float centerX = getX() + getWidth() / 2.0f;
         float centerY = getY() + getHeight() / 2.0f;

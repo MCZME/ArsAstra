@@ -45,6 +45,7 @@ public class StarChartWidget extends AbstractWidget {
     
     // 推演结果
     protected DeductionResult deductionResult;
+    protected boolean isPreviewMode = false;
     
     // 视口状态
     protected float scale = 0.1f;
@@ -86,6 +87,10 @@ public class StarChartWidget extends AbstractWidget {
 
     public void setDeductionResult(DeductionResult result) {
         this.deductionResult = result;
+    }
+
+    public void setIsPreviewMode(boolean isPreviewMode) {
+        this.isPreviewMode = isPreviewMode;
     }
 
     // --- 几何处理 ---
@@ -256,7 +261,8 @@ public class StarChartWidget extends AbstractWidget {
             allPoints.addAll(segment.sample(2.0f));
         }
         
-        StarChartRenderUtils.drawPath(guiGraphics.pose(), allPoints, baseWidth, 0xE6212A54);
+        int pathColor = isPreviewMode ? 0x80212A54 : 0xE6212A54;
+        StarChartRenderUtils.drawPath(guiGraphics.pose(), allPoints, baseWidth, pathColor);
         
         if (!allPoints.isEmpty()) {
             Vector2f lastPoint = allPoints.get(allPoints.size() - 1);

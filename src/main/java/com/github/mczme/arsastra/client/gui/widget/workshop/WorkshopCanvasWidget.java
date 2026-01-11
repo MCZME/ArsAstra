@@ -6,11 +6,13 @@ import com.github.mczme.arsastra.client.gui.util.Palette;
 import com.github.mczme.arsastra.client.gui.widget.StarChartWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.item.ItemStack;
 
 public class WorkshopCanvasWidget extends StarChartWidget {
     private final DragHandler dragHandler;
@@ -46,9 +48,10 @@ public class WorkshopCanvasWidget extends StarChartWidget {
 
     @Override
     protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        // 从 Session 同步最新的推演结果
+        // 从 Session 同步最新的推演结果和预览状态
         if (this.session != null) {
             this.setDeductionResult(this.session.getDeductionResult());
+            this.setIsPreviewMode(this.session.isPreviewing());
         }
         
         super.renderWidget(guiGraphics, mouseX, mouseY, partialTick);
@@ -56,6 +59,31 @@ public class WorkshopCanvasWidget extends StarChartWidget {
         if (dragHandler.isDragging()) {
             // 拖拽中：显示垃圾桶
             renderTrashBin(guiGraphics, mouseX, mouseY);
+
+            // 如果不在垃圾桶范围内，且在画布范围内，显示幽灵预览
+            if (isMouseOver(mouseX, mouseY) && !isOverTrash(mouseX, mouseY)) {
+                // 更新会话预览状态（默认添加到序列末尾）
+                session.setPreview(session.getInputs().size(), dragHandler.getDraggingStack());
+
+                // 渲染幽灵物品跟随鼠标 (居中)
+                int ghostX = mouseX - 8;
+                int ghostY = mouseY - 8;
+
+                guiGraphics.renderFakeItem(dragHandler.getDraggingStack(), ghostX, ghostY);
+
+                RenderSystem.enableBlend();
+                guiGraphics.fill(ghostX, ghostY, ghostX + 16, ghostY + 16, 0x80FFFFFF);
+                RenderSystem.disableBlend();
+
+                // 绘制高亮框
+                guiGraphics.renderOutline(ghostX - 2, ghostY - 2, 20, 20, Palette.CINNABAR);
+                
+                // 显示“+”号提示
+                guiGraphics.drawString(Minecraft.getInstance().font, "+", ghostX + 18, ghostY - 2, Palette.CINNABAR, false);
+            } else if (isMouseOver(mouseX, mouseY) && isOverTrash(mouseX, mouseY)) {
+                // 在垃圾桶上方时，清除预览（不显示路径）
+                session.setPreview(-1, ItemStack.EMPTY);
+            }
         } else {
             // 未拖拽：如果选中了物品，显示旋转按钮
             AlchemyInput selected = session.getSelectedInput();
@@ -124,6 +152,9 @@ public class WorkshopCanvasWidget extends StarChartWidget {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        // 确保清除预览状态
+        session.setPreview(-1, ItemStack.EMPTY);
+
         if (dragHandler.isDragging()) {
             // 检查是否丢入垃圾桶
             if (isOverTrash(mouseX, mouseY)) {

@@ -4,6 +4,7 @@ import com.github.mczme.arsastra.client.gui.logic.DragHandler;
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.util.Palette;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -75,9 +76,12 @@ public class SequenceStripWidget extends FloatingWidget {
             }
         }
 
-        // 3. 绘制插入指示器 (仅在拖拽且鼠标在组件内时)
+        // 3. 绘制插入指示器和幽灵预览 (仅在拖拽且鼠标在组件内时)
         if (dragHandler.isDragging() && isMouseOver(mouseX, mouseY)) {
             int dropIndex = calculateDropIndex(mouseX);
+            // 更新会话预览状态，触发路径推演
+            session.setPreview(dropIndex, dragHandler.getDraggingStack());
+
             // 计算指示线的位置：应该在对应索引的槽位左侧
             int indicatorX = startX + dropIndex * (SLOT_SIZE + GAP) - (GAP / 2);
             
@@ -86,9 +90,25 @@ public class SequenceStripWidget extends FloatingWidget {
             
             // 额外高亮：如果正好悬停在某个槽位上，绘制一个外框
             int hoverSlotX = startX + dropIndex * (SLOT_SIZE + GAP);
-            if (dropIndex < sequence.size()) {
-                guiGraphics.renderOutline(hoverSlotX - 1, centerY - SLOT_SIZE / 2 - 1, SLOT_SIZE + 2, SLOT_SIZE + 2, Palette.CINNABAR);
-            }
+            // 即使是末尾的新位置，也应该显示预览
+            
+            // 幽灵预览坐标
+            int ghostX = hoverSlotX;
+            int ghostY = centerY - SLOT_SIZE / 2;
+
+            // 绘制幽灵物品
+            guiGraphics.renderFakeItem(dragHandler.getDraggingStack(), ghostX + 2, ghostY + 2);
+
+            // 绘制半透明遮罩 (白色，约 50% 透明度)
+            RenderSystem.enableBlend();
+            guiGraphics.fill(ghostX, ghostY, ghostX + SLOT_SIZE, ghostY + SLOT_SIZE, 0x80FFFFFF);
+            RenderSystem.disableBlend();
+
+            // 绘制边框
+            guiGraphics.renderOutline(ghostX - 1, ghostY - 1, SLOT_SIZE + 2, SLOT_SIZE + 2, Palette.CINNABAR);
+        } else if (dragHandler.isDragging() && !isMouseOver(mouseX, mouseY)) {
+            // 如果正在拖拽但鼠标离开了当前组件，且不是在画布上（这个逻辑会在画布组件中处理），
+            // 这里我们不做强制清除，因为可能用户正移向画布。
         }
         
         guiGraphics.disableScissor();

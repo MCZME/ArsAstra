@@ -27,6 +27,10 @@ public class WorkshopSession {
     // 当前选中的步骤索引 (-1 表示未选中)
     private int selectedIndex = -1;
 
+    // 预览状态
+    private int previewIndex = -1;
+    private ItemStack previewStack = ItemStack.EMPTY;
+
     public WorkshopSession(ResourceLocation initialStarChartId) {
         this.currentStarChartId = initialStarChartId;
     }
@@ -202,7 +206,30 @@ public class WorkshopSession {
         notifyUpdate();
     }
 
-    // --- 输出结果管理 ---
+    // --- 预览与输出结果管理 ---
+
+    /**
+     * 设置预览物品及其插入位置。
+     */
+    public void setPreview(int index, ItemStack stack) {
+        if (this.previewIndex == index && ItemStack.matches(this.previewStack, stack)) {
+            return;
+        }
+        this.previewIndex = index;
+        this.previewStack = stack.copy();
+        requestDeduction();
+        
+        if (onUpdateListener != null) {
+            onUpdateListener.run();
+        }
+    }
+
+    /**
+     * 检查当前是否处于预览模式。
+     */
+    public boolean isPreviewing() {
+        return !previewStack.isEmpty() && previewIndex >= 0;
+    }
 
     /**
      * 更新最新的推演结果（通常由网络数据包处理器调用）。
@@ -221,6 +248,10 @@ public class WorkshopSession {
     // --- 内部同步逻辑 ---
 
     private void notifyUpdate() {
+        // 重置预览
+        this.previewIndex = -1;
+        this.previewStack = ItemStack.EMPTY;
+        
         // 每当输入发生变化，立即向服务端请求新的推演
         requestDeduction();
         // 触发本地监听器以更新 UI（如序列条显示）
@@ -231,13 +262,25 @@ public class WorkshopSession {
 
     /**
      * 构建并向服务端发送推演请求数据包。
+     * 会合并当前的预览项。
      */
     private void requestDeduction() {
-        if (currentStarChartId != null && !inputs.isEmpty()) {
-            PacketDistributor.sendToServer(new RequestDeductionPayload(currentStarChartId, new ArrayList<>(inputs)));
+        if (currentStarChartId == null) return;
+
+        List<AlchemyInput> combinedInputs = new ArrayList<>(this.inputs);
+        if (!previewStack.isEmpty() && previewIndex >= 0 && previewIndex <= combinedInputs.size()) {
+            ItemStack copy = previewStack.copy();
+            copy.setCount(1);
+            combinedInputs.add(previewIndex, AlchemyInput.of(copy));
+        }
+
+        if (!combinedInputs.isEmpty()) {
+            PacketDistributor.sendToServer(new RequestDeductionPayload(currentStarChartId, combinedInputs));
         } else {
-            // 如果没有星图或输入为空，则重置结果
             this.deductionResult = null;
+            if (onUpdateListener != null) {
+                onUpdateListener.run();
+            }
         }
     }
 }

@@ -5,11 +5,15 @@ import com.github.mczme.arsastra.client.AAClientEvents;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
+
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
+import org.lwjgl.opengl.GL11;
 
 import java.util.List;
 
@@ -36,11 +40,11 @@ public class PathRenderer {
 
         RenderSystem.setShaderTexture(0, PENCIL_TEXTURE);
         // 确保纹理模式为 REPEAT
-        net.minecraft.client.renderer.texture.AbstractTexture texture = net.minecraft.client.Minecraft.getInstance().getTextureManager().getTexture(PENCIL_TEXTURE);
+        AbstractTexture texture = Minecraft.getInstance().getTextureManager().getTexture(PENCIL_TEXTURE);
         if (texture != null) {
             texture.bind();
-            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S, org.lwjgl.opengl.GL11.GL_REPEAT);
-            org.lwjgl.opengl.GL11.glTexParameteri(org.lwjgl.opengl.GL11.GL_TEXTURE_2D, org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T, org.lwjgl.opengl.GL11.GL_REPEAT);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL11.GL_REPEAT);
+            GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL11.GL_REPEAT);
         }
 
         // 尝试使用自定义铅笔 Shader，实现像素级的边缘粗糙化

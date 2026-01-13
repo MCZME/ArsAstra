@@ -2,6 +2,7 @@ package com.github.mczme.arsastra.client.gui.tab;
 
 import com.github.mczme.arsastra.client.gui.StarChartJournalScreen;
 import com.github.mczme.arsastra.client.gui.logic.ItemFilterLogic;
+import com.github.mczme.arsastra.client.gui.util.PathRenderer;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
@@ -9,8 +10,12 @@ import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
 import com.github.mczme.arsastra.core.element.Element;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
+import com.github.mczme.arsastra.core.starchart.engine.service.RouteGenerationService;
+import com.github.mczme.arsastra.core.starchart.engine.service.RouteGenerationServiceImpl;
+import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
 import com.github.mczme.arsastra.registry.AARegistries;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
@@ -19,6 +24,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.joml.Vector2f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,6 +35,7 @@ public class CompendiumTab implements JournalTab {
     private enum DisplayMode { ITEMS, ELEMENTS }
 
     private PlayerKnowledge knowledge;
+    private final RouteGenerationService routeService = new RouteGenerationServiceImpl();
     
     // UI 组件
     private ToolbarWidget toolbar;
@@ -246,28 +253,112 @@ public class CompendiumTab implements JournalTab {
         int rightX = this.x + 160;
         int topY = this.y + 20;
 
+        // 1. 顶部：物品大图标
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(rightX + 60, topY + 30, 0);
         guiGraphics.pose().scale(2.5f, 2.5f, 2.5f);
         guiGraphics.renderFakeItem(selectedItem, -8, -8);
         guiGraphics.pose().popPose();
 
+        // 2. 顶部：物品名称
         Component name = selectedItem.getHoverName();
         guiGraphics.drawCenteredString(Minecraft.getInstance().font, name, rightX + 60, topY + 55, 0x000000);
+        
+        // 分割线
         guiGraphics.fill(rightX + 10, topY + 68, rightX + 110, topY + 69, 0xFF6B4E38);
 
+        // --- 下方内容区域 (左右分栏) ---
+        int contentStartY = topY + 75;
+        int leftColX = rightX + 10;
+        int rightColX = rightX + 70; // 右侧栏起始 X (向右平移 5 像素)
+
+        // 3. 左侧：要素列表
         ElementProfileManager.getInstance().getElementProfile(selectedItem.getItem()).ifPresent(profile -> {
-            int elementY = topY + 75;
+            int elementY = contentStartY;
             for (var entry : profile.elements().entrySet()) {
                 Element element = AARegistries.ELEMENT_REGISTRY.get(entry.getKey());
                 if (element != null) {
-                    guiGraphics.blit(element.getIcon(), rightX + 15, elementY - 2, 0, 0, 12, 12, 12, 12);
-                    String text = String.format("%s: %.1f", Component.translatable(element.getDescriptionId()).getString(), entry.getValue());
-                    guiGraphics.drawString(Minecraft.getInstance().font, text, rightX + 32, elementY, 0x333333, false);
-                    elementY += 14;
+                    guiGraphics.blit(element.getIcon(), leftColX, elementY, 0, 0, 10, 10, 10, 10);
+                    String nameText = Component.translatable(element.getDescriptionId()).getString();
+                    String text = String.format("%s: %.1f", nameText, entry.getValue());
+                    guiGraphics.drawString(Minecraft.getInstance().font, text, leftColX + 12, elementY + 1, 0x333333, false);
+                    elementY += 12; 
                 }
             }
         });
+
+        // 4. 右侧：轨迹预览框
+        int previewSize = 40;
+        int previewX = rightColX;
+        int previewY = contentStartY; // 与要素列表顶对齐
+
+        // 绘制边框 (移除背景填充)
+        guiGraphics.renderOutline(previewX, previewY, previewSize, previewSize, 0xFF6B4E38);
+
+        // 绘制中心原点
+        int cx = previewX + previewSize / 2;
+        int cy = previewY + previewSize / 2;
+        guiGraphics.fill(cx - 1, cy, cx + 2, cy + 1, 0xFF888888);
+        guiGraphics.fill(cx, cy - 1, cx + 1, cy + 2, 0xFF888888);
+
+        // 渲染路径
+        List<StarChartPath> paths = routeService.getPathsForItem(selectedItem);
+        if (!paths.isEmpty()) {
+            float maxDist = 0;
+            float totalLength = 0;
+            Vector2f finalDisplacement = new Vector2f(0, 0);
+
+            for (StarChartPath p : paths) {
+                totalLength += p.getLength();
+                finalDisplacement.add(p.getEndPoint()); // 理想路径终点即位移
+                for (Vector2f point : p.sample(1.0f)) {
+                     float d = point.length();
+                     if (d > maxDist) maxDist = d;
+                }
+            }
+
+            if (maxDist < 0.1f) {
+                guiGraphics.fill(cx - 2, cy - 2, cx + 3, cy + 3, 0xFF333333); // 改为深色
+            } else {
+                guiGraphics.flush(); // 确保之前的渲染（图标等）已提交
+                RenderSystem.enableBlend();
+                RenderSystem.defaultBlendFunc();
+                RenderSystem.disableDepthTest();
+                RenderSystem.disableCull();
+
+                PoseStack poseStack = guiGraphics.pose();
+                poseStack.pushPose();
+                // 抬高 Z 轴，确保在背景层之上
+                poseStack.translate(cx, cy, 100.0f);
+                
+                float targetRadius = (previewSize / 2.0f) * 0.8f;
+                float scale = targetRadius / maxDist;
+                scale = Math.min(scale, 10.0f); 
+
+                poseStack.scale(scale, scale, 1.0f);
+
+                for (StarChartPath path : paths) {
+                    // 使用白色顶点色配合同步回来的 PathRenderer (它内部用 Multiply 混合)
+                    // 采样步长加密到 0.2
+                    PathRenderer.renderPencilPath(poseStack, path.sample(0.2f / scale), 3.0f / scale, 0xFFFFFFFF, 1.0f);
+                }
+                
+                poseStack.popPose();
+                RenderSystem.enableDepthTest();
+
+                // 绘制缩放比例 (预览框右下角内部)
+                String zoomText = String.format("%.1fx", scale);
+                int tw = Minecraft.getInstance().font.width(zoomText);
+                guiGraphics.pose().pushPose();
+                // 抬高 Z 轴确保可见，并缩小字体
+                guiGraphics.pose().translate(previewX + previewSize - tw * 0.5f - 1, previewY + previewSize - 6, 110.0f);
+                guiGraphics.pose().scale(0.5f, 0.5f, 1.0f);
+                guiGraphics.drawString(Minecraft.getInstance().font, zoomText, 0, 0, 0x666666, false);
+                guiGraphics.pose().popPose();
+            }
+        } else {
+             guiGraphics.drawCenteredString(Minecraft.getInstance().font, "-", cx, cy - 4, 0xFFAAAAAA);
+        }
     }
 
     private void renderElementDetails(GuiGraphics guiGraphics) {

@@ -32,61 +32,66 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
 
             final float rotation = input.rotation();
 
-            ElementProfileManager.getInstance().getElementProfile(stack.getItem()).ifPresent(profile -> {
-                List<StarChartPath> rawPaths = generatePathsForItem(profile);
+            List<StarChartPath> rawPaths = getPathsForItem(stack);
+            
+            for (StarChartPath rawPath : rawPaths) {
+                StarChartPath pendingRawPath = rawPath;
                 
-                for (StarChartPath rawPath : rawPaths) {
-                    StarChartPath pendingRawPath = rawPath;
-                    
-                    if (Math.abs(rotation) > 0.0001f) {
-                        pendingRawPath = pendingRawPath.rotate(rotation);
-                    }
-                    
-                    while (pendingRawPath != null && pendingRawPath.getLength() > 0.001f) {
-                        Environment activeEnv = findEnvironmentAt(currentPos, chart);
-                        StarChartPath finalSegment;
+                if (Math.abs(rotation) > 0.0001f) {
+                    pendingRawPath = pendingRawPath.rotate(rotation);
+                }
+                
+                while (pendingRawPath != null && pendingRawPath.getLength() > 0.001f) {
+                    Environment activeEnv = findEnvironmentAt(currentPos, chart);
+                    StarChartPath finalSegment;
 
-                        if (activeEnv != null) {
-                            List<StarChartPath> processed = activeEnv.getType().processSegment(currentPos, pendingRawPath, activeEnv.shape());
-                            if (processed.isEmpty()) {
-                                pendingRawPath = null;
-                                continue;
+                    if (activeEnv != null) {
+                        List<StarChartPath> processed = activeEnv.getType().processSegment(currentPos, pendingRawPath, activeEnv.shape());
+                        if (processed.isEmpty()) {
+                            pendingRawPath = null;
+                            continue;
+                        }
+                        finalSegment = processed.get(0);
+                        currentPos.set(finalSegment.getEndPoint());
+                        pendingRawPath = null;
+                    } else {
+                        float minDist = Float.MAX_VALUE;
+                        Environment nearestEnv = null;
+                        
+                        for (Environment env : chart.environments()) {
+                            float d = pendingRawPath.intersect(env.shape(), currentPos);
+                            if (d >= 0 && d < minDist) {
+                                minDist = d;
+                                nearestEnv = env;
                             }
-                            finalSegment = processed.get(0);
+                        }
+                        
+                        if (nearestEnv != null && minDist < pendingRawPath.getLength()) {
+                            StarChartPath[] parts = pendingRawPath.split(minDist);
+                            finalSegment = parts[0].offset(currentPos);
+                            currentPos.set(finalSegment.getEndPoint());
+                            pendingRawPath = parts[1];
+                        } else {
+                            finalSegment = pendingRawPath.offset(currentPos);
                             currentPos.set(finalSegment.getEndPoint());
                             pendingRawPath = null;
-                        } else {
-                            float minDist = Float.MAX_VALUE;
-                            Environment nearestEnv = null;
-                            
-                            for (Environment env : chart.environments()) {
-                                float d = pendingRawPath.intersect(env.shape(), currentPos);
-                                if (d >= 0 && d < minDist) {
-                                    minDist = d;
-                                    nearestEnv = env;
-                                }
-                            }
-                            
-                            if (nearestEnv != null && minDist < pendingRawPath.getLength()) {
-                                StarChartPath[] parts = pendingRawPath.split(minDist);
-                                finalSegment = parts[0].offset(currentPos);
-                                currentPos.set(finalSegment.getEndPoint());
-                                pendingRawPath = parts[1];
-                            } else {
-                                finalSegment = pendingRawPath.offset(currentPos);
-                                currentPos.set(finalSegment.getEndPoint());
-                                pendingRawPath = null;
-                            }
-                        }
-
-                        if (finalSegment != null) {
-                            results.add(finalSegment);
                         }
                     }
+
+                    if (finalSegment != null) {
+                        results.add(finalSegment);
+                    }
                 }
-            });
+            }
         }
         return new StarChartRoute(results);
+    }
+
+    @Override
+    public List<StarChartPath> getPathsForItem(ItemStack stack) {
+        return ElementProfileManager.getInstance().getElementProfile(stack.getItem())
+                .map(this::generatePathsForItem)
+                .orElse(java.util.Collections.emptyList());
     }
 
     private Environment findEnvironmentAt(Vector2f pos, StarChart chart) {

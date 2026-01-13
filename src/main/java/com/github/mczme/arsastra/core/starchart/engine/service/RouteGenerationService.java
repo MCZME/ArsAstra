@@ -3,6 +3,10 @@ package com.github.mczme.arsastra.core.starchart.engine.service;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartRoute;
+import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
+
+import net.minecraft.world.item.ItemStack;
+
 import org.joml.Vector2f;
 import java.util.List;
 
@@ -19,4 +23,11 @@ public interface RouteGenerationService {
      * @return 生成的星图航线
      */
     StarChartRoute computeRoute(List<AlchemyInput> inputs, Vector2f startPoint, StarChart chart);
+
+    /**
+     * 获取单个物品产生的原始路径片段 (不考虑环境影响)。
+     * @param stack 物品堆
+     * @return 路径片段列表
+     */
+    List<StarChartPath> getPathsForItem(ItemStack stack);
 }

@@ -7,6 +7,7 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.item.Item;
 import net.neoforged.neoforge.common.util.INBTSerializable;
 
@@ -19,6 +20,8 @@ public class PlayerKnowledge implements INBTSerializable<CompoundTag> {
     private final Set<ResourceLocation> visitedStarCharts = new HashSet<>();
     // 存储已分析的物品 ID
     private final Set<ResourceLocation> analyzedItems = new HashSet<>();
+    // 存储已识别的效果 ID (MobEffect)
+    private final Set<ResourceLocation> knownEffects = new HashSet<>();
 
     public PlayerKnowledge() {
     }
@@ -55,6 +58,34 @@ public class PlayerKnowledge implements INBTSerializable<CompoundTag> {
     }
 
     /**
+     * 判断是否已识别某效果
+     */
+    public boolean hasKnownEffect(MobEffect effect) {
+        return knownEffects.contains(BuiltInRegistries.MOB_EFFECT.getKey(effect));
+    }
+
+    /**
+     * 学习/识别效果
+     * @return 如果是第一次识别，返回 true
+     */
+    public boolean learnEffect(MobEffect effect) {
+        return knownEffects.add(BuiltInRegistries.MOB_EFFECT.getKey(effect));
+    }
+
+    public Set<ResourceLocation> getKnownEffects() {
+        return Collections.unmodifiableSet(knownEffects);
+    }
+
+    /**
+     * 清空所有知识
+     */
+    public void clear() {
+        visitedStarCharts.clear();
+        analyzedItems.clear();
+        knownEffects.clear();
+    }
+
+    /**
      * 用于玩家重生时复制数据
      */
     public void copyFrom(PlayerKnowledge other) {
@@ -63,6 +94,9 @@ public class PlayerKnowledge implements INBTSerializable<CompoundTag> {
 
         this.analyzedItems.clear();
         this.analyzedItems.addAll(other.analyzedItems);
+
+        this.knownEffects.clear();
+        this.knownEffects.addAll(other.knownEffects);
     }
 
     @Override
@@ -80,6 +114,12 @@ public class PlayerKnowledge implements INBTSerializable<CompoundTag> {
             itemsTag.add(StringTag.valueOf(id.toString()));
         }
         tag.put("AnalyzedItems", itemsTag);
+
+        ListTag effectsTag = new ListTag();
+        for (ResourceLocation id : knownEffects) {
+            effectsTag.add(StringTag.valueOf(id.toString()));
+        }
+        tag.put("KnownEffects", effectsTag);
 
         return tag;
     }
@@ -99,6 +139,14 @@ public class PlayerKnowledge implements INBTSerializable<CompoundTag> {
             ListTag list = tag.getList("AnalyzedItems", Tag.TAG_STRING);
             for (Tag t : list) {
                 analyzedItems.add(ResourceLocation.parse(t.getAsString()));
+            }
+        }
+
+        knownEffects.clear();
+        if (tag.contains("KnownEffects", Tag.TAG_LIST)) {
+            ListTag list = tag.getList("KnownEffects", Tag.TAG_STRING);
+            for (Tag t : list) {
+                knownEffects.add(ResourceLocation.parse(t.getAsString()));
             }
         }
     }

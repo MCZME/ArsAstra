@@ -2,7 +2,10 @@ package com.github.mczme.arsastra.client.gui.widget.workshop;
 
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.util.Palette;
+import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.EffectField;
+import com.github.mczme.arsastra.core.starchart.StarChart;
+import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.DeductionResult;
 import com.github.mczme.arsastra.core.starchart.engine.PotionData;
 import net.minecraft.client.Minecraft;
@@ -79,12 +82,31 @@ public class StickyNoteWidget extends FloatingWidget {
         if (result.predictedEffects().isEmpty()) {
              guiGraphics.drawString(Minecraft.getInstance().font, "-", getX() + padding + 5, currentY, Palette.INK_LIGHT, false);
         } else {
+            // 获取知识数据
+            StarChart starChart = StarChartManager.getInstance().getStarChart(session.getStarChartId()).orElse(null);
+            PlayerKnowledge knowledge = session.getKnowledge();
+
             int maxEffects = 3; // 最多显示3个，避免溢出
             int count = 0;
             for (Map.Entry<EffectField, PotionData> entry : result.predictedEffects().entrySet()) {
                 if (count >= maxEffects) {
                     guiGraphics.drawString(Minecraft.getInstance().font, "...", getX() + padding + 5, currentY, Palette.INK_LIGHT, false);
                     break;
+                }
+                
+                boolean unlocked = false;
+                if (starChart != null && knowledge != null) {
+                    int index = starChart.fields().indexOf(entry.getKey());
+                    if (index >= 0 && knowledge.hasUnlockedField(session.getStarChartId(), index)) {
+                        unlocked = true;
+                    }
+                }
+
+                if (!unlocked) {
+                    guiGraphics.drawString(Minecraft.getInstance().font, "???", getX() + padding + 5, currentY, Palette.INK_LIGHT, false);
+                    currentY += 10;
+                    count++;
+                    continue;
                 }
                 
                 MobEffect effect = entry.getKey().getEffect();

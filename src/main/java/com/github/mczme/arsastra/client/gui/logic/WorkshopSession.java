@@ -1,5 +1,6 @@
 package com.github.mczme.arsastra.client.gui.logic;
 
+import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import com.github.mczme.arsastra.core.starchart.engine.DeductionResult;
 import com.github.mczme.arsastra.network.payload.RequestDeductionPayload;
@@ -33,9 +34,19 @@ public class WorkshopSession {
     
     // 渲染状态追踪
     private int confirmedSegmentCount = 0;
+    
+    private PlayerKnowledge knowledge;
 
     public WorkshopSession(ResourceLocation initialStarChartId) {
         this.currentStarChartId = initialStarChartId;
+    }
+    
+    public void setKnowledge(PlayerKnowledge knowledge) {
+        this.knowledge = knowledge;
+    }
+    
+    public PlayerKnowledge getKnowledge() {
+        return knowledge;
     }
 
     /**

@@ -44,6 +44,7 @@ public class WorkshopTab implements JournalTab, DragHandler {
         });
         
         PlayerKnowledge knowledge = screen.getPlayerKnowledge();
+        this.session.setKnowledge(knowledge);
 
         // RENDER ORDER: Bottom -> Top
         

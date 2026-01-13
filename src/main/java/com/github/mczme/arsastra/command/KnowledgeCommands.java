@@ -40,6 +40,12 @@ public class KnowledgeCommands {
     public static int addKnowledgeItem(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
         ServerPlayer player = context.getSource().getPlayerOrException();
         Item item = ItemArgument.getItem(context, "item").getItem();
+
+        if (ElementProfileManager.getInstance().getElementProfile(item).isEmpty()) {
+            context.getSource().sendFailure(Component.literal("Item has no element profile: " + BuiltInRegistries.ITEM.getKey(item)));
+            return 0;
+        }
+
         PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
         
         if (knowledge.analyzeItem(item)) {

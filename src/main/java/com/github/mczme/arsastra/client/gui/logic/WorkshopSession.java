@@ -128,8 +128,6 @@ public class WorkshopSession {
                 onFirstItemAddedListener.accept(copy);
             }
 
-            // 自动选中新添加的项
-            this.selectedIndex = inputs.size() - 1;
             notifyUpdate();
         }
     }
@@ -168,8 +166,6 @@ public class WorkshopSession {
                 onFirstItemAddedListener.accept(copy);
             }
 
-            // 选中新插入的项
-            this.selectedIndex = index;
             notifyUpdate();
         }
     }

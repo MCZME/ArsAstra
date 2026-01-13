@@ -81,17 +81,21 @@ void main() {
     wash *= 0.8 + 0.4 * paperGrain;
 
     // --- 颜色合成 ---
-    float alpha = mainRing + ticks + innerRing + wash;
+    // 墨色常量 0x2F2F2F -> (47, 47, 47) / 255
+    vec3 inkRGB = vec3(0.1843, 0.1843, 0.1843);
     
-    // 颜色处理：
-    // 使用 EffectColor，但要让它看起来像墨水
-    // 越浓的地方越深 (Multiply 效果模拟)，越淡的地方越透
-    vec4 ink = EffectColor;
+    // 外层：主圆环 + 刻度 (统一为墨色)
+    float outerAlpha = mainRing + ticks;
     
-    // 最终输出
-    // 我们在这里直接输出 Alpha，依赖 OpenGL 的混合模式来与背景融合
-    // 推荐混合模式: SRC_ALPHA, ONE_MINUS_SRC_ALPHA (标准)
-    // 或者 DST_COLOR, ZERO (Multiply) 如果想做纯正片叠底
+    // 内层：内部细环 + 中心晕染 (使用药水效果颜色)
+    float innerAlpha = (innerRing + wash) * EffectColor.a;
     
-    fragColor = vec4(ink.rgb, alpha * ink.a * vertexColor.a);
+    // 合并 Alpha
+    float totalAlpha = (outerAlpha + innerAlpha) * vertexColor.a;
+    
+    // 颜色加权合并
+    // 如果没有任何 alpha，rgb 不重要；否则按比例混合
+    vec3 finalRGB = mix(EffectColor.rgb, inkRGB, outerAlpha / (outerAlpha + innerAlpha + 0.0001));
+    
+    fragColor = vec4(finalRGB, totalAlpha);
 }

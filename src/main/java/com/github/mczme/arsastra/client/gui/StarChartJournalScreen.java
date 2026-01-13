@@ -29,7 +29,7 @@ public class StarChartJournalScreen extends Screen {
     private static final int BOOK_WIDTH = 300;
     private static final int BOOK_HEIGHT = 176;
     
-    private int activeTab = 1; // 默认为推演工坊 (页签 1)
+    private int activeTab = 0; // 默认为 (页签 0) "Compendium"
     
     private final CompendiumTab compendiumTab = new CompendiumTab();
     private final WorkshopTab workshopTab = new WorkshopTab();

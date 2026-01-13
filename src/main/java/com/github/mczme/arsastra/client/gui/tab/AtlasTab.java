@@ -68,7 +68,7 @@ public class AtlasTab implements JournalTab {
     private void updateChartDisplay() {
         if (visitedCharts.isEmpty()) return;
         ResourceLocation id = visitedCharts.get(currentChartIndex);
-        StarChartManager.getInstance().getStarChart(id).ifPresent(starChartWidget::setStarChart);
+        StarChartManager.getInstance().getStarChart(id).ifPresent(chart -> starChartWidget.setStarChart(id, chart));
     }
 
     private void openFullScreen() {
@@ -100,6 +100,10 @@ public class AtlasTab implements JournalTab {
             guiGraphics.drawString(Minecraft.getInstance().font, name, bgX + 3, bgY + 2, 0xFFFFFF);
         } else {
             guiGraphics.drawCenteredString(Minecraft.getInstance().font, Component.translatable("gui.ars_astra.atlas.empty"), screen.width / 2, screen.height / 2, 0x404040);
+        }
+        
+        if (starChartWidget != null && starChartWidget.visible) {
+            starChartWidget.renderTooltips(guiGraphics, mouseX, mouseY);
         }
     }
 

@@ -32,6 +32,8 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.journal.compendium.select_element", "请选择一个要素以查看详情");
         add("gui.ars_astra.journal.compendium.search", "搜索档案...");
         add("gui.ars_astra.compendium.click_to_view", "点击查看详情");
+        add("gui.ars_astra.atlas.field.unknown", "未知星域");
+        add("gui.ars_astra.atlas.empty", "尚未发现任何星图");
         // Workshop
         add("gui.ars_astra.workshop.sequence", "推演序列");
         add("gui.ars_astra.workshop.source", "原料来源");

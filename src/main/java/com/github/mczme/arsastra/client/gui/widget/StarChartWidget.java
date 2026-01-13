@@ -39,6 +39,7 @@ import java.util.WeakHashMap;
 @OnlyIn(Dist.CLIENT)
 public class StarChartWidget extends AbstractWidget {
     protected StarChart starChart;
+    protected ResourceLocation starChartId;
     protected PlayerKnowledge knowledge;
     
     // 几何缓存：存储经过细分和抖动处理后的手绘多边形顶点
@@ -66,7 +67,8 @@ public class StarChartWidget extends AbstractWidget {
 
     // --- 数据设置 ---
 
-    public void setStarChart(StarChart starChart) {
+    public void setStarChart(ResourceLocation id, StarChart starChart) {
+        this.starChartId = id;
         if (this.starChart != starChart) {
             this.starChart = starChart;
             this.envGeometryCache.clear(); // 切换星图时清空缓存
@@ -81,7 +83,7 @@ public class StarChartWidget extends AbstractWidget {
                 ResourceLocation firstId = visited.iterator().next();
                 StarChartManager.getInstance()
                         .getStarChart(firstId)
-                        .ifPresent(this::setStarChart);
+                        .ifPresent(chart -> this.setStarChart(firstId, chart));
             }
         }
     }
@@ -232,21 +234,46 @@ public class StarChartWidget extends AbstractWidget {
     }
 
     private void renderEffectFields(GuiGraphics guiGraphics) {
-        for (EffectField field : starChart.fields()) {
+        List<EffectField> fields = starChart.fields();
+        for (int i = 0; i < fields.size(); i++) {
+            EffectField field = fields.get(i);
             MobEffect effect = field.getEffect();
             if (effect == null) continue;
 
             Vector2f center = field.center();
             float radius = field.getRadius();
+            
+            boolean unlocked = knowledge != null && starChartId != null && knowledge.hasUnlockedField(starChartId, i);
 
-            // 使用 Celestial Field Shader 渲染动态效果
-            StarChartRenderUtils.drawCelestialField(guiGraphics.pose(), center, radius, effect.getColor());
+            // 1. 渲染光环 (Celestial Field Shader)
+            // 未解锁时使用墨色，解锁后使用效果色
+            int fieldColor = unlocked ? effect.getColor() : Palette.INK;
+            StarChartRenderUtils.drawCelestialField(guiGraphics.pose(), center, radius, fieldColor);
 
-            TextureAtlasSprite sprite = Minecraft.getInstance()
-                    .getMobEffectTextures().get(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
-            if (sprite != null) {
-                float iconSize = 24.0f;
-                StarChartRenderUtils.drawMonochromeIcon(guiGraphics.pose(), sprite, center, iconSize, Palette.INK);
+            // 2. 渲染图标或问号
+            if (unlocked) {
+                TextureAtlasSprite sprite = Minecraft.getInstance()
+                        .getMobEffectTextures().get(BuiltInRegistries.MOB_EFFECT.wrapAsHolder(effect));
+                if (sprite != null) {
+                    float iconSize = 24.0f;
+                    StarChartRenderUtils.drawMonochromeIcon(guiGraphics.pose(), sprite, center, iconSize, Palette.INK);
+                }
+            } else {
+                // 绘制 "???"
+                PoseStack pose = guiGraphics.pose();
+                pose.pushPose();
+                pose.translate(center.x, center.y, 0);
+                // 保持文字大小不随缩放变化太大，但要适应当前视图
+                // 这里我们希望它像地图上的标记一样，所以稍微反向缩放一点？或者就固定大小
+                float textScale = 1.0f / Math.max(0.5f, scale); // 简单的反向缩放
+                pose.scale(textScale, textScale, 1.0f);
+                
+                String text = "???";
+                int color = Palette.INK;
+                int textWidth = Minecraft.getInstance().font.width(text);
+                guiGraphics.drawString(Minecraft.getInstance().font, text, -textWidth / 2, -4, color, false);
+                
+                pose.popPose();
             }
         }
     }
@@ -387,6 +414,34 @@ public class StarChartWidget extends AbstractWidget {
             (float) (mouseX - centerX - offsetX) / scale,
             (float) (mouseY - centerY - offsetY) / scale
         );
+    }
+    
+    public EffectField getHoveredField() {
+        return hoveredField;
+    }
+    
+    public boolean isHoveredFieldUnlocked() {
+        if (hoveredField == null || starChart == null || knowledge == null || starChartId == null) return false;
+        int index = starChart.fields().indexOf(hoveredField);
+        return index >= 0 && knowledge.hasUnlockedField(starChartId, index);
+    }
+
+    public void renderTooltips(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (hoveredField != null) {
+            List<Component> tooltips = new ArrayList<>();
+            if (isHoveredFieldUnlocked()) {
+                MobEffect effect = hoveredField.getEffect();
+                if (effect != null) {
+                    tooltips.add(effect.getDisplayName());
+                    // 暂时只显示名称，后续可以显示更多信息如半径
+                }
+            } else {
+                tooltips.add(Component.translatable("gui.ars_astra.atlas.field.unknown").withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+            }
+            if (!tooltips.isEmpty()) {
+                guiGraphics.renderComponentTooltip(Minecraft.getInstance().font, tooltips, mouseX, mouseY);
+            }
+        }
     }
 
     @Override

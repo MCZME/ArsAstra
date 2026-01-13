@@ -1,6 +1,7 @@
 package com.github.mczme.arsastra.client.gui.widget;
 
 import com.github.mczme.arsastra.client.gui.util.Palette;
+import com.github.mczme.arsastra.client.gui.util.PathRenderer;
 import com.github.mczme.arsastra.client.gui.util.StarChartRenderUtils;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.EffectField;
@@ -253,7 +254,7 @@ public class StarChartWidget extends AbstractWidget {
     private void renderPredictionPath(GuiGraphics guiGraphics) {
         if (deductionResult == null) return;
         
-        float baseWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.5f, scale);
+        float baseWidth = StarChartRenderUtils.getScaleCompensatedWidth(4.0f, scale);
         StarChartRoute route = deductionResult.route();
         
         if (route.segments().isEmpty()) return;
@@ -277,16 +278,14 @@ public class StarChartWidget extends AbstractWidget {
         
         // 渲染确认路径 (深色实线)
         if (!confirmedPoints.isEmpty()) {
-            StarChartRenderUtils.drawPath(guiGraphics.pose(), confirmedPoints, baseWidth, 0xE6212A54);
+            PathRenderer.renderPencilPath(guiGraphics.pose(), confirmedPoints, baseWidth, Palette.INK, 4.0f);
         }
 
         // 渲染幽灵路径 (半透明)
         if (!ghostPoints.isEmpty()) {
-            // 为了连接连续，如果存在确认段，将确认段的最后一点添加到幽灵段开头（仅用于绘制连接）
-            // 注意：StarChartRenderUtils.drawPath 绘制的是连续线段。
-            // 实际上由于采样包含端点，ghostPoints 的起点应该已经是 confirmedPoints 的终点（在空间上）。
-            // 只要位置重合，视觉上就是连接的。
-            StarChartRenderUtils.drawPath(guiGraphics.pose(), ghostPoints, baseWidth, 0x80212A54);
+            // 降低 Alpha 值模拟半透明
+            int ghostColor = (Palette.INK & 0x00FFFFFF) | (128 << 24);
+            PathRenderer.renderPencilPath(guiGraphics.pose(), ghostPoints, baseWidth, ghostColor, 4.0f);
         }
         
         // 绘制末端光标

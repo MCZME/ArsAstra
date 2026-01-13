@@ -19,6 +19,7 @@ public class AAClientEvents {
     private static ShaderInstance davinciHatchingShader;
     private static ShaderInstance celestialFieldShader;
     private static ShaderInstance inkWashShader;
+    private static ShaderInstance pencilPathShader;
 
     public static ShaderInstance getMonochromeShader() {
         return monochromeShader;
@@ -34,6 +35,10 @@ public class AAClientEvents {
 
     public static ShaderInstance getInkWashShader() {
         return inkWashShader;
+    }
+    
+    public static ShaderInstance getPencilPathShader() {
+        return pencilPathShader;
     }
 
     @SubscribeEvent
@@ -61,6 +66,11 @@ public class AAClientEvents {
         event.registerShader(new ShaderInstance(event.getResourceProvider(), ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "ink_wash"), DefaultVertexFormat.POSITION_COLOR),
                 shaderInstance -> {
                     inkWashShader = shaderInstance;
+                });
+
+        event.registerShader(new ShaderInstance(event.getResourceProvider(), ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "pencil_path"), DefaultVertexFormat.POSITION_TEX_COLOR),
+                shaderInstance -> {
+                    pencilPathShader = shaderInstance;
                 });
     }
 }

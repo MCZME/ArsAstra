@@ -7,6 +7,7 @@
   "element.ars_astra.matter": "物质",
   "element.ars_astra.order": "秩序",
   "element.ars_astra.structure": "结构",
+  "gui.ars_astra.compendium.click_to_view": "点击查看详情",
   "gui.ars_astra.filter.elements_hint": "例如：生命, 物质...",
   "gui.ars_astra.filter.elements_label": "包含要素 (且)",
   "gui.ars_astra.filter.tags_hint": "例如：logs, stones...",

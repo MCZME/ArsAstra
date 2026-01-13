@@ -172,7 +172,7 @@ public class CompendiumTab implements JournalTab {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (currentMode == DisplayMode.ITEMS) {
             renderItemGrid(guiGraphics, mouseX, mouseY);
-            renderItemDetails(guiGraphics);
+            renderItemDetails(guiGraphics, mouseX, mouseY);
         } else {
             renderElementGrid(guiGraphics, mouseX, mouseY);
             renderElementDetails(guiGraphics);
@@ -248,7 +248,7 @@ public class CompendiumTab implements JournalTab {
         }
     }
 
-    private void renderItemDetails(GuiGraphics guiGraphics) {
+    private void renderItemDetails(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         if (selectedItem.isEmpty()) return;
         int rightX = this.x + 160;
         int topY = this.y + 20;
@@ -278,10 +278,17 @@ public class CompendiumTab implements JournalTab {
             for (var entry : profile.elements().entrySet()) {
                 Element element = AARegistries.ELEMENT_REGISTRY.get(entry.getKey());
                 if (element != null) {
+                    // 检测悬停 (限制宽度为 60 像素，避免覆盖右侧预览框)
+                    boolean isHovered = mouseX >= leftColX && mouseX < leftColX + 60 && mouseY >= elementY && mouseY < elementY + 12;
+                    if (isHovered) {
+                        guiGraphics.fill(leftColX - 2, elementY, leftColX + 60, elementY + 11, 0x15000000);
+                        guiGraphics.renderTooltip(Minecraft.getInstance().font, Component.translatable("gui.ars_astra.compendium.click_to_view"), mouseX, mouseY);
+                    }
+
                     guiGraphics.blit(element.getIcon(), leftColX, elementY, 0, 0, 10, 10, 10, 10);
                     String nameText = Component.translatable(element.getDescriptionId()).getString();
                     String text = String.format("%s: %.1f", nameText, entry.getValue());
-                    guiGraphics.drawString(Minecraft.getInstance().font, text, leftColX + 12, elementY + 1, 0x333333, false);
+                    guiGraphics.drawString(Minecraft.getInstance().font, text, leftColX + 12, elementY + 1, isHovered ? 0x000000 : 0x333333, false);
                     elementY += 12; 
                 }
             }
@@ -305,11 +312,9 @@ public class CompendiumTab implements JournalTab {
         List<StarChartPath> paths = routeService.getPathsForItem(selectedItem);
         if (!paths.isEmpty()) {
             float maxDist = 0;
-            float totalLength = 0;
             Vector2f finalDisplacement = new Vector2f(0, 0);
 
             for (StarChartPath p : paths) {
-                totalLength += p.getLength();
                 finalDisplacement.add(p.getEndPoint()); // 理想路径终点即位移
                 for (Vector2f point : p.sample(1.0f)) {
                      float d = point.length();
@@ -424,6 +429,36 @@ public class CompendiumTab implements JournalTab {
                 currentPage++;
                 Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
                 return true;
+            }
+        }
+
+        // 要素列表点击跳转逻辑
+        if (currentMode == DisplayMode.ITEMS && !selectedItem.isEmpty()) {
+            int rightX = this.x + 160;
+            int topY = this.y + 20;
+            int contentStartY = topY + 75;
+            int leftColX = rightX + 10;
+
+            var profileOpt = ElementProfileManager.getInstance().getElementProfile(selectedItem.getItem());
+            if (profileOpt.isPresent()) {
+                int elementY = contentStartY;
+                for (var entry : profileOpt.get().elements().entrySet()) {
+                    Element element = AARegistries.ELEMENT_REGISTRY.get(entry.getKey());
+                    if (element != null) {
+                        if (mouseX >= leftColX && mouseX < leftColX + 110 && mouseY >= elementY && mouseY < elementY + 12) {
+                            this.currentMode = DisplayMode.ELEMENTS;
+                            this.selectedElement = element;
+                            this.currentSearchQuery = ""; // 清除搜索以确保要素可见
+                            this.currentPage = 0;
+                            this.modeSwitchButton.setIconIndex(3);
+                            this.modeSwitchButton.setColor(0x804080);
+                            refreshContent();
+                            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+                            return true;
+                        }
+                        elementY += 12;
+                    }
+                }
             }
         }
 

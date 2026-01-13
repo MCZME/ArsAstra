@@ -31,6 +31,7 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.journal.compendium.elements", "已解锁要素");
         add("gui.ars_astra.journal.compendium.select_element", "请选择一个要素以查看详情");
         add("gui.ars_astra.journal.compendium.search", "搜索档案...");
+        add("gui.ars_astra.compendium.click_to_view", "点击查看详情");
         // Workshop
         add("gui.ars_astra.workshop.sequence", "推演序列");
         add("gui.ars_astra.workshop.source", "原料来源");

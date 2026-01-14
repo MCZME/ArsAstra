@@ -1,5 +1,7 @@
 package com.github.mczme.arsastra.core.starchart.engine;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
@@ -13,6 +15,11 @@ public record AlchemyInput(
         ItemStack stack,
         float rotation
 ) {
+    public static final Codec<AlchemyInput> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+            ItemStack.CODEC.fieldOf("stack").forGetter(AlchemyInput::stack),
+            Codec.FLOAT.optionalFieldOf("rotation", 0.0f).forGetter(AlchemyInput::rotation)
+    ).apply(instance, AlchemyInput::new));
+
     public static final StreamCodec<RegistryFriendlyByteBuf, AlchemyInput> STREAM_CODEC = StreamCodec.composite(
             ItemStack.STREAM_CODEC,
             AlchemyInput::stack,

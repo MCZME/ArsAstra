@@ -63,7 +63,7 @@ public class StarChartJournalScreen extends Screen {
         // 初始化页签按钮
         createTabButton(0, x, y + 20, "compendium");
         createTabButton(1, x, y + 44, "workshop");
-        createTabButton(2, x, y + 68, "blueprints");
+        createTabButton(2, x, y + 68, "manuscripts");
         createTabButton(3, x, y + 92, "atlas");
 
         // 初始化各个 Tab

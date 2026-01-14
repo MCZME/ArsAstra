@@ -26,7 +26,7 @@ public class ZH_CN extends LanguageProvider  {
         // GUI 文本
         add("gui.ars_astra.journal.tab.compendium", "要素典籍");
         add("gui.ars_astra.journal.tab.workshop", "推演工坊");
-        add("gui.ars_astra.journal.tab.blueprints", "蓝图档案");
+        add("gui.ars_astra.journal.tab.manuscripts", "手稿档案");
         add("gui.ars_astra.journal.tab.atlas", "星图总览");
         add("gui.ars_astra.journal.compendium.elements", "已解锁要素");
         add("gui.ars_astra.journal.compendium.select_element", "请选择一个要素以查看详情");

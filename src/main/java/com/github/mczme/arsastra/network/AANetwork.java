@@ -2,6 +2,7 @@ package com.github.mczme.arsastra.network;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.client.gui.StarChartJournalScreen;
+import com.github.mczme.arsastra.core.ArsAstraSavedData;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.StarChart;
@@ -9,8 +10,10 @@ import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.DeductionResult;
 import com.github.mczme.arsastra.core.starchart.engine.service.DeductionService;
 import com.github.mczme.arsastra.core.starchart.engine.service.DeductionServiceImpl;
+import com.github.mczme.arsastra.core.manuscript.ManuscriptManager;
 import com.github.mczme.arsastra.network.payload.DeductionResultPayload;
 import com.github.mczme.arsastra.network.payload.RequestDeductionPayload;
+import com.github.mczme.arsastra.network.payload.SyncEnvironmentPayload;
 import com.github.mczme.arsastra.network.payload.SyncKnowledgePayload;
 import com.github.mczme.arsastra.registry.AAAttachments;
 import net.minecraft.client.Minecraft;
@@ -42,6 +45,16 @@ public class AANetwork {
                             PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
                             knowledge.deserializeNBT(player.registryAccess(), payload.data());
                         }
+                    });
+                }
+        );
+
+        registrar.playToClient(
+                SyncEnvironmentPayload.TYPE,
+                SyncEnvironmentPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    context.enqueueWork(() -> {
+                        ManuscriptManager.getInstance().setCurrentSeedHash(payload.seedHash());
                     });
                 }
         );
@@ -89,5 +102,12 @@ public class AANetwork {
     public static void sendToPlayer(ServerPlayer player) {
         PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
         PacketDistributor.sendToPlayer(player, new SyncKnowledgePayload(knowledge.serializeNBT(player.registryAccess())));
+        sendEnvironmentToPlayer(player);
+    }
+
+    public static void sendEnvironmentToPlayer(ServerPlayer player) {
+        long seed = ArsAstraSavedData.get(player.serverLevel()).getElementProfileSeed();
+        String seedHash = Long.toHexString(seed);
+        PacketDistributor.sendToPlayer(player, new SyncEnvironmentPayload(seedHash));
     }
 }

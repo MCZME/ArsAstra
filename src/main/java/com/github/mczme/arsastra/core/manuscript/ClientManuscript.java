@@ -11,14 +11,14 @@ import java.util.List;
  */
 public record ClientManuscript(
         String name,
+        String icon,
         long createdAt,
-        List<String> tags,
         List<AlchemyInput> inputs
 ) {
     public static final Codec<ClientManuscript> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("name").forGetter(ClientManuscript::name),
+            Codec.STRING.optionalFieldOf("icon", "0").forGetter(ClientManuscript::icon),
             Codec.LONG.fieldOf("created_at").forGetter(ClientManuscript::createdAt),
-            Codec.STRING.listOf().fieldOf("tags").forGetter(ClientManuscript::tags),
             AlchemyInput.CODEC.listOf().fieldOf("inputs").forGetter(ClientManuscript::inputs)
     ).apply(instance, ClientManuscript::new));
 }

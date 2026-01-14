@@ -15,6 +15,7 @@ public class ToolbarTabButton extends AbstractButton {
     private final Runnable onPress;
     private boolean isSelected;
     private boolean forceLeftAlign = false;
+    private boolean forceRightAlign = false;
     private Direction direction = Direction.DOWN;
 
     public enum Direction {
@@ -46,6 +47,12 @@ public class ToolbarTabButton extends AbstractButton {
 
     public void setForceLeftAlign(boolean leftAlign) {
         this.forceLeftAlign = leftAlign;
+        if (leftAlign) this.forceRightAlign = false;
+    }
+
+    public void setForceRightAlign(boolean rightAlign) {
+        this.forceRightAlign = rightAlign;
+        if (rightAlign) this.forceLeftAlign = false;
     }
 
     @Override
@@ -115,6 +122,8 @@ public class ToolbarTabButton extends AbstractButton {
         int iconX;
         if (forceLeftAlign) {
             iconX = x + 2; // 左对齐，留出2px边框
+        } else if (forceRightAlign) {
+            iconX = x + w - 18; // 右对齐 (width - 16 - 2)
         } else {
             iconX = x + (w - 16) / 2; // 居中
         }

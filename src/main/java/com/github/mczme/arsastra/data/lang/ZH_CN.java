@@ -41,6 +41,7 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.workshop.clear.confirm", "确认重构");
         add("gui.ars_astra.workshop.remove", "丢弃");
         add("gui.ars_astra.workshop.rotation", "旋转角度： %s°");
+        add("gui.ars_astra.workshop.save_manuscript.name_hint", "手稿名称...");
         
         // Sticky Note (Result Info)
         add("gui.ars_astra.workshop.note", "推演报告");

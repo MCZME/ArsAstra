@@ -1,21 +1,28 @@
 package com.github.mczme.arsastra.client.gui.widget.workshop;
 
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ManuscriptSaveWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarClearWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSettingsWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarTabButton;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
+import com.github.mczme.arsastra.core.manuscript.ClientManuscript;
+import com.github.mczme.arsastra.core.manuscript.ManuscriptManager;
+import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import net.minecraft.network.chat.Component;
+
+import java.util.List;
 
 public class WorkshopToolbar extends ToolbarWidget {
     private final WorkshopActionHandler handler;
+    private final WorkshopSession session;
     
     private ToolbarSearchWidget searchWidget;
     private ToolbarFilterWidget filterWidget;
     private ToolbarClearWidget clearBtn;
-    private ToolbarTabButton saveBtn;
+    private ManuscriptSaveWidget saveWidget;
     private ToolbarTabButton infoBtn;
     private ToolbarSettingsWidget settingsBtn;
     private String currentSearchQuery = "";
@@ -23,6 +30,7 @@ public class WorkshopToolbar extends ToolbarWidget {
     public WorkshopToolbar(int x, int y, int width, int height, WorkshopSession session, WorkshopActionHandler handler) {
         super(x, y, width, height);
         this.handler = handler;
+        this.session = session;
         initButtons();
     }
     
@@ -33,10 +41,23 @@ public class WorkshopToolbar extends ToolbarWidget {
         });
         this.addChild(clearBtn);
 
-        // 2. [Save] 保存按钮: 灰色 (0x888888), 图标索引 9 (墨水瓶与羽毛笔)
-        this.saveBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.save"), 8, 0x888888, this::onSave);
-        saveBtn.active = false;
-        this.addChild(saveBtn);
+        // 2. [Save] 保存组件 (ManuscriptSaveWidget)
+        this.saveWidget = new ManuscriptSaveWidget(0, 0, (name, iconIndex) -> {
+            List<AlchemyInput> inputs = session.getInputs();
+            if (inputs.isEmpty()) return;
+            
+            // Icon index 转换为字符串ID，这里简单用 index 字符串，实际可以映射到资源名
+            String iconId = String.valueOf(iconIndex);
+            
+            ClientManuscript manuscript = new ClientManuscript(
+                name,
+                iconId,
+                System.currentTimeMillis(),
+                inputs
+            );
+            ManuscriptManager.getInstance().saveManuscript(manuscript);
+        });
+        this.addChild(saveWidget);
 
         // 3. [Search] 搜索组件
         this.searchWidget = new ToolbarSearchWidget(0, 0, (query) -> {
@@ -68,7 +89,7 @@ public class WorkshopToolbar extends ToolbarWidget {
     public void arrange() {
         // 确保所有组件都已初始化
         if (settingsBtn == null || searchWidget == null || filterWidget == null || 
-            clearBtn == null || saveBtn == null || infoBtn == null) {
+            clearBtn == null || saveWidget == null || infoBtn == null) {
             return;
         }
 
@@ -103,10 +124,10 @@ public class WorkshopToolbar extends ToolbarWidget {
             rightX -= padding;
         }
 
-        if (saveBtn.visible) {
-            rightX -= saveBtn.getWidth();
-            saveBtn.setX(rightX);
-            saveBtn.setY(this.getY() + (this.height - saveBtn.getHeight()));
+        if (saveWidget.visible) {
+            rightX -= saveWidget.getWidth();
+            saveWidget.setX(rightX);
+            saveWidget.setY(this.getY() + (this.height - saveWidget.getHeight()));
             rightX -= padding;
         }
 
@@ -127,9 +148,5 @@ public class WorkshopToolbar extends ToolbarWidget {
 
     public String getTagFilter() {
         return filterWidget != null ? filterWidget.getTagFilter() : "";
-    }
-
-    private void onSave() {
-        if (handler != null) handler.onSaveRequest();
     }
 }

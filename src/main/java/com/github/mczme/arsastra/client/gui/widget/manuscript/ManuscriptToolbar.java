@@ -1,12 +1,14 @@
 package com.github.mczme.arsastra.client.gui.widget.manuscript;
 
-import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
 
+import java.util.Collections;
+import java.util.Set;
+
 public class ManuscriptToolbar extends ToolbarWidget {
     private ToolbarSearchWidget searchWidget;
-    private ToolbarFilterWidget filterWidget;
+    private ManuscriptFilterWidget filterWidget;
     private final Runnable onFilterChanged;
     private String currentSearchQuery = "";
 
@@ -25,7 +27,7 @@ public class ManuscriptToolbar extends ToolbarWidget {
         this.addChild(searchWidget);
 
         // 2. [Filter] 筛选组件
-        this.filterWidget = new ToolbarFilterWidget(0, 0, () -> {
+        this.filterWidget = new ManuscriptFilterWidget(0, 0, () -> {
             if (onFilterChanged != null) onFilterChanged.run();
         });
         this.addChild(filterWidget);
@@ -56,12 +58,16 @@ public class ManuscriptToolbar extends ToolbarWidget {
         return currentSearchQuery;
     }
 
-    public String getElementFilter() {
-        return filterWidget != null ? filterWidget.getElementFilter() : "";
+    public Set<Integer> getFilterIcons() {
+        return filterWidget != null ? filterWidget.getSelectedIcons() : Collections.emptySet();
     }
 
-    public String getTagFilter() {
-        return filterWidget != null ? filterWidget.getTagFilter() : "";
+    public String getFilterItem() {
+        return filterWidget != null ? filterWidget.getItemFilter() : "";
+    }
+
+    public String getFilterEffect() {
+        return filterWidget != null ? filterWidget.getEffectFilter() : "";
     }
     
     @Override

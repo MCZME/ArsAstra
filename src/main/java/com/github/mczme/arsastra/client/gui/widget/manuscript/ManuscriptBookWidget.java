@@ -48,8 +48,9 @@ public class ManuscriptBookWidget extends AbstractWidget {
 
         if (toolbar != null) {
             String searchQuery = toolbar.getSearchQuery();
-            String elementFilter = toolbar.getElementFilter();
-            String tagFilter = toolbar.getTagFilter();
+            java.util.Set<Integer> filterIcons = toolbar.getFilterIcons();
+            String filterItem = toolbar.getFilterItem();
+            String filterEffect = toolbar.getFilterEffect();
 
             this.allManuscripts = source.stream().filter(m -> {
                 // 1. 搜索查询
@@ -57,29 +58,30 @@ public class ManuscriptBookWidget extends AbstractWidget {
                     return false;
                 }
 
-                // 2. 要素过滤
-                if (!elementFilter.isEmpty()) {
-                    ResourceLocation elementId = ResourceLocation.tryParse(elementFilter);
-                    if (elementId != null) {
-                        boolean hasElement = m.inputs().stream().anyMatch(input ->
-                            com.github.mczme.arsastra.core.element.profile.ElementProfileManager.getInstance()
-                                .getElementProfile(input.stack().getItem())
-                                .map(profile -> profile.elements().containsKey(elementId))
-                                .orElse(false)
-                        );
-                        if (!hasElement) return false;
+                // 2. 图标过滤
+                if (!filterIcons.isEmpty()) {
+                    try {
+                        int iconIndex = Integer.parseInt(m.icon());
+                        if (!filterIcons.contains(iconIndex)) return false;
+                    } catch (NumberFormatException ignored) {
+                        return false;
                     }
                 }
 
-                // 3. 标签过滤
-                if (!tagFilter.isEmpty()) {
-                    ResourceLocation tagId = ResourceLocation.tryParse(tagFilter);
-                    if (tagId != null) {
-                        net.minecraft.tags.TagKey<net.minecraft.world.item.Item> tagKey = 
-                            net.minecraft.tags.TagKey.create(net.minecraft.core.registries.Registries.ITEM, tagId);
-                        boolean hasTag = m.inputs().stream().anyMatch(input -> input.stack().is(tagKey));
-                        if (!hasTag) return false;
-                    }
+                // 3. 物品过滤
+                if (!filterItem.isEmpty()) {
+                    boolean hasItem = m.inputs().stream().anyMatch(input -> 
+                        input.stack().getHoverName().getString().toLowerCase().contains(filterItem.toLowerCase())
+                    );
+                    if (!hasItem) return false;
+                }
+
+                // 4. 效果过滤
+                if (!filterEffect.isEmpty()) {
+                    boolean hasEffect = m.outcome().stream().anyMatch(line -> 
+                        line.toLowerCase().contains(filterEffect.toLowerCase())
+                    );
+                    if (!hasEffect) return false;
                 }
 
                 return true;

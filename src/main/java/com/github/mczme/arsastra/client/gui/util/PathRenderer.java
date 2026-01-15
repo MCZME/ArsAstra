@@ -2,11 +2,13 @@ package com.github.mczme.arsastra.client.gui.util;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.client.AAClientEvents;
+import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.AbstractTexture;
@@ -25,6 +27,59 @@ public class PathRenderer {
 
     public static final ResourceLocation PENCIL_TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID,
             "textures/gui/pencil_texture.png");
+
+    /**
+     * 在 UI 区域内绘制静态路径预览，自动缩放以适配。
+     * 使用铅笔风格渲染。
+     */
+    public static void drawStaticPath(GuiGraphics guiGraphics, List<StarChartPath> segments, int x, int y, int width, int height, int color) {
+        if (segments == null || segments.isEmpty()) return;
+
+        // 1. 获取所有采样点并计算包围盒
+        List<Vector2f> allPoints = new java.util.ArrayList<>();
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+
+        for (StarChartPath segment : segments) {
+            List<Vector2f> points = segment.sample(2.0f); // 采样步长 2.0
+            for (Vector2f p : points) {
+                allPoints.add(p);
+                minX = Math.min(minX, p.x);
+                minY = Math.min(minY, p.y);
+                maxX = Math.max(maxX, p.x);
+                maxY = Math.max(maxY, p.y);
+            }
+        }
+
+        if (allPoints.size() < 2) return;
+
+        float pathWidth = maxX - minX;
+        float pathHeight = maxY - minY;
+        
+        // 2. 计算缩放比例 (保留边距)
+        float margin = 10.0f;
+        float availableW = width - margin * 2;
+        float availableH = height - margin * 2;
+        
+        float scale = Math.min(availableW / Math.max(pathWidth, 1), availableH / Math.max(pathHeight, 1));
+        scale = Math.min(scale, 2.0f); // 不放得太大
+
+        // 3. 计算居中偏移
+        float drawX = x + (width - pathWidth * scale) / 2f - minX * scale;
+        float drawY = y + (height - pathHeight * scale) / 2f - minY * scale;
+
+        // 4. 执行渲染
+        PoseStack poseStack = guiGraphics.pose();
+        poseStack.pushPose();
+        poseStack.translate(drawX, drawY, 0);
+        poseStack.scale(scale, scale, 1);
+        
+        // 使用 renderPencilPath 进行绘制
+        // 线宽补偿: scale 越小，线要相对越粗才能在屏幕上保持可见
+        renderPencilPath(poseStack, allPoints, 2.0f / scale, color, 4.0f);
+        
+        poseStack.popPose();
+    }
 
     /**
      * 渲染一条带纹理的路径。

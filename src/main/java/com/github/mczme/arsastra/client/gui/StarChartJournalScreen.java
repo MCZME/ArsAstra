@@ -3,6 +3,7 @@ package com.github.mczme.arsastra.client.gui;
 import com.github.mczme.arsastra.client.gui.tab.AtlasTab;
 import com.github.mczme.arsastra.client.gui.tab.CompendiumTab;
 import com.github.mczme.arsastra.client.gui.tab.JournalTab;
+import com.github.mczme.arsastra.client.gui.tab.ManuscriptsTab;
 import com.github.mczme.arsastra.client.gui.tab.WorkshopTab;
 import com.github.mczme.arsastra.client.gui.widget.JournalTabButton;
 import com.github.mczme.arsastra.network.payload.DeductionResultPayload;
@@ -33,6 +34,7 @@ public class StarChartJournalScreen extends Screen {
     
     private final CompendiumTab compendiumTab = new CompendiumTab();
     private final WorkshopTab workshopTab = new WorkshopTab();
+    private final ManuscriptsTab manuscriptsTab = new ManuscriptsTab();
     private final AtlasTab atlasTab = new AtlasTab();
     private final List<JournalTabButton> tabButtons = new ArrayList<>();
     
@@ -69,6 +71,7 @@ public class StarChartJournalScreen extends Screen {
         // 初始化各个 Tab
         this.compendiumTab.init(this, x, y, BOOK_WIDTH, BOOK_HEIGHT);
         this.workshopTab.init(this, x, y, BOOK_WIDTH, BOOK_HEIGHT);
+        this.manuscriptsTab.init(this, x, y, BOOK_WIDTH, BOOK_HEIGHT);
         this.atlasTab.init(this, x, y, BOOK_WIDTH, BOOK_HEIGHT);
 
         switchTab(activeTab);
@@ -81,7 +84,15 @@ public class StarChartJournalScreen extends Screen {
         this.tabButtons.add(btn);
     }
 
-    private void switchTab(int tabIndex) {
+    public JournalTab getTab(int index) {
+        if (index == 0) return compendiumTab;
+        if (index == 1) return workshopTab;
+        if (index == 2) return manuscriptsTab;
+        if (index == 3) return atlasTab;
+        return null;
+    }
+
+    public void switchTab(int tabIndex) {
         this.activeTab = tabIndex;
         int x = (this.width - BOOK_WIDTH) / 2;
         
@@ -96,6 +107,10 @@ public class StarChartJournalScreen extends Screen {
         if (this.workshopTab != null) {
             this.workshopTab.setVisible(tabIndex == 1);
         }
+        
+        if (this.manuscriptsTab != null) {
+            this.manuscriptsTab.setVisible(tabIndex == 2);
+        }
 
         if (this.atlasTab != null) {
             this.atlasTab.setVisible(tabIndex == 3);
@@ -105,6 +120,7 @@ public class StarChartJournalScreen extends Screen {
     private JournalTab getCurrentTab() {
         if (activeTab == 0) return compendiumTab;
         if (activeTab == 1) return workshopTab;
+        if (activeTab == 2) return manuscriptsTab;
         if (activeTab == 3) return atlasTab;
         return null;
     }

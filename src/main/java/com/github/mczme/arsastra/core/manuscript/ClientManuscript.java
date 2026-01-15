@@ -13,12 +13,14 @@ public record ClientManuscript(
         String name,
         String icon,
         long createdAt,
-        List<AlchemyInput> inputs
+        List<AlchemyInput> inputs,
+        List<String> outcome
 ) {
     public static final Codec<ClientManuscript> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("name").forGetter(ClientManuscript::name),
             Codec.STRING.optionalFieldOf("icon", "0").forGetter(ClientManuscript::icon),
             Codec.LONG.fieldOf("created_at").forGetter(ClientManuscript::createdAt),
-            AlchemyInput.CODEC.listOf().fieldOf("inputs").forGetter(ClientManuscript::inputs)
+            AlchemyInput.CODEC.listOf().fieldOf("inputs").forGetter(ClientManuscript::inputs),
+            Codec.STRING.listOf().optionalFieldOf("outcome", List.of()).forGetter(ClientManuscript::outcome)
     ).apply(instance, ClientManuscript::new));
 }

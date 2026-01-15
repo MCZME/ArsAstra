@@ -272,6 +272,18 @@ public class WorkshopSession {
 
     // --- 内部同步逻辑 ---
 
+    /**
+     * 清空当前序列并加载新的输入序列。
+     */
+    public void loadSequence(List<AlchemyInput> newInputs) {
+        this.inputs.clear();
+        this.selectedIndex = -1;
+        if (newInputs != null) {
+            this.inputs.addAll(newInputs);
+        }
+        notifyUpdate();
+    }
+
     private void notifyUpdate() {
         // 重置预览
         this.previewIndex = -1;

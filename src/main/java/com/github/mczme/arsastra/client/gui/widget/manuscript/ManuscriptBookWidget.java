@@ -14,15 +14,19 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 手稿书本组件
+ * 负责在手稿页签中以书本形式展示所有保存的手稿，支持分页、搜索过滤和悬停预览。
+ */
 public class ManuscriptBookWidget extends AbstractWidget {
     private static final ResourceLocation MANUSCRIPT_ICONS = ResourceLocation.fromNamespaceAndPath("ars_astra", "textures/gui/manuscript_icons.png");
 
     private final ManuscriptsTab parentTab;
     private List<ClientManuscript> allManuscripts = new ArrayList<>();
     private int currentPage = 0;
-    private final int itemsPerPage = 14; // 7 per page * 2 pages
+    private final int itemsPerPage = 14; // 每页 7 条 * 2 页
     
-    // Layout constants
+    // 布局常量
     private final int leftPageXOffset = 15;
     private final int rightPageXOffset = 155;
     private final int pageYOffset = 20;
@@ -35,6 +39,9 @@ public class ManuscriptBookWidget extends AbstractWidget {
         refresh();
     }
 
+    /**
+     * 刷新手稿列表，应用工具栏的过滤条件。
+     */
     public void refresh() {
         List<ClientManuscript> source = ManuscriptManager.getInstance().getManuscripts();
         ManuscriptToolbar toolbar = parentTab.getToolbar();
@@ -45,12 +52,12 @@ public class ManuscriptBookWidget extends AbstractWidget {
             String tagFilter = toolbar.getTagFilter();
 
             this.allManuscripts = source.stream().filter(m -> {
-                // 1. Search Query
+                // 1. 搜索查询
                 if (!searchQuery.isEmpty() && !m.name().toLowerCase().contains(searchQuery)) {
                     return false;
                 }
 
-                // 2. Element Filter
+                // 2. 要素过滤
                 if (!elementFilter.isEmpty()) {
                     ResourceLocation elementId = ResourceLocation.tryParse(elementFilter);
                     if (elementId != null) {
@@ -64,7 +71,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
                     }
                 }
 
-                // 3. Tag Filter
+                // 3. 标签过滤
                 if (!tagFilter.isEmpty()) {
                     ResourceLocation tagId = ResourceLocation.tryParse(tagFilter);
                     if (tagId != null) {
@@ -126,7 +133,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
             }
         }
         
-        // Simple page navigation rendering (placeholders)
+        // 分页导航渲染 (占位符)
         if (currentPage > 0) {
              guiGraphics.drawString(Minecraft.getInstance().font, "<", this.getX() + 20, this.getY() + this.height - 20, 0x404040, false);
         }
@@ -134,19 +141,22 @@ public class ManuscriptBookWidget extends AbstractWidget {
              guiGraphics.drawString(Minecraft.getInstance().font, ">", this.getX() + this.width - 30, this.getY() + this.height - 20, 0x404040, false);
         }
 
-        // Render tooltip last
+        // 最后渲染悬停提示
         if (hoveredManuscript != null) {
             renderHoverTooltip(guiGraphics, hoveredManuscript, hoveredX, hoveredY);
         }
     }
 
+    /**
+     * 渲染单条手稿条目。
+     */
     private void renderEntry(GuiGraphics guiGraphics, ClientManuscript m, int x, int y, boolean isHovered) {
-        // Highlight background on hover
+        // 悬停时高亮背景
         if (isHovered) {
              guiGraphics.fill(x, y, x + itemWidth, y + itemHeight, 0x10000000); 
         }
         
-        // Icon
+        // 图标
         int iconIndex = 0;
         try {
             iconIndex = Integer.parseInt(m.icon());
@@ -157,31 +167,34 @@ public class ManuscriptBookWidget extends AbstractWidget {
         int v = (iconIndex / 4) * 16;
         guiGraphics.blit(MANUSCRIPT_ICONS, x + 2, y + 2, u, v, 16, 16, 64, 64);
         
-        // Text
-        int color = 0x333333; // Dark grey ink color
+        // 文本
+        int color = 0x333333; // 深灰色墨水色
         guiGraphics.drawString(Minecraft.getInstance().font, m.name(), x + 22, y + 6, color, false);
         
-        // Divider line
+        // 分隔线
         guiGraphics.fill(x + 5, y + itemHeight - 1, x + itemWidth - 5, y + itemHeight, 0x20000000);
     }
 
+    /**
+     * 渲染悬停提示，展示手稿详情预览。
+     */
     private void renderHoverTooltip(GuiGraphics guiGraphics, ClientManuscript m, int mouseX, int mouseY) {
         net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
         
-        // 1. Calculate Dimensions
-        // Date Format
+        // 1. 计算尺寸
+        // 日期格式
         String dateStr = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 .withZone(java.time.ZoneId.systemDefault())
                 .format(java.time.Instant.ofEpochMilli(m.createdAt()));
 
         int nameWidth = font.width(m.name());
         int dateWidth = font.width(dateStr);
-        int headerWidth = nameWidth + 15 + dateWidth; // Space between name and date
+        int headerWidth = nameWidth + 15 + dateWidth; // 名称和日期之间的间距
         
         int inputsWidth = 0;
         if (!m.inputs().isEmpty()) {
-            int count = Math.min(m.inputs().size(), 7); // Max 7 slots (6 + 1 indicator if overflow)
-            inputsWidth = (count * 18) + 5; // 18px per slot
+            int count = Math.min(m.inputs().size(), 7); // 最多 7 个槽位 (6个物品 + 1个溢出指示)
+            inputsWidth = (count * 18) + 5; // 每个槽位 18px
         }
         
         int outcomesWidth = 0;
@@ -191,9 +204,9 @@ public class ManuscriptBookWidget extends AbstractWidget {
         
         int tooltipWidth = Math.max(Math.max(headerWidth, inputsWidth), outcomesWidth) + 10;
         
-        int tooltipHeight = 5 + 10 + 3; // Top padding + Header text + Header underline spacing
+        int tooltipHeight = 5 + 10 + 3; // 顶部边距 + 标题文本 + 标题下划线间距
         if (!m.inputs().isEmpty()) {
-            tooltipHeight += 24; // Items (18) + Indicator space (4) + padding (2)
+            tooltipHeight += 24; // 物品 (18) + 指示器空间 (4) + 边距 (2)
         }
         if (!m.outcome().isEmpty()) {
             tooltipHeight += 5 + (m.outcome().size() * 10);
@@ -202,27 +215,27 @@ public class ManuscriptBookWidget extends AbstractWidget {
         int x = mouseX + 10;
         int y = mouseY + 10;
         
-        // Adjust if off-screen
+        // 越界调整
         if (x + tooltipWidth > Minecraft.getInstance().getWindow().getGuiScaledWidth()) {
             x -= tooltipWidth + 20;
         }
         
-        // 2. Draw Background
+        // 2. 绘制背景
         guiGraphics.fill(x, y, x + tooltipWidth, y + tooltipHeight, 0xFFFDF5E6);
-        guiGraphics.renderOutline(x, y, tooltipWidth, tooltipHeight, 0xFF8B4513); // Brown border
+        guiGraphics.renderOutline(x, y, tooltipWidth, tooltipHeight, 0xFF8B4513); // 棕色边框
         
         int currentY = y + 5;
 
-        // 3. Draw Header (Name + Date)
+        // 3. 绘制页眉 (名称 + 日期)
         guiGraphics.drawString(font, m.name(), x + 5, currentY, 0x000000, false);
         guiGraphics.drawString(font, dateStr, x + tooltipWidth - 5 - dateWidth, currentY, 0x555555, false);
         currentY += 10;
         
-        // Separator
+        // 分隔线
         guiGraphics.fill(x + 3, currentY + 1, x + tooltipWidth - 3, currentY + 2, 0xFF8B4513);
         currentY += 4;
         
-        // 4. Draw Inputs
+        // 4. 绘制输入
         if (!m.inputs().isEmpty()) {
             int itemX = x + 5;
             int maxSlots = 7;
@@ -232,17 +245,17 @@ public class ManuscriptBookWidget extends AbstractWidget {
             for (int i = 0; i < displayCount; i++) {
                 var input = m.inputs().get(i);
                 
-                // Rotation Indicator (Red square above)
+                // 旋转指示器 (上方红色小方块)
                 if (Math.abs(input.rotation()) > 0.001f) {
                      guiGraphics.fill(itemX + 7, currentY, itemX + 9, currentY + 2, 0xFFFF0000);
                 }
                 
-                // Item
+                // 物品
                 guiGraphics.renderItem(input.stack(), itemX, currentY + 3);
                 itemX += 18;
             }
             
-            // Overflow Indicator
+            // 溢出指示器
             if (overflow) {
                  guiGraphics.drawString(font, "...", itemX + 4, currentY + 7, 0x000000, false);
             }
@@ -250,7 +263,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
             currentY += 22;
         }
         
-        // 5. Draw Outcome
+        // 5. 绘制结果
         if (!m.outcome().isEmpty()) {
             currentY += 2;
             for (String line : m.outcome()) {
@@ -262,7 +275,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // Page navigation logic
+        // 分页导航逻辑
         if (currentPage > 0 && mouseX >= this.getX() + 10 && mouseX <= this.getX() + 30 && mouseY >= this.getY() + this.height - 25 && mouseY <= this.getY() + this.height - 10) {
             prevPage();
             return true;
@@ -272,7 +285,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
             return true;
         }
 
-        // Entry click logic
+        // 条目点击逻辑
         int start = currentPage * itemsPerPage;
         int end = Math.min(start + itemsPerPage, allManuscripts.size());
         
@@ -290,10 +303,11 @@ public class ManuscriptBookWidget extends AbstractWidget {
                 return true;
             }
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return false;
     }
 
     @Override
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
+        // TODO: 实现叙述功能
     }
 }

@@ -42,6 +42,7 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.workshop.remove", "丢弃");
         add("gui.ars_astra.workshop.rotation", "旋转角度： %s°");
         add("gui.ars_astra.workshop.save_manuscript.name_hint", "手稿名称...");
+        add("gui.ars_astra.workshop.info", "信息");
         
         // Sticky Note (Result Info)
         add("gui.ars_astra.workshop.note", "推演报告");
@@ -49,11 +50,23 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.workshop.stability", "稳定性");
         add("gui.ars_astra.workshop.effects", "预测产物");
         
+        // 手稿详情
+        add("gui.ars_astra.load", "加载配置");
+        add("gui.ars_astra.delete", "删除手稿");
+        add("gui.ars_astra.confirm", "确认删除？");
+
         // 筛选器
+        add("gui.ars_astra.filter.tab.icon", "图标");
+        add("gui.ars_astra.filter.tab.item", "物品");
+        add("gui.ars_astra.filter.tab.effect", "效果");
         add("gui.ars_astra.filter.elements_hint", "例如：生命, 物质...");
         add("gui.ars_astra.filter.tags_hint", "例如：logs, stones...");
         add("gui.ars_astra.filter.elements_label", "包含要素 (且)");
         add("gui.ars_astra.filter.tags_label", "包含标签 (且)");
+        add("gui.ars_astra.filter.item_hint", "物品名称...");
+        add("gui.ars_astra.filter.effect_hint", "效果名称...");
+        add("gui.ars_astra.filter.item_label", "按物品筛选");
+        add("gui.ars_astra.filter.effect_label", "按效果筛选");
 
         // 元素
         add(AAElements.ORDER, "秩序");

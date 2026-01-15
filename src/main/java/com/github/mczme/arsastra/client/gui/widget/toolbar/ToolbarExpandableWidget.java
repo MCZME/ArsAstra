@@ -15,8 +15,8 @@ public abstract class ToolbarExpandableWidget extends AbstractWidget {
     protected final ToolbarTabButton mainButton;
     protected boolean expanded = false;
     protected float animationProgress = 0.0f;
-    protected final int popupWidth;
-    protected final int popupHeight;
+    protected int popupWidth;
+    protected int popupHeight;
     protected ExpandDirection expandDirection = ExpandDirection.RIGHT;
 
     public ToolbarExpandableWidget(int x, int y, int popupWidth, int popupHeight, int iconIndex, int color) {

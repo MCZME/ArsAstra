@@ -27,12 +27,11 @@ public class ManuscriptsTab implements JournalTab {
         // 1. 书本分页组件
         this.bookWidget = new ManuscriptBookWidget(x, y, width, height, this);
         
-        // 2. 工具栏组件
+        // 2. 工具栏组件 (由 Tab 内部管理，不添加到 Screen)
         this.toolbar = new ManuscriptToolbar(x + 15, toolbarY, 150, 22, () -> {
             if (this.bookWidget != null) this.bookWidget.refresh();
         });
         this.toolbar.visible = false;
-        screen.addTabWidget(this.toolbar);
         
         // 3. 详情弹窗 (Overlay)
         this.detailOverlay = new ManuscriptDetailOverlay(screen.width, screen.height, this, () -> {
@@ -67,11 +66,21 @@ public class ManuscriptsTab implements JournalTab {
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!visible) return;
 
+        boolean overlayActive = detailOverlay != null && detailOverlay.visible;
+        
+        // 当覆盖层激活时，向底层组件传递无效的鼠标坐标，防止悬停效果和 Tooltip 显示
+        int bgMouseX = overlayActive ? -1 : mouseX;
+        int bgMouseY = overlayActive ? -1 : mouseY;
+
         if (bookWidget != null) {
-            bookWidget.render(guiGraphics, mouseX, mouseY, partialTick);
+            bookWidget.render(guiGraphics, bgMouseX, bgMouseY, partialTick);
         }
         
-        if (detailOverlay != null && detailOverlay.visible) {
+        if (toolbar != null) {
+            toolbar.render(guiGraphics, bgMouseX, bgMouseY, partialTick);
+        }
+        
+        if (overlayActive) {
             detailOverlay.render(guiGraphics, mouseX, mouseY, partialTick);
         }
     }
@@ -87,18 +96,26 @@ public class ManuscriptsTab implements JournalTab {
     public boolean mouseClicked(double mouseX, double mouseY, int button) { 
         if (!visible) return false;
         
+        // 1. Overlay (最高优先级)
         if (detailOverlay != null && detailOverlay.visible) {
             if (detailOverlay.mouseClicked(mouseX, mouseY, button)) return true;
         }
         
+        // 2. Toolbar (包含弹出窗口，可能遮挡书本)
+        if (toolbar != null && toolbar.mouseClicked(mouseX, mouseY, button)) {
+            return true;
+        }
+        
+        // 3. Book Widget (最低优先级)
         if (bookWidget != null && bookWidget.mouseClicked(mouseX, mouseY, button)) return true;
+        
         return false; 
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) { 
         if (!visible) return false;
-        // Should overlay handle release? Usually abstract widget handles it if needed.
+        if (toolbar != null && toolbar.mouseReleased(mouseX, mouseY, button)) return true;
         if (bookWidget != null && bookWidget.mouseReleased(mouseX, mouseY, button)) return true;
         return false; 
     }
@@ -106,6 +123,7 @@ public class ManuscriptsTab implements JournalTab {
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) { 
         if (!visible) return false;
+        if (toolbar != null && toolbar.mouseDragged(mouseX, mouseY, button, dragX, dragY)) return true;
         if (bookWidget != null && bookWidget.mouseDragged(mouseX, mouseY, button, dragX, dragY)) return true;
         return false; 
     }
@@ -113,18 +131,21 @@ public class ManuscriptsTab implements JournalTab {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) { 
         if (!visible) return false;
+        if (toolbar != null && toolbar.mouseScrolled(mouseX, mouseY, scrollX, scrollY)) return true;
         return false; 
     }
 
     @Override
     public boolean charTyped(char codePoint, int modifiers) { 
         if (!visible) return false;
+        if (toolbar != null && toolbar.charTyped(codePoint, modifiers)) return true;
         return false; 
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) { 
         if (!visible) return false;
+        if (toolbar != null && toolbar.keyPressed(keyCode, scanCode, modifiers)) return true;
         if (bookWidget != null && bookWidget.keyPressed(keyCode, scanCode, modifiers)) return true;
         return false; 
     }

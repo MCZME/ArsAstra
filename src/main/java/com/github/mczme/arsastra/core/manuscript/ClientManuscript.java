@@ -16,7 +16,7 @@ public record ClientManuscript(
         long createdAt,
         ResourceLocation chart,
         List<AlchemyInput> inputs,
-        List<String> outcome
+        List<ResourceLocation> effectIds
 ) {
     public static final Codec<ClientManuscript> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.STRING.fieldOf("name").forGetter(ClientManuscript::name),
@@ -24,6 +24,6 @@ public record ClientManuscript(
             Codec.LONG.fieldOf("created_at").forGetter(ClientManuscript::createdAt),
             ResourceLocation.CODEC.fieldOf("chart").forGetter(ClientManuscript::chart),
             AlchemyInput.CODEC.listOf().fieldOf("inputs").forGetter(ClientManuscript::inputs),
-            Codec.STRING.listOf().optionalFieldOf("outcome", List.of()).forGetter(ClientManuscript::outcome)
+            ResourceLocation.CODEC.listOf().optionalFieldOf("effect_ids", List.of()).forGetter(ClientManuscript::effectIds)
     ).apply(instance, ClientManuscript::new));
 }

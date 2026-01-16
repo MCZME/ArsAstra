@@ -8,8 +8,11 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffect;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,11 +79,13 @@ public class ManuscriptBookWidget extends AbstractWidget {
                     if (!hasItem) return false;
                 }
 
-                // 4. 效果过滤
+                // 4. 效果过滤 (基于缓存的 ID 进行转译匹配)
                 if (!filterEffect.isEmpty()) {
-                    boolean hasEffect = m.outcome().stream().anyMatch(line -> 
-                        line.toLowerCase().contains(filterEffect.toLowerCase())
-                    );
+                    String finalFilterEffect = filterEffect.toLowerCase();
+                    boolean hasEffect = m.effectIds().stream().anyMatch(id -> {
+                        MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id);
+                        return effect != null && effect.getDisplayName().getString().toLowerCase().contains(finalFilterEffect);
+                    });
                     if (!hasEffect) return false;
                 }
 
@@ -135,7 +140,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
             }
         }
         
-        // 分页导航渲染 (占位符)
+        // 分页导航渲染
         if (currentPage > 0) {
              guiGraphics.drawString(Minecraft.getInstance().font, "<", this.getX() + 20, this.getY() + this.height - 20, 0x404040, false);
         }
@@ -153,12 +158,10 @@ public class ManuscriptBookWidget extends AbstractWidget {
      * 渲染单条手稿条目。
      */
     private void renderEntry(GuiGraphics guiGraphics, ClientManuscript m, int x, int y, boolean isHovered) {
-        // 悬停时高亮背景
         if (isHovered) {
              guiGraphics.fill(x, y, x + itemWidth, y + itemHeight, 0x10000000); 
         }
         
-        // 图标
         int iconIndex = 0;
         try {
             iconIndex = Integer.parseInt(m.icon());
@@ -169,11 +172,8 @@ public class ManuscriptBookWidget extends AbstractWidget {
         int v = (iconIndex / 4) * 16;
         guiGraphics.blit(MANUSCRIPT_ICONS, x + 2, y + 2, u, v, 16, 16, 64, 64);
         
-        // 文本
-        int color = 0x333333; // 深灰色墨水色
+        int color = 0x333333; 
         guiGraphics.drawString(Minecraft.getInstance().font, m.name(), x + 22, y + 6, color, false);
-        
-        // 分隔线
         guiGraphics.fill(x + 5, y + itemHeight - 1, x + itemWidth - 5, y + itemHeight, 0x20000000);
     }
 
@@ -184,60 +184,56 @@ public class ManuscriptBookWidget extends AbstractWidget {
         net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
         
         // 1. 计算尺寸
-        // 日期格式
         String dateStr = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
                 .withZone(java.time.ZoneId.systemDefault())
                 .format(java.time.Instant.ofEpochMilli(m.createdAt()));
 
         int nameWidth = font.width(m.name());
         int dateWidth = font.width(dateStr);
-        int headerWidth = nameWidth + 15 + dateWidth; // 名称和日期之间的间距
+        int headerWidth = nameWidth + 15 + dateWidth; 
         
         int inputsWidth = 0;
         if (!m.inputs().isEmpty()) {
-            int count = Math.min(m.inputs().size(), 7); // 最多 7 个槽位 (6个物品 + 1个溢出指示)
-            inputsWidth = (count * 18) + 5; // 每个槽位 18px
+            int count = Math.min(m.inputs().size(), 7); 
+            inputsWidth = (count * 18) + 5;
         }
         
-        int outcomesWidth = 0;
-        for (String line : m.outcome()) {
-            outcomesWidth = Math.max(outcomesWidth, font.width(line));
+        int effectsWidth = 0;
+        for (ResourceLocation id : m.effectIds()) {
+            MobEffect effect = BuiltInRegistries.MOB_EFFECT.get(id);
+            if (effect != null) {
+                effectsWidth = Math.max(effectsWidth, 15 + font.width(effect.getDisplayName()));
+            }
         }
         
-        int tooltipWidth = Math.max(Math.max(headerWidth, inputsWidth), outcomesWidth) + 10;
+        int tooltipWidth = Math.max(Math.max(headerWidth, inputsWidth), effectsWidth) + 10;
         
-        int tooltipHeight = 5 + 10 + 3; // 顶部边距 + 标题文本 + 标题下划线间距
+        int tooltipHeight = 5 + 10 + 3; // 标题
         if (!m.inputs().isEmpty()) {
-            tooltipHeight += 24; // 物品 (18) + 指示器空间 (4) + 边距 (2)
+            tooltipHeight += 24; // 物品栏
         }
-        if (!m.outcome().isEmpty()) {
-            tooltipHeight += 5 + (m.outcome().size() * 10);
+        if (!m.effectIds().isEmpty()) {
+            tooltipHeight += 5 + (m.effectIds().size() * 12); // 效果列表
         }
         
         int x = mouseX + 10;
         int y = mouseY + 10;
         
-        // 越界调整
         if (x + tooltipWidth > Minecraft.getInstance().getWindow().getGuiScaledWidth()) {
             x -= tooltipWidth + 20;
         }
         
-        // 2. 绘制背景 (纸条风格)
-        // 阴影
+        // 2. 绘制背景
         guiGraphics.fill(x + 2, y + 2, x + tooltipWidth + 2, y + tooltipHeight + 2, 0x40000000);
-        // 纸张底色
         guiGraphics.fill(x, y, x + tooltipWidth, y + tooltipHeight, 0xFFF0E6D2);
-        // 简单的墨水边框 (非封闭，或者手绘感)
         guiGraphics.renderOutline(x, y, tooltipWidth, tooltipHeight, 0xFF5C4033);
         
         int currentY = y + 5;
 
-        // 3. 绘制页眉 (名称 + 日期)
+        // 3. 绘制页眉
         guiGraphics.drawString(font, m.name(), x + 5, currentY, 0xFF4A3B2A, false);
         guiGraphics.drawString(font, dateStr, x + tooltipWidth - 5 - dateWidth, currentY, 0xFF887766, false);
         currentY += 10;
-        
-        // 分隔线
         guiGraphics.fill(x + 5, currentY + 1, x + tooltipWidth - 5, currentY + 2, 0x885C4033);
         currentY += 4;
         
@@ -250,10 +246,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
             
             for (int i = 0; i < displayCount; i++) {
                 var input = m.inputs().get(i);
-                
-                // 物品
                 guiGraphics.renderItem(input.stack(), itemX, currentY + 3);
-                // 旋转指示
                 if (Math.abs(input.rotation()) > 0.001f) {
                      guiGraphics.pose().pushPose();
                      guiGraphics.pose().translate(itemX + 10, currentY + 2, 200);
@@ -261,31 +254,45 @@ public class ManuscriptBookWidget extends AbstractWidget {
                      guiGraphics.drawString(font, "↻", 0, 0, 0xFF8B2500, false);
                      guiGraphics.pose().popPose();
                 }
-                
                 itemX += 18;
             }
-            
-            // 溢出指示器
             if (overflow) {
                  guiGraphics.drawString(font, "...", itemX + 4, currentY + 7, 0xFF4A3B2A, false);
             }
-            
             currentY += 22;
         }
         
-        // 5. 绘制结果
-        if (!m.outcome().isEmpty()) {
+        // 5. 绘制效果网格 (图标 + 名称，2列)
+        if (!m.effectIds().isEmpty()) {
             currentY += 2;
-            for (String line : m.outcome()) {
-                 guiGraphics.drawString(font, line, x + 5, currentY, 0xFF1E7636, false);
-                 currentY += 10;
+            int effectCols = 2;
+            int colWidth = 65;
+            for (int i = 0; i < m.effectIds().size(); i++) {
+                ResourceLocation id = m.effectIds().get(i);
+                int row = i / effectCols;
+                int col = i % effectCols;
+                int entryX = x + 5 + (col * colWidth);
+                int entryY = currentY + (row * 12);
+                
+                var holder = BuiltInRegistries.MOB_EFFECT.getHolder(id).orElse(null);
+                if (holder != null) {
+                    MobEffect effect = holder.value();
+                    TextureAtlasSprite sprite = Minecraft.getInstance().getMobEffectTextures().get(holder);
+                    RenderSystem.setShaderTexture(0, sprite.atlasLocation());
+                    guiGraphics.blit(entryX, entryY, 0, 10, 10, sprite);
+                    
+                    guiGraphics.pose().pushPose();
+                    guiGraphics.pose().translate(entryX + 12, entryY + 1, 0);
+                    guiGraphics.pose().scale(0.7f, 0.7f, 1.0f);
+                    guiGraphics.drawString(font, effect.getDisplayName(), 0, 0, 0xFF1E7636, false);
+                    guiGraphics.pose().popPose();
+                }
             }
         }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // 分页导航逻辑
         if (currentPage > 0 && mouseX >= this.getX() + 10 && mouseX <= this.getX() + 30 && mouseY >= this.getY() + this.height - 25 && mouseY <= this.getY() + this.height - 10) {
             prevPage();
             return true;
@@ -295,7 +302,6 @@ public class ManuscriptBookWidget extends AbstractWidget {
             return true;
         }
 
-        // 条目点击逻辑
         int start = currentPage * itemsPerPage;
         int end = Math.min(start + itemsPerPage, allManuscripts.size());
         
@@ -318,6 +324,5 @@ public class ManuscriptBookWidget extends AbstractWidget {
 
     @Override
     protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
-        // TODO: 实现叙述功能
     }
 }

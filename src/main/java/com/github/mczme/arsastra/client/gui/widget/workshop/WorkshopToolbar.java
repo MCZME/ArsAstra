@@ -12,8 +12,10 @@ import com.github.mczme.arsastra.core.manuscript.ClientManuscript;
 import com.github.mczme.arsastra.core.manuscript.ManuscriptManager;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class WorkshopToolbar extends ToolbarWidget {
     private final WorkshopActionHandler handler;
@@ -49,24 +51,12 @@ public class WorkshopToolbar extends ToolbarWidget {
             // Icon index 转换为字符串ID，这里简单用 index 字符串，实际可以映射到资源名
             String iconId = String.valueOf(iconIndex);
 
-            List<String> outcome = new java.util.ArrayList<>();
+            // 提取产物效果 ID 列表
+            List<ResourceLocation> effectIds = new java.util.ArrayList<>();
             if (session.getDeductionResult() != null) {
-                session.getDeductionResult().predictedEffects().forEach((field, data) -> {
-                    net.minecraft.world.effect.MobEffect effect = field.getEffect();
-                    if (effect != null) {
-                        StringBuilder sb = new StringBuilder(effect.getDisplayName().getString());
-                        if (data.level() > 0) {
-                            sb.append(" ").append(data.level() + 1);
-                        }
-                        
-                        int totalSeconds = data.duration() / 20;
-                        int mins = totalSeconds / 60;
-                        int secs = totalSeconds % 60;
-                        sb.append(String.format(" (%d:%02d)", mins, secs));
-                        
-                        outcome.add(sb.toString());
-                    }
-                });
+                effectIds = session.getDeductionResult().predictedEffects().keySet().stream()
+                    .map(com.github.mczme.arsastra.core.starchart.EffectField::effect)
+                    .collect(Collectors.toList());
             }
             
             ClientManuscript manuscript = new ClientManuscript(
@@ -75,7 +65,7 @@ public class WorkshopToolbar extends ToolbarWidget {
                 System.currentTimeMillis(),
                 session.getStarChartId(),
                 inputs,
-                outcome
+                effectIds
             );
             ManuscriptManager.getInstance().saveManuscript(manuscript);
         });

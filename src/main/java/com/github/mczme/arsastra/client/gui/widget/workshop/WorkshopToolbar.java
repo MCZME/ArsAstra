@@ -59,8 +59,11 @@ public class WorkshopToolbar extends ToolbarWidget {
                     .collect(Collectors.toList());
             }
             
+            // 获取唯一名称，避免覆盖
+            String uniqueName = ManuscriptManager.getInstance().getUniqueName(name);
+            
             ClientManuscript manuscript = new ClientManuscript(
-                name,
+                uniqueName,
                 iconId,
                 System.currentTimeMillis(),
                 session.getStarChartId(),

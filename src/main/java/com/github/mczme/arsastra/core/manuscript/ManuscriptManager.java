@@ -91,6 +91,20 @@ public class ManuscriptManager {
         return sb.toString();
     }
 
+    public String getUniqueName(String baseName) {
+        String uniqueName = baseName;
+        int i = 1;
+        while (isNameTaken(uniqueName)) {
+            uniqueName = baseName + " (" + i + ")";
+            i++;
+        }
+        return uniqueName;
+    }
+
+    private boolean isNameTaken(String name) {
+        return loadedManuscripts.stream().anyMatch(m -> m.name().equals(name));
+    }
+
     /**
      * 保存一份手稿到本地。
      */

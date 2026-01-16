@@ -74,9 +74,11 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         
         this.closeButton = new TextButton(centerX + PAPER_WIDTH - 15, centerY + 8, 10, 10, "x", 0xFF000000, b -> hide());
             
+        // 加载按钮 (底部居右文字)
         this.loadButton = new TextButton(centerX + PAPER_WIDTH - 40, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.load").getString(), 0xFF1E7636, b -> {
             if (manuscript != null) {
                 if (parentTab.getScreen().getTab(1) instanceof WorkshopTab workshopTab) {
+                    workshopTab.getSession().setStarChartId(manuscript.chart());
                     workshopTab.getSession().loadSequence(manuscript.inputs());
                     parentTab.getScreen().switchTab(1);
                     hide();
@@ -109,7 +111,7 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
             this.stepWidgets.add(new ManuscriptStepWidget(manuscript.inputs().get(i), i));
         }
         
-        StarChartManager.getInstance().getStarChart(ResourceLocation.fromNamespaceAndPath("ars_astra", "base_chart"))
+        StarChartManager.getInstance().getStarChart(manuscript.chart())
             .ifPresent(chart -> {
                 this.deductionResult = deductionService.deduce(chart, manuscript.inputs());
             });

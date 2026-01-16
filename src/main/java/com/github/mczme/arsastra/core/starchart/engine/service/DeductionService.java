@@ -22,4 +22,14 @@ public interface DeductionService {
      * @return 包含路径动画数据、稳定度、交互结果的推演报告
      */
     DeductionResult deduce(StarChart chart, List<AlchemyInput> inputs, Vector2f startPoint);
+
+    /**
+     * 模拟整个炼金过程并返回详细结果。
+     * 自动从第一个投入物品的元素档案中获取起始发射点。
+     *
+     * @param chart  当前星图
+     * @param inputs 材料投入序列
+     * @return 包含路径动画数据、稳定度、交互结果的推演报告
+     */
+    DeductionResult deduce(StarChart chart, List<AlchemyInput> inputs);
 }

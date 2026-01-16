@@ -1,5 +1,6 @@
 package com.github.mczme.arsastra.core.starchart.engine.service;
 
+import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.starchart.EffectField;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
@@ -39,5 +40,18 @@ public class DeductionServiceImpl implements DeductionService {
         float finalStability = stabilityService.computeStability(inputs);
 
         return new DeductionResult(route, finalStability, predictedEffects);
+    }
+
+    @Override
+    public DeductionResult deduce(StarChart chart, List<AlchemyInput> inputs) {
+        Vector2f startPoint = new Vector2f(0, 0);
+        if (!inputs.isEmpty()) {
+            AlchemyInput firstInput = inputs.get(0);
+            startPoint = ElementProfileManager.getInstance()
+                .getElementProfile(firstInput.stack().getItem())
+                .map(p -> new Vector2f(p.launchPoint()))
+                .orElse(new Vector2f(0, 0));
+        }
+        return deduce(chart, inputs, startPoint);
     }
 }

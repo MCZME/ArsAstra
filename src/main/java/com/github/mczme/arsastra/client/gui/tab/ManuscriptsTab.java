@@ -8,6 +8,9 @@ import com.github.mczme.arsastra.core.manuscript.ClientManuscript;
 import com.github.mczme.arsastra.core.manuscript.ManuscriptManager;
 import net.minecraft.client.gui.GuiGraphics;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class ManuscriptsTab implements JournalTab {
     private StarChartJournalScreen screen;
     private ManuscriptBookWidget bookWidget;
@@ -15,6 +18,9 @@ public class ManuscriptsTab implements JournalTab {
     private ManuscriptDetailOverlay detailOverlay;
     
     private boolean visible = false;
+    
+    private boolean isSelectionMode = false;
+    private final Set<String> selectedManuscripts = new HashSet<>();
     
     @Override
     public void init(StarChartJournalScreen screen, int x, int y, int width, int height) {
@@ -28,9 +34,7 @@ public class ManuscriptsTab implements JournalTab {
         this.bookWidget = new ManuscriptBookWidget(x, y, width, height, this);
         
         // 2. 工具栏组件 (由 Tab 内部管理，不添加到 Screen)
-        this.toolbar = new ManuscriptToolbar(x + 15, toolbarY, 150, 22, () -> {
-            if (this.bookWidget != null) this.bookWidget.refresh();
-        });
+        this.toolbar = new ManuscriptToolbar(x + 15, toolbarY, 150, 22, this);
         this.toolbar.visible = false;
         
         // 3. 详情弹窗 (Overlay)
@@ -54,9 +58,49 @@ public class ManuscriptsTab implements JournalTab {
     }
 
     public void onSelect(ClientManuscript manuscript) {
-        if (detailOverlay != null) {
+        if (isSelectionMode) {
+            toggleSelection(manuscript.name());
+        } else if (detailOverlay != null) {
             detailOverlay.show(manuscript);
         }
+    }
+    
+    public void toggleSelectionMode() {
+        this.isSelectionMode = !this.isSelectionMode;
+        if (!isSelectionMode) {
+            this.selectedManuscripts.clear();
+        }
+        // 通知 Toolbar 更新按钮状态 (例如显示/隐藏删除按钮)
+        if (toolbar != null) {
+            toolbar.updateButtonsState();
+        }
+    }
+    
+    public boolean isSelectionMode() {
+        return isSelectionMode;
+    }
+    
+    public void toggleSelection(String name) {
+        if (selectedManuscripts.contains(name)) {
+            selectedManuscripts.remove(name);
+        } else {
+            selectedManuscripts.add(name);
+        }
+    }
+    
+    public boolean isSelected(String name) {
+        return selectedManuscripts.contains(name);
+    }
+    
+    public void deleteSelected() {
+        if (selectedManuscripts.isEmpty()) return;
+        
+        for (String name : selectedManuscripts) {
+            ManuscriptManager.getInstance().deleteManuscript(name);
+        }
+        selectedManuscripts.clear();
+        refreshBook();
+        // 保持选择模式还是退出？通常保持方便继续操作，或者退出。这里保持。
     }
 
     @Override
@@ -90,6 +134,8 @@ public class ManuscriptsTab implements JournalTab {
         this.visible = visible;
         if (toolbar != null) toolbar.visible = visible;
         if (!visible && detailOverlay != null) detailOverlay.hide();
+        // 切换 Tab 时退出选择模式
+        if (!visible && isSelectionMode) toggleSelectionMode();
     }
 
     @Override

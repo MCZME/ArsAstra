@@ -148,8 +148,8 @@ public class ManuscriptBookWidget extends AbstractWidget {
              guiGraphics.drawString(Minecraft.getInstance().font, ">", this.getX() + this.width - 30, this.getY() + this.height - 20, 0x404040, false);
         }
 
-        // 最后渲染悬停提示
-        if (hoveredManuscript != null) {
+        // 最后渲染悬停提示 (仅在非选择模式下显示)
+        if (hoveredManuscript != null && !parentTab.isSelectionMode()) {
             renderHoverTooltip(guiGraphics, hoveredManuscript, hoveredX, hoveredY);
         }
     }
@@ -174,6 +174,37 @@ public class ManuscriptBookWidget extends AbstractWidget {
         
         int color = 0x333333; 
         guiGraphics.drawString(Minecraft.getInstance().font, m.name(), x + 22, y + 6, color, false);
+        
+        // --- 选择模式复选框 ---
+        if (parentTab.isSelectionMode()) {
+            boolean selected = parentTab.isSelected(m.name());
+            int checkSize = 10;
+            int checkX = x + itemWidth - checkSize - 4;
+            int checkY = y + (itemHeight - checkSize) / 2;
+            
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(0, 0, 200); // 提升 Z 轴确保可见
+            
+            // 绘制边框 (手动 fill 4条边，更稳健)
+            int borderColor = 0xFF4A3B2A;
+            int bgColor = 0xFFF0E6D2;
+            
+            guiGraphics.fill(checkX, checkY, checkX + checkSize, checkY + 1, borderColor); // 上
+            guiGraphics.fill(checkX, checkY + checkSize - 1, checkX + checkSize, checkY + checkSize, borderColor); // 下
+            guiGraphics.fill(checkX, checkY, checkX + 1, checkY + checkSize, borderColor); // 左
+            guiGraphics.fill(checkX + checkSize - 1, checkY, checkX + checkSize, checkY + checkSize, borderColor); // 右
+            
+            // 填充背景
+            guiGraphics.fill(checkX + 1, checkY + 1, checkX + checkSize - 1, checkY + checkSize - 1, bgColor);
+            
+            if (selected) {
+                // 选中的内部填充 (墨色)
+                guiGraphics.fill(checkX + 2, checkY + 2, checkX + checkSize - 2, checkY + checkSize - 2, borderColor);
+            }
+            
+            guiGraphics.pose().popPose();
+        }
+        
         guiGraphics.fill(x + 5, y + itemHeight - 1, x + itemWidth - 5, y + itemHeight, 0x20000000);
     }
 

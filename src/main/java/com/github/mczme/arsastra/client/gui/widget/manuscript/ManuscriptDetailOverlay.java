@@ -20,9 +20,6 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
-import net.minecraft.world.effect.MobEffect;
-import org.joml.Vector2f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,7 +69,7 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         this.closeButton = new TextButton(centerX + PAPER_WIDTH - 15, centerY + 8, 10, 10, "x", 0xFF000000, b -> hide());
             
         // 加载按钮 (底部居右文字)
-        this.loadButton = new TextButton(centerX + PAPER_WIDTH - 40, centerY + PAPER_HEIGHT - 25, 30, 15, "Apply", 0xFF1E7636, b -> {
+        this.loadButton = new TextButton(centerX + PAPER_WIDTH - 40, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.load").getString(), 0xFF1E7636, b -> {
             if (manuscript != null) {
                 if (parentTab.getScreen().getTab(1) instanceof WorkshopTab workshopTab) {
                     workshopTab.getSession().loadSequence(manuscript.inputs());
@@ -83,10 +80,10 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         });
 
         // 删除按钮 (底部居左文字)
-        this.deleteButton = new TextButton(centerX + 10, centerY + PAPER_HEIGHT - 25, 30, 15, "Discard", 0xFF8B2500, b -> {
+        this.deleteButton = new TextButton(centerX + 10, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.delete").getString(), 0xFF8B2500, b -> {
             if (!confirmDelete) {
                 confirmDelete = true;
-                b.setMessage(Component.literal("Sure?"));
+                b.setMessage(Component.translatable("gui.ars_astra.confirm"));
             } else {
                 if (manuscript != null) {
                     ManuscriptManager.getInstance().deleteManuscript(manuscript.name());
@@ -101,7 +98,7 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         this.manuscript = manuscript;
         this.visible = true;
         this.confirmDelete = false;
-        this.deleteButton.setMessage(Component.literal("Discard"));
+        this.deleteButton.setMessage(Component.translatable("gui.ars_astra.delete"));
         
         // Initialize step widgets
         this.stepWidgets.clear();
@@ -170,6 +167,10 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         } else {
              guiGraphics.drawCenteredString(font, "?", previewX + previewW / 2, previewY + previewH / 2 - 4, 0x4A3B2A);
         }
+        
+        // --- 装饰：预览区分隔线 ---
+        int sepY = previewY + previewH + 3;
+        guiGraphics.fill(previewX + 5, sepY, previewX + previewW - 5, sepY + 1, 0x404A3B2A);
 
         // 3. 结果区域计算
         int resultHeight = 0;
@@ -180,6 +181,19 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
             int resultRows = (effects.size() + 2) / 3; // 假设每行 3 个
             resultHeight = Math.max(20, resultRows * 14); 
             resultStartY = y + 137 - resultHeight;
+            
+            // --- 装饰：结果区分隔线 (菱形中心) ---
+            int rSepY = resultStartY - 6;
+            int inkColor = 0x604A3B2A;
+            int cx = x + PAPER_WIDTH / 2;
+            
+            // 左右线条
+            guiGraphics.fill(x + 15, rSepY, cx - 3, rSepY + 1, inkColor);
+            guiGraphics.fill(cx + 4, rSepY, x + PAPER_WIDTH - 15, rSepY + 1, inkColor);
+            
+            // 中心菱形 (3x3 像素)
+            guiGraphics.fill(cx, rSepY - 2, cx + 1, rSepY + 3, inkColor); // 竖
+            guiGraphics.fill(cx - 2, rSepY, cx + 3, rSepY + 1, inkColor); // 横
         }
 
         // 4. 原料区 (自适应布局，填充 Preview 和 Result 之间的空间)

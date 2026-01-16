@@ -1,5 +1,6 @@
 package com.github.mczme.arsastra.client.gui.widget.manuscript;
 
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ManuscriptFilterWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
 

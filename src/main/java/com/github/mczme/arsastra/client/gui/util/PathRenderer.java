@@ -56,27 +56,39 @@ public class PathRenderer {
         float pathWidth = maxX - minX;
         float pathHeight = maxY - minY;
         
-        // 2. 计算缩放比例 (保留边距)
-        float margin = 10.0f;
+        // 2. 计算缩放比例 (保留极小边距以防贴边)
+        float margin = 2.0f;
         float availableW = width - margin * 2;
         float availableH = height - margin * 2;
         
-        float scale = Math.min(availableW / Math.max(pathWidth, 1), availableH / Math.max(pathHeight, 1));
-        scale = Math.min(scale, 2.0f); // 不放得太大
+        // 避免除以零
+        float scaleW = availableW / Math.max(pathWidth, 1.0f);
+        float scaleH = availableH / Math.max(pathHeight, 1.0f);
+        
+        float scale = Math.min(scaleW, scaleH);
+        
+        // 限制最大放大倍数，防止极短路径变得巨大
+        if (scale > 10.0f) scale = 10.0f;
 
         // 3. 计算居中偏移
-        float drawX = x + (width - pathWidth * scale) / 2f - minX * scale;
-        float drawY = y + (height - pathHeight * scale) / 2f - minY * scale;
+        float centerX = x + width / 2.0f;
+        float centerY = y + height / 2.0f;
+        
+        float pathCenterX = minX + pathWidth / 2.0f;
+        float pathCenterY = minY + pathHeight / 2.0f;
+        
+        float translateX = centerX - pathCenterX * scale;
+        float translateY = centerY - pathCenterY * scale;
 
         // 4. 执行渲染
         PoseStack poseStack = guiGraphics.pose();
         poseStack.pushPose();
-        poseStack.translate(drawX, drawY, 0);
+        poseStack.translate(translateX, translateY, 0);
         poseStack.scale(scale, scale, 1);
         
         // 使用 renderPencilPath 进行绘制
-        // 线宽补偿: scale 越小，线要相对越粗才能在屏幕上保持可见
-        renderPencilPath(poseStack, allPoints, 2.0f / scale, color, 4.0f);
+        // 线宽补偿: 基础线宽设为 1.5，随缩放进行一定程度的变细以保持精致
+        renderPencilPath(poseStack, allPoints, 1.5f / (float)Math.sqrt(scale), color, 4.0f);
         
         poseStack.popPose();
     }

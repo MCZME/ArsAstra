@@ -160,10 +160,22 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
 
         StarChartRoute route = deductionResult != null ? deductionResult.route() : StarChartRoute.EMPTY;
         if (route != null && !route.segments().isEmpty()) {
-            RenderSystem.enableBlend();
+            guiGraphics.flush(); // Flush buffer before custom rendering
+            RenderSystem.disableDepthTest();
+            RenderSystem.disableCull();
+            
             guiGraphics.enableScissor(previewX, previewY, previewX + previewW, previewY + previewH);
+            
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(0, 0, 50); // Lift path above background
+            
+            // Note: RenderSystem.enableBlend() is called inside drawStaticPath
             PathRenderer.drawStaticPath(guiGraphics, route.segments(), previewX + 2, previewY + 2, previewW - 4, previewH - 4, 0xFF204080);
+            
+            guiGraphics.pose().popPose();
+            
             guiGraphics.disableScissor();
+            RenderSystem.enableDepthTest();
         } else {
              guiGraphics.drawCenteredString(font, "?", previewX + previewW / 2, previewY + previewH / 2 - 4, 0x4A3B2A);
         }
@@ -378,13 +390,9 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
     // 内部类：纯文字按钮
     private class TextButton extends Button {
         private final int color;
-        private final int hoverColor;
-        
         public TextButton(int x, int y, int width, int height, String label, int color, Consumer<Button> onPress) {
             super(x, y, width, height, Component.literal(label), onPress::accept, Button.DEFAULT_NARRATION);
             this.color = color;
-            // 悬停时颜色变浅或变亮
-            this.hoverColor = (color & 0xFF000000) | ((color & 0x00FEFEFE) >> 1) + (color & 0x00808080);
         }
         
         @Override

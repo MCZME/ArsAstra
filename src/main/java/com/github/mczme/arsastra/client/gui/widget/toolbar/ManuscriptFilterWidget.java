@@ -1,6 +1,5 @@
-package com.github.mczme.arsastra.client.gui.widget.manuscript;
+package com.github.mczme.arsastra.client.gui.widget.toolbar;
 
-import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarExpandableWidget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;

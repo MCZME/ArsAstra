@@ -32,6 +32,10 @@ public class ManuscriptStepWidget {
         this.scale = scale;
         this.visible = true;
     }
+    
+    public float getX() { return x; }
+    public float getY() { return y; }
+    public float getScale() { return scale; }
 
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         if (!visible) return;
@@ -60,33 +64,40 @@ public class ManuscriptStepWidget {
         guiGraphics.pose().scale(scale, scale, 1.0f);
 
         // 绘制厚边框 (2px)
+        // 外层矩形 12x12
         guiGraphics.fill(-6, -6, 6, 6, borderColor);
+        // 内层镂空 8x8，填充背景色
         guiGraphics.fill(-4, -4, 4, 4, backgroundColor);
         
         guiGraphics.pose().popPose(); 
 
         // 3. 渲染内容 (LOD)
         if (scale > 0.5f) {
+            // 计算剪裁区域 (逻辑坐标)
             int borderHalf = 6;
             int sx1 = (int)(x - borderHalf * scale);
             int sy1 = (int)(y - borderHalf * scale);
             int sx2 = (int)(x + borderHalf * scale);
             int sy2 = (int)(y + borderHalf * scale);
 
+            // 开启剪裁
             guiGraphics.enableScissor(sx1, sy1, sx2, sy2);
 
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(x, y, 0);
             guiGraphics.pose().scale(scale, scale, 1.0f);
             
+            // 正常模式：渲染物品 (16x16)
             ItemStack stack = input.stack();
             guiGraphics.pose().translate(-8, -8, 10); 
             guiGraphics.renderItem(stack, 0, 0);
             
             guiGraphics.pose().popPose();
             
+            // 关闭剪裁
             guiGraphics.disableScissor();
         } else {
+            // 极简模式：渲染中心点
             guiGraphics.pose().pushPose();
             guiGraphics.pose().translate(x, y, 0);
             guiGraphics.pose().scale(scale, scale, 1.0f);
@@ -101,6 +112,7 @@ public class ManuscriptStepWidget {
     }
 
     private void renderExpandedDetails(GuiGraphics guiGraphics, Font font, int mouseX, int mouseY) {
+        // 展开面板参数
         float expansionScale = hoverProgress;
         
         int panelWidth = 100;

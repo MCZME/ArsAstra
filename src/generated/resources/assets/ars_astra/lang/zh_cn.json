@@ -31,6 +31,8 @@
   "gui.ars_astra.journal.tab.manuscripts": "手稿档案",
   "gui.ars_astra.journal.tab.workshop": "推演工坊",
   "gui.ars_astra.load": "加载配置",
+  "gui.ars_astra.manuscript.rotation": "旋转角度: %s°",
+  "gui.ars_astra.manuscript.step": "步骤 %d",
   "gui.ars_astra.workshop.clear.confirm": "确认重构",
   "gui.ars_astra.workshop.clear.title": "重构推演",
   "gui.ars_astra.workshop.effects": "预测产物",

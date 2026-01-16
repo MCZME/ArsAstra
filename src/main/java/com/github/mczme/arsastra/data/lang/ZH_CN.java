@@ -54,6 +54,8 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.load", "加载配置");
         add("gui.ars_astra.delete", "删除手稿");
         add("gui.ars_astra.confirm", "确认删除？");
+        add("gui.ars_astra.manuscript.step", "步骤 %d");
+        add("gui.ars_astra.manuscript.rotation", "旋转角度: %s°");
 
         // 筛选器
         add("gui.ars_astra.filter.tab.icon", "图标");

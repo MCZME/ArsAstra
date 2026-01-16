@@ -222,19 +222,23 @@ public class ManuscriptBookWidget extends AbstractWidget {
             x -= tooltipWidth + 20;
         }
         
-        // 2. 绘制背景
-        guiGraphics.fill(x, y, x + tooltipWidth, y + tooltipHeight, 0xFFFDF5E6);
-        guiGraphics.renderOutline(x, y, tooltipWidth, tooltipHeight, 0xFF8B4513); // 棕色边框
+        // 2. 绘制背景 (纸条风格)
+        // 阴影
+        guiGraphics.fill(x + 2, y + 2, x + tooltipWidth + 2, y + tooltipHeight + 2, 0x40000000);
+        // 纸张底色
+        guiGraphics.fill(x, y, x + tooltipWidth, y + tooltipHeight, 0xFFF0E6D2);
+        // 简单的墨水边框 (非封闭，或者手绘感)
+        guiGraphics.renderOutline(x, y, tooltipWidth, tooltipHeight, 0xFF5C4033);
         
         int currentY = y + 5;
 
         // 3. 绘制页眉 (名称 + 日期)
-        guiGraphics.drawString(font, m.name(), x + 5, currentY, 0x000000, false);
-        guiGraphics.drawString(font, dateStr, x + tooltipWidth - 5 - dateWidth, currentY, 0x555555, false);
+        guiGraphics.drawString(font, m.name(), x + 5, currentY, 0xFF4A3B2A, false);
+        guiGraphics.drawString(font, dateStr, x + tooltipWidth - 5 - dateWidth, currentY, 0xFF887766, false);
         currentY += 10;
         
         // 分隔线
-        guiGraphics.fill(x + 3, currentY + 1, x + tooltipWidth - 3, currentY + 2, 0xFF8B4513);
+        guiGraphics.fill(x + 5, currentY + 1, x + tooltipWidth - 5, currentY + 2, 0x885C4033);
         currentY += 4;
         
         // 4. 绘制输入
@@ -247,19 +251,23 @@ public class ManuscriptBookWidget extends AbstractWidget {
             for (int i = 0; i < displayCount; i++) {
                 var input = m.inputs().get(i);
                 
-                // 旋转指示器 (上方红色小方块)
-                if (Math.abs(input.rotation()) > 0.001f) {
-                     guiGraphics.fill(itemX + 7, currentY, itemX + 9, currentY + 2, 0xFFFF0000);
-                }
-                
                 // 物品
                 guiGraphics.renderItem(input.stack(), itemX, currentY + 3);
+                // 旋转指示
+                if (Math.abs(input.rotation()) > 0.001f) {
+                     guiGraphics.pose().pushPose();
+                     guiGraphics.pose().translate(itemX + 10, currentY + 2, 200);
+                     guiGraphics.pose().scale(0.8f, 0.8f, 1.0f);
+                     guiGraphics.drawString(font, "↻", 0, 0, 0xFF8B2500, false);
+                     guiGraphics.pose().popPose();
+                }
+                
                 itemX += 18;
             }
             
             // 溢出指示器
             if (overflow) {
-                 guiGraphics.drawString(font, "...", itemX + 4, currentY + 7, 0x000000, false);
+                 guiGraphics.drawString(font, "...", itemX + 4, currentY + 7, 0xFF4A3B2A, false);
             }
             
             currentY += 22;
@@ -269,7 +277,7 @@ public class ManuscriptBookWidget extends AbstractWidget {
         if (!m.outcome().isEmpty()) {
             currentY += 2;
             for (String line : m.outcome()) {
-                 guiGraphics.drawString(font, line, x + 5, currentY, 0x2E8B57, false);
+                 guiGraphics.drawString(font, line, x + 5, currentY, 0xFF1E7636, false);
                  currentY += 10;
             }
         }

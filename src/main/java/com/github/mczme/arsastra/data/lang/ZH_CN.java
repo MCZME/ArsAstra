@@ -56,6 +56,10 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.confirm", "确认删除？");
         add("gui.ars_astra.manuscript.step", "步骤 %d");
         add("gui.ars_astra.manuscript.rotation", "旋转角度: %s°");
+        add("gui.ars_astra.manuscript.manage", "管理手稿");
+        add("gui.ars_astra.manuscript.delete_selected", "删除所选");
+        add("gui.ars_astra.manuscript.error.unknown_chart", "无法识别星图配置: %s");
+        add("gui.ars_astra.manuscript.error.unknown_item", "缺少对物品的认知: %s");
 
         // 筛选器
         add("gui.ars_astra.filter.tab.icon", "图标");

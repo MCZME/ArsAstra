@@ -10,6 +10,7 @@ import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.*;
 import com.github.mczme.arsastra.core.starchart.engine.service.DeductionService;
 import com.github.mczme.arsastra.core.starchart.engine.service.DeductionServiceImpl;
+import com.github.mczme.arsastra.registry.AAAttachments;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -20,6 +21,7 @@ import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.ChatFormatting;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,11 +79,22 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         // 加载按钮 (底部居右文字)
         this.loadButton = new TextButton(centerX + PAPER_WIDTH - 40, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.load").getString(), 0xFF1E7636, b -> {
             if (manuscript != null) {
-                if (parentTab.getScreen().getTab(1) instanceof WorkshopTab workshopTab) {
-                    workshopTab.getSession().setStarChartId(manuscript.chart());
-                    workshopTab.getSession().loadSequence(manuscript.inputs());
-                    parentTab.getScreen().switchTab(1);
-                    hide();
+                var player = Minecraft.getInstance().player;
+                if (player != null) {
+                    var knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+                    var error = manuscript.checkKnowledge(knowledge);
+                    
+                    if (error.isPresent()) {
+                        player.displayClientMessage(error.get().copy().withStyle(ChatFormatting.RED), false);
+                        return;
+                    }
+
+                    if (parentTab.getScreen().getTab(1) instanceof WorkshopTab workshopTab) {
+                        workshopTab.getSession().setStarChartId(manuscript.chart());
+                        workshopTab.getSession().loadSequence(manuscript.inputs());
+                        parentTab.getScreen().switchTab(1);
+                        hide();
+                    }
                 }
             }
         });

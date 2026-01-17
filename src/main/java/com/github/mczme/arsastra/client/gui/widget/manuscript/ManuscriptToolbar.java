@@ -44,15 +44,15 @@ public class ManuscriptToolbar extends ToolbarWidget {
         this.addChild(filterWidget);
         
         // 3. [Manage] 管理按钮
-        // 图标索引 10
-        this.manageBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.manage"), 10, 0x4040A0, () -> {
+        // 图标索引 13
+        this.manageBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.manage"), 13, 0x6080D0, () -> {
             parentTab.toggleSelectionMode();
         });
         this.addChild(manageBtn);
         
         // 4. [Delete] 批量删除按钮 (初始隐藏)
-        // 图标索引 11, 红色
-        this.deleteBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.delete_selected"), 11, 0xAA0000, () -> {
+        // 图标索引 14, 红色
+        this.deleteBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.delete_selected"), 14, 0xD06060, () -> {
             parentTab.deleteSelected();
         });
         this.deleteBtn.visible = false;
@@ -61,7 +61,7 @@ public class ManuscriptToolbar extends ToolbarWidget {
     
     public void updateButtonsState() {
         boolean isManaging = parentTab.isSelectionMode();
-        manageBtn.setColor(isManaging ? 0x804080 : 0x4040A0);
+        manageBtn.setColor(isManaging ? 0x9060D0 : 0x6080D0);
         deleteBtn.visible = isManaging;
         arrange();
     }
@@ -73,7 +73,7 @@ public class ManuscriptToolbar extends ToolbarWidget {
         int padding = 2;
         int currentX = this.getX() + padding;
 
-        // Left Group
+        // Sequence: Search -> Filter -> Manage -> Delete
         if (searchWidget.visible) {
             searchWidget.setX(currentX);
             searchWidget.setY(this.getY() + (this.height - searchWidget.getHeight()));
@@ -83,23 +83,18 @@ public class ManuscriptToolbar extends ToolbarWidget {
         if (filterWidget.visible) {
             filterWidget.setX(currentX);
             filterWidget.setY(this.getY() + (this.height - filterWidget.getHeight()));
+            currentX += filterWidget.getWidth() + padding;
         }
-        
-        // Right Group: Manage -> Delete (Delete is to the right of Manage)
-        int rightX = this.getX() + this.width - padding;
-        
-        // 如果删除按钮可见，它占据最右边位置，管理按钮在它左边
-        // 或者按照要求： "管理按钮... 就在这个按钮的右边 (指删除按钮)" -> 意思是 Manage | Delete
-        
-        if (deleteBtn.visible) {
-            deleteBtn.setX(rightX - deleteBtn.getWidth());
-            deleteBtn.setY(this.getY() + (this.height - deleteBtn.getHeight()));
-            rightX -= (deleteBtn.getWidth() + padding);
-        }
-        
+
         if (manageBtn.visible) {
-            manageBtn.setX(rightX - manageBtn.getWidth());
+            manageBtn.setX(currentX);
             manageBtn.setY(this.getY() + (this.height - manageBtn.getHeight()));
+            currentX += manageBtn.getWidth() + padding;
+        }
+
+        if (deleteBtn.visible) {
+            deleteBtn.setX(currentX);
+            deleteBtn.setY(this.getY() + (this.height - deleteBtn.getHeight()));
         }
     }
 

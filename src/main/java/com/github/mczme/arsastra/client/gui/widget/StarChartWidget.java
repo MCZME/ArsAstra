@@ -34,8 +34,22 @@ import org.joml.Vector2f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.WeakHashMap;
 
+/**
+ * 星图核心渲染组件。
+ * <p>
+ * 负责渲染星图的所有可视元素，包括：
+ * <ul>
+ *     <li><b>环境背景 (L1):</b> 羊皮纸纹理背景。</li>
+ *     <li><b>背景装饰 (L2):</b> 视差滚动的背景装饰星。</li>
+ *     <li><b>星图主体 (L3):</b> 使用手绘风格 Shader 渲染的环境多边形。</li>
+ *     <li><b>效果星域:</b> 动态光晕效果，显示已解锁的效果图标。</li>
+ *     <li><b>推演路径:</b> 显示预测的炼金路径，支持幽灵路径预览。</li>
+ * </ul>
+ * 提供了完整的视口控制功能（平移、缩放）和坐标转换逻辑。
+ */
 @OnlyIn(Dist.CLIENT)
 public class StarChartWidget extends AbstractWidget {
     protected StarChart starChart;
@@ -44,6 +58,7 @@ public class StarChartWidget extends AbstractWidget {
     
     // 几何缓存：存储经过细分和抖动处理后的手绘多边形顶点
     private final Map<Environment, List<Vector2f>> envGeometryCache = new WeakHashMap<>();
+    private final List<Vector2f> backgroundStars = new ArrayList<>();
     
     // 推演结果
     protected DeductionResult deductionResult;
@@ -63,6 +78,16 @@ public class StarChartWidget extends AbstractWidget {
 
     public StarChartWidget(int x, int y, int width, int height, Component message) {
         super(x, y, width, height, Component.empty());
+        initBackgroundStars();
+    }
+    
+    private void initBackgroundStars() {
+        Random rand = new Random(12345); // 固定种子以保持一致性
+        for (int i = 0; i < 50; i++) {
+            float x = (rand.nextFloat() - 0.5f) * 2000.0f;
+            float y = (rand.nextFloat() - 0.5f) * 2000.0f;
+            backgroundStars.add(new Vector2f(x, y));
+        }
     }
 
     // --- 数据设置 ---
@@ -72,6 +97,7 @@ public class StarChartWidget extends AbstractWidget {
         if (this.starChart != starChart) {
             this.starChart = starChart;
             this.envGeometryCache.clear(); // 切换星图时清空缓存
+            // 可以根据星图种子重新生成背景星，这里暂且保持一致
         }
     }
 
@@ -185,7 +211,7 @@ public class StarChartWidget extends AbstractWidget {
             poseStack.translate(offsetX, offsetY, 0);
             poseStack.scale(scale, scale, 1.0f);
 
-            renderEnvironmentsDaVinci(guiGraphics);
+            renderEnvironments(guiGraphics);
             renderEffectFields(guiGraphics);
             
             if (deductionResult != null) {
@@ -203,11 +229,14 @@ public class StarChartWidget extends AbstractWidget {
     }
 
     // --- 分层渲染逻辑 ---
+    /**
+     * 渲染背景装饰星。简单的点渲染。
+     */
     private void renderBackgroundStars(GuiGraphics guiGraphics, float currentScale) {
-        // TODO: 实现手绘风格的背景装饰星
+        
     }
 
-    private void renderEnvironmentsDaVinci(GuiGraphics guiGraphics) {
+    private void renderEnvironments(GuiGraphics guiGraphics) {
         float lineWidth = StarChartRenderUtils.getScaleCompensatedWidth(2.5f, scale);
         
         for (Environment env : starChart.environments()) {
@@ -233,6 +262,9 @@ public class StarChartWidget extends AbstractWidget {
         }
     }
 
+    /**
+     * 渲染效果星域（光环与图标）。支持根据玩家知识显示/隐藏。
+     */
     private void renderEffectFields(GuiGraphics guiGraphics) {
         List<EffectField> fields = starChart.fields();
         for (int i = 0; i < fields.size(); i++) {

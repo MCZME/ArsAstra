@@ -18,6 +18,7 @@ public class ArsAstra {
     public ArsAstra(IEventBus modEventBus, ModContainer modContainer) {
         AABlocks.register(modEventBus);
         AAItems.register(modEventBus);
+        AABlockEntities.register(modEventBus);
         AACreativeTabs.register(modEventBus);
         AAElements.register(modEventBus);
         AAEnvironmentTypes.register(modEventBus);

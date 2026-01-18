@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "ars_astra:block/analysis_desk",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "ars_astra:block/analysis_desk"
+    },
+    "facing=south": {
+      "model": "ars_astra:block/analysis_desk",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "ars_astra:block/analysis_desk",
+      "y": 270
+    }
+  }
+}

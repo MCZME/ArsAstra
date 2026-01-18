@@ -4,6 +4,7 @@ import java.util.function.Supplier;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.core.element.Element;
+import com.github.mczme.arsastra.registry.AABlocks;
 import com.github.mczme.arsastra.registry.AAElements;
 import com.github.mczme.arsastra.registry.AAItems;
 
@@ -22,6 +23,9 @@ public class ZH_CN extends LanguageProvider  {
 
         // 物品
         addItem(AAItems.STAR_CHART_JOURNAL, "星图日志");
+
+        // 方块
+        addBlock(AABlocks.ANALYSIS_DESK, "分析台");
 
         // GUI 文本
         add("gui.ars_astra.journal.tab.compendium", "要素典籍");

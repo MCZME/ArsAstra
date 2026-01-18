@@ -3,6 +3,7 @@ package com.github.mczme.arsastra.registry;
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.item.StarChartJournalItem;
 
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
@@ -19,6 +20,9 @@ public class AAItems {
 
     public static final Supplier<Item> STAR_CHART_JOURNAL = register("star_chart_journal",
             () -> new StarChartJournalItem(new Item.Properties().stacksTo(1).component(AAComponents.IS_OPEN, false)));
+
+    public static final Supplier<Item> ANALYSIS_DESK = register("analysis_desk",
+            () -> new BlockItem(AABlocks.ANALYSIS_DESK.get(), new Item.Properties()));
 
     private static Supplier<Item> register(String name, Supplier<Item> supplier) {
         Supplier<Item> registeredItem = ITEMS.register(name, supplier);

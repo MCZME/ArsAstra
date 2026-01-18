@@ -1,6 +1,8 @@
 package com.github.mczme.arsastra.client;
 
 import com.github.mczme.arsastra.ArsAstra;
+import com.github.mczme.arsastra.client.gui.AnalysisDeskScreen;
+import com.github.mczme.arsastra.registry.AAMenus;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.resources.ResourceLocation;
@@ -43,7 +45,7 @@ public class AAClientEvents {
 
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
-       
+        event.register(AAMenus.ANALYSIS_DESK.get(), AnalysisDeskScreen::new);
     }
 
     @SubscribeEvent

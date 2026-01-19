@@ -11,14 +11,15 @@ import com.github.mczme.arsastra.core.starchart.engine.DeductionResult;
 import com.github.mczme.arsastra.core.starchart.engine.service.DeductionService;
 import com.github.mczme.arsastra.core.starchart.engine.service.DeductionServiceImpl;
 import com.github.mczme.arsastra.core.manuscript.ManuscriptManager;
-import com.github.mczme.arsastra.network.payload.DeductionResultPayload;
-import com.github.mczme.arsastra.network.payload.RequestDeductionPayload;
-import com.github.mczme.arsastra.network.payload.SyncEnvironmentPayload;
-import com.github.mczme.arsastra.network.payload.SyncKnowledgePayload;
+import com.github.mczme.arsastra.block.entity.AnalysisDeskBlockEntity;
+import com.github.mczme.arsastra.network.payload.*;
 import com.github.mczme.arsastra.registry.AAAttachments;
 import net.minecraft.client.Minecraft;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -93,6 +94,33 @@ public class AANetwork {
                             DeductionResult result = DEDUCTION_SERVICE.deduce(chart, payload.inputs(), startPoint);
                             
                             PacketDistributor.sendToPlayer(player, new DeductionResultPayload(result));
+                        }
+                    });
+                }
+        );
+
+        registrar.playToServer(
+                AnalysisActionPayload.TYPE,
+                AnalysisActionPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    context.enqueueWork(() -> {
+                        ServerPlayer player = (ServerPlayer) context.player();
+                        Level level = player.level();
+                        BlockPos pos = payload.pos();
+                        
+                        // 简单的距离校验，防止远程交互
+                        if (player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64) {
+                            return;
+                        }
+
+                        BlockEntity be = level.getBlockEntity(pos);
+                        if (be instanceof AnalysisDeskBlockEntity analysisDesk) {
+                            switch (payload.action()) {
+                                case DIRECT_ANALYSIS -> analysisDesk.serverPerformDirectAnalysis(player);
+                                case START_GUESS -> analysisDesk.serverStartIntuitionAnalysis(player);
+                                case SUBMIT_GUESS -> analysisDesk.serverSubmitGuess(player, payload.guesses());
+                                case QUIT_GUESS -> analysisDesk.serverQuitGuess(player);
+                            }
                         }
                     });
                 }

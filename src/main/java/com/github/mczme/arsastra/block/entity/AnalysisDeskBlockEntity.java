@@ -39,7 +39,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
 
     @Override
     public Component getDisplayName() {
-        return Component.translatable("block.arsastra.analysis_desk");
+        return Component.translatable("block.ars_astra.analysis_desk");
     }
 
     @Nullable

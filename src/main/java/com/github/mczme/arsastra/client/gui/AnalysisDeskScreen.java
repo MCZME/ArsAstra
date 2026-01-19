@@ -9,18 +9,25 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
 public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu> {
-    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "textures/gui/analysis_desk_gui.png");
+    private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "textures/gui/analysis_desk.png");
 
     public AnalysisDeskScreen(AnalysisDeskMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         this.imageWidth = 176;
-        this.imageHeight = 166;
+        this.imageHeight = 202;
     }
 
     @Override
     protected void init() {
         super.init();
-        // 此处后续将添加滑块和按钮
+        this.titleLabelY = 0; // 调整标题 Y 坐标
+        this.inventoryLabelY = 110; // 调整物品栏标题 Y 坐标 (背包起始 121 - 字体高度 9 - 间距 3)
+    }
+
+    @Override
+    protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFFFFFF, false);
+        guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFFFFF, false);
     }
 
     @Override

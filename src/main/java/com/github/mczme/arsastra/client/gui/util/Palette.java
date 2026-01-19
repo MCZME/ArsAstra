@@ -23,4 +23,14 @@ public class Palette {
     // Borders
     public static final int BORDER_INK = INK;
     public static final int BORDER_DECOR = 0xFF806040;
+
+    // Analysis Desk & Brass
+    public static final int BRASS = 0xFFB5A642;
+    public static final int BRASS_DARK = 0xFF807020;
+    
+    // Action Buttons
+    public static final int BTN_DIRECT = 0xFF334466;
+    public static final int BTN_INTUITION = 0xFFDDAA33;
+    public static final int BTN_SUBMIT = 0xFF33AA33;
+    public static final int BTN_QUIT = 0xFFAA3333;
 }

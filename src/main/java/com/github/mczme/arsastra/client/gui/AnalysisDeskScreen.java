@@ -6,12 +6,18 @@ import com.github.mczme.arsastra.core.element.profile.ElementProfile;
 import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.menu.AnalysisDeskMenu;
 import com.github.mczme.arsastra.network.payload.AnalysisActionPayload;
+import com.github.mczme.arsastra.registry.AARegistries;
+import com.github.mczme.arsastra.client.gui.util.Palette;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.AbstractSliderButton;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -22,14 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 分析台 GUI 屏幕
+ */
 public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu> {
     private static final ResourceLocation TEXTURE = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "textures/gui/analysis_desk.png");
+    private static final ResourceLocation TEXTURE_0 = ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "textures/gui/analysis_desk_0.png");
 
-    private Button btnDirect;
-    private Button btnIntuition;
-    private Button btnSubmit;
-    private Button btnQuit;
-    private final List<ElementSlider> sliders = new ArrayList<>();
+    private final List<VerticalElementSlider> sliders = new ArrayList<>();
 
     private boolean wasResearching = false;
     private ItemStack lastStack = ItemStack.EMPTY;
@@ -48,6 +54,9 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         rebuildCustomWidgets();
     }
 
+    /**
+     * 重建自定义小部件（按钮和滑块）
+     */
     private void rebuildCustomWidgets() {
         this.clearWidgets();
         this.sliders.clear();
@@ -56,48 +65,56 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         boolean isResearching = be.isResearching();
         ItemStack stack = be.getItemHandler().getStackInSlot(0);
 
-        int startX = this.leftPos + 40;
-        int startY = this.topPos + 20;
+        // 按钮区域：物品槽 (12, 20) 下方稍右
+        int btnX = this.leftPos + 4;
+        int btnStartY = this.topPos + 50;
+        int btnWidth = 36;
+        int btnHeight = 12;
 
         if (!isResearching) {
-            // 常规模式：显示两个入口按钮
-            // 只有当有物品且未分析时才可用 (这里简化为有物品就显示)
             if (!stack.isEmpty()) {
-                this.btnDirect = this.addRenderableWidget(Button.builder(Component.translatable("gui.ars_astra.analysis.btn_direct"), button -> {
+                // 直接分析
+                this.addRenderableWidget(new LensButton(btnX, btnStartY, btnWidth, btnHeight, 
+                        Component.translatable("gui.ars_astra.analysis.btn_direct"), Palette.BTN_DIRECT, button -> {
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.DIRECT_ANALYSIS, Map.of()));
-                }).bounds(startX, startY + 50, 60, 20).build());
+                }));
 
-                this.btnIntuition = this.addRenderableWidget(Button.builder(Component.translatable("gui.ars_astra.analysis.btn_intuition"), button -> {
+                // 开始猜测 (直觉路径)
+                this.addRenderableWidget(new LensButton(btnX, btnStartY + 16, btnWidth, btnHeight, 
+                        Component.translatable("gui.ars_astra.analysis.btn_intuition"), Palette.BTN_INTUITION, button -> {
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.START_GUESS, Map.of()));
-                }).bounds(startX + 65, startY + 50, 60, 20).build());
-            } else {
-                // 没有物品，显示提示或空
+                }));
             }
         } else {
-            // 猜测模式：显示 Slider 和操作按钮
+            // 滑块区域：右侧
             Optional<ElementProfile> profile = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
             if (profile.isPresent()) {
-                int sliderY = startY;
+                int sliderX = this.leftPos + 80;
+                int sliderY = this.topPos + 20;
+                int sliderSpacing = 22; 
+
                 for (ResourceLocation elementId : profile.get().elements().keySet()) {
-                    // 获取要素名称 (简单处理，实际应从 Registry 获取 Localized Name)
-                    Component elemName = Component.translatable("element." + elementId.getNamespace() + "." + elementId.getPath());
-                    ElementSlider slider = new ElementSlider(this.leftPos + 80, sliderY, 80, 20, elemName, 0, elementId);
+                    VerticalElementSlider slider = new VerticalElementSlider(sliderX, sliderY, 18, 85, elementId);
                     this.addRenderableWidget(slider);
                     this.sliders.add(slider);
-                    sliderY += 24;
+                    sliderX += sliderSpacing;
                 }
 
-                this.btnSubmit = this.addRenderableWidget(Button.builder(Component.translatable("gui.ars_astra.analysis.btn_submit"), button -> {
-                    Map<ResourceLocation, Integer> guesses = new HashMap<>();
-                    for (ElementSlider s : sliders) {
-                        guesses.put(s.elementId, s.getValueInt());
+                // 提交
+                this.addRenderableWidget(new LensButton(btnX, btnStartY, btnWidth, btnHeight, 
+                        Component.translatable("gui.ars_astra.analysis.btn_submit"), Palette.BTN_SUBMIT, button -> {
+                    Map<ResourceLocation, AnalysisActionPayload.GuessData> guesses = new HashMap<>();
+                    for (VerticalElementSlider s : sliders) {
+                        guesses.put(s.elementId, new AnalysisActionPayload.GuessData(s.getValueInt(), s.isPrecise));
                     }
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.SUBMIT_GUESS, guesses));
-                }).bounds(startX, startY + 80, 50, 20).build());
+                }));
 
-                this.btnQuit = this.addRenderableWidget(Button.builder(Component.translatable("gui.ars_astra.analysis.btn_quit"), button -> {
+                // 放弃
+                this.addRenderableWidget(new LensButton(btnX, btnStartY + 16, btnWidth, btnHeight, 
+                        Component.translatable("gui.ars_astra.analysis.btn_quit"), Palette.BTN_QUIT, button -> {
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.QUIT_GUESS, Map.of()));
-                }).bounds(startX + 55, startY + 80, 50, 20).build());
+                }));
             }
         }
     }
@@ -109,7 +126,6 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         boolean isResearching = be.isResearching();
         ItemStack currentStack = be.getItemHandler().getStackInSlot(0);
 
-        // 检测状态变化或物品变化，触发 UI 重建
         if (isResearching != wasResearching || !ItemStack.matches(lastStack, currentStack)) {
             this.wasResearching = isResearching;
             this.lastStack = currentStack.copy();
@@ -124,20 +140,19 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         
         AnalysisDeskBlockEntity be = this.menu.blockEntity;
         if (be.isResearching()) {
-            guiGraphics.drawString(this.font, Component.translatable("gui.ars_astra.analysis.guesses_left", be.getGuessesRemaining()), 10, 20, 0xFF5555, false);
+            guiGraphics.drawString(this.font, Component.translatable("gui.ars_astra.analysis.guesses_left", be.getGuessesRemaining()), 10, 100, 0xFF5555, false);
             
-            // 渲染滑块旁的反馈
             Map<ResourceLocation, Integer> feedback = be.getLastFeedback();
-            for (ElementSlider slider : sliders) {
+            for (VerticalElementSlider slider : sliders) {
                 if (feedback.containsKey(slider.elementId)) {
                     int val = feedback.get(slider.elementId);
                     String icon = "";
                     int color = 0xFFFFFF;
-                    if (val < 0) { icon = "↑"; color = 0xFFAA00; } // 猜小了，提示 ↑
-                    else if (val > 0) { icon = "↓"; color = 0xFF5555; } // 猜大了，提示 ↓
-                    else { icon = "√"; color = 0x55FF55; } // 正确
+                    if (val < 0) { icon = "↑"; color = 0xFFAA00; }
+                    else if (val > 0) { icon = "↓"; color = 0xFF5555; }
+                    else { icon = "√"; color = 0x55FF55; }
                     
-                    guiGraphics.drawString(this.font, icon, slider.getX() + slider.getWidth() + 5, slider.getY() + 6, color, false);
+                    guiGraphics.drawCenteredString(this.font, icon, slider.getX() + slider.getWidth() / 2, slider.getY() - 10, color);
                 }
             }
         }
@@ -157,30 +172,186 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         renderTooltip(guiGraphics, mouseX, mouseY);
     }
 
-    // 自定义滑块类
-    private static class ElementSlider extends AbstractSliderButton {
-        private final ResourceLocation elementId;
-        private final Component elementName;
+    /**
+     * 自定义透镜风格按钮
+     */
+    private class LensButton extends Button {
+        private final int baseColor;
 
-        public ElementSlider(int x, int y, int width, int height, Component elementName, double value, ResourceLocation elementId) {
-            super(x, y, width, height, Component.empty(), value);
-            this.elementId = elementId;
-            this.elementName = elementName;
-            this.updateMessage();
+        public LensButton(int x, int y, int width, int height, Component message, int color, OnPress onPress) {
+            super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
+            this.baseColor = color;
         }
 
         @Override
-        protected void updateMessage() {
-            this.setMessage(Component.translatable("%s: %s", elementName, getValueInt()));
-        }
+        public void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            int alpha = 0xCC000000;
+            int color = baseColor & 0x00FFFFFF;
+            
+            int displayColor = alpha | color;
+            if (isHovered) {
+                 displayColor = 0xEE000000 | lighten(color, 1.2f);
+            }
 
-        @Override
-        protected void applyValue() {
-            // 值变化时的逻辑，这里不需要实时发包
+            int borderColor = Palette.BRASS;
+            
+            RenderSystem.enableBlend();
+            guiGraphics.fill(getX(), getY(), getX() + width, getY() + height, displayColor);
+            guiGraphics.renderOutline(getX(), getY(), width, height, borderColor);
+            
+            // 缩放文字以适应小型按钮
+            guiGraphics.pose().pushPose();
+            float scale = 0.7f;
+            guiGraphics.pose().translate(getX() + width / 2.0f, getY() + (height - 8 * scale) / 2.0f + 1.0f, 0);
+            guiGraphics.pose().scale(scale, scale, 1.0f);
+            
+            int textColor = 0xFFFFFF;
+            guiGraphics.drawCenteredString(font, getMessage(), 0, 0, textColor);
+            guiGraphics.pose().popPose();
+            
+            RenderSystem.disableBlend();
         }
         
+        private int lighten(int rgb, float factor) {
+            int r = (int) Math.min(255, ((rgb >> 16) & 0xFF) * factor);
+            int g = (int) Math.min(255, ((rgb >> 8) & 0xFF) * factor);
+            int b = (int) Math.min(255, (rgb & 0xFF) * factor);
+            return (r << 16) | (g << 8) | b;
+        }
+    }
+
+    /**
+     * 自定义要素滑块（垂直方向，手绘风格）
+     */
+    private class VerticalElementSlider extends AbstractWidget {
+        private final ResourceLocation elementId;
+        private double value = 0.5;
+        private boolean isPrecise = true;
+        private boolean isDragging = false;
+        
+        private static final int ICON_SIZE = 12; // 缩小图标
+        private static final int SLIDER_AREA_HEIGHT = 64; // 滑动区域高度
+
+        public VerticalElementSlider(int x, int y, int width, int height, ResourceLocation elementId) {
+            super(x, y, width, height, Component.empty());
+            this.elementId = elementId;
+        }
+
+        @Override
+        protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+            RenderSystem.enableBlend();
+            RenderSystem.defaultBlendFunc();
+            RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+
+            // 1. 绘制轨道 (源 83x382 -> 目标 14x64)
+            int trackWidth = 14;
+            int trackHeight = SLIDER_AREA_HEIGHT;
+            int trackX = getX() + (width - trackWidth) / 2;
+            guiGraphics.blit(TEXTURE_0, trackX, getY(), trackWidth, trackHeight, 0, 0, 83, 382, 85, 555);
+
+            int trackCenter = getX() + width / 2;
+            int trackTop = getY();
+            int trackBottom = getY() + trackHeight; 
+            int handleY = trackBottom - (int)(value * trackHeight);
+
+            // 2. 如果是范围模式，绘制范围指示器
+            if (!isPrecise) {
+                int rangeW = 10;
+                int rangeH = 24;
+                int rangeX = trackCenter - rangeW / 2;
+                int rangeY = handleY - rangeH / 2;
+                rangeY = Mth.clamp(rangeY, trackTop, trackBottom - rangeH);
+                guiGraphics.blit(TEXTURE_0, rangeX, rangeY, rangeW, rangeH, 0, 388, 54, 127, 85, 555);
+            } else {
+                // 3. 仅在精确模式下绘制滑块游标
+                int knobW = 14;
+                int knobH = 6;
+                int knobX = trackCenter - knobW / 2;
+                int knobY = handleY - knobH / 2;
+                guiGraphics.blit(TEXTURE_0, knobX, knobY, knobW, knobH, 0, 520, 77, 35, 85, 555);
+            }
+
+            // 4. 绘制要素图标及其边框 (程序绘制)
+            int borderSize = 16; // 缩小边框到 16x16
+            int borderX = trackCenter - borderSize / 2;
+            int borderY = getY() + SLIDER_AREA_HEIGHT + 4; 
+            
+            boolean mouseOverIcon = isHovered && mouseY >= (getY() + SLIDER_AREA_HEIGHT);
+
+            // 绘制程序生成的边框 - 增加厚度 (绘制多层)
+            int borderColor = isPrecise ? Palette.BRASS : 0xFF00FFFF;
+            if (mouseOverIcon) {
+                borderColor = isPrecise ? 0xFFFFEEAA : 0xFF88FFFF;
+            }
+
+            if (isPrecise) {
+                // 绘制 2px 厚度的边框，紧凑地包裹 12x12 图标
+                guiGraphics.renderOutline(borderX, borderY, borderSize, borderSize, borderColor);
+                guiGraphics.renderOutline(borderX + 1, borderY + 1, borderSize - 2, borderSize - 2, borderColor);
+            } else {
+                // 范围模式
+                guiGraphics.renderOutline(borderX, borderY, borderSize, borderSize, borderColor);
+                guiGraphics.renderOutline(borderX + 1, borderY + 1, borderSize - 2, borderSize - 2, borderColor);
+                // 内部填充缩小，避免盖住加粗边框
+                guiGraphics.fill(borderX + 2, borderY + 2, borderX + borderSize - 2, borderY + borderSize - 2, mouseOverIcon ? 0x6600FFFF : 0x3300FFFF);
+            }
+            
+            if (mouseOverIcon) {
+                guiGraphics.fill(borderX, borderY, borderX + borderSize, borderY + borderSize, 0x22FFFFFF);
+            }
+
+            // 绘制要素图标 (12x12)
+            int iconX = borderX + (borderSize - ICON_SIZE) / 2;
+            int iconY = borderY + (borderSize - ICON_SIZE) / 2;
+            ResourceLocation texture = AARegistries.ELEMENT_REGISTRY.get(elementId).getIcon();
+            guiGraphics.blit(texture, iconX, iconY, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+            
+            RenderSystem.disableBlend();
+            
+            if (isHovered && mouseY < trackBottom) {
+                 guiGraphics.renderTooltip(font, Component.literal(String.valueOf(getValueInt())), mouseX, mouseY);
+            }
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            if (mouseY > getY() + SLIDER_AREA_HEIGHT) {
+                // 点击图标区域：切换精确/范围模式
+                isPrecise = !isPrecise;
+                playDownSound(Minecraft.getInstance().getSoundManager());
+            } else {
+                // 点击滑动区域：设置值
+                this.isDragging = true;
+                setValueFromMouse(mouseY);
+            }
+        }
+
+        @Override
+        public void onRelease(double mouseX, double mouseY) {
+            this.isDragging = false;
+        }
+
+        @Override
+        protected void onDrag(double mouseX, double mouseY, double dragX, double dragY) {
+            if (this.isDragging) {
+                setValueFromMouse(mouseY);
+            }
+        }
+        
+        private void setValueFromMouse(double mouseY) {
+            double relativeY = mouseY - getY();
+            double trackHeight = 64;
+            double val = 1.0 - (relativeY / trackHeight);
+            this.value = Mth.clamp(val, 0.0, 1.0);
+        }
+
         public int getValueInt() {
             return (int) (this.value * 100);
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
+            defaultButtonNarrationText(narrationElementOutput);
         }
     }
 }

@@ -10,7 +10,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.HashMap;
 import java.util.Map;
 
-public record AnalysisActionPayload(BlockPos pos, Action action, Map<ResourceLocation, Integer> guesses) implements CustomPacketPayload {
+public record AnalysisActionPayload(BlockPos pos, Action action, Map<ResourceLocation, GuessData> guesses) implements CustomPacketPayload {
     public static final Type<AnalysisActionPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "analysis_action"));
 
     public static final StreamCodec<FriendlyByteBuf, AnalysisActionPayload> STREAM_CODEC = StreamCodec.ofMember(
@@ -26,11 +26,14 @@ public record AnalysisActionPayload(BlockPos pos, Action action, Map<ResourceLoc
         );
     }
 
-    private static Map<ResourceLocation, Integer> readGuesses(FriendlyByteBuf buffer) {
+    private static Map<ResourceLocation, GuessData> readGuesses(FriendlyByteBuf buffer) {
         int size = buffer.readVarInt();
-        Map<ResourceLocation, Integer> map = new HashMap<>(size);
+        Map<ResourceLocation, GuessData> map = new HashMap<>(size);
         for (int i = 0; i < size; i++) {
-            map.put(buffer.readResourceLocation(), buffer.readVarInt());
+            ResourceLocation key = buffer.readResourceLocation();
+            int value = buffer.readVarInt();
+            boolean isPrecise = buffer.readBoolean();
+            map.put(key, new GuessData(value, isPrecise));
         }
         return map;
     }
@@ -39,9 +42,10 @@ public record AnalysisActionPayload(BlockPos pos, Action action, Map<ResourceLoc
         buffer.writeBlockPos(pos);
         buffer.writeEnum(action);
         buffer.writeVarInt(guesses.size());
-        guesses.forEach((key, value) -> {
+        guesses.forEach((key, data) -> {
             buffer.writeResourceLocation(key);
-            buffer.writeVarInt(value);
+            buffer.writeVarInt(data.value);
+            buffer.writeBoolean(data.isPrecise);
         });
     }
 
@@ -51,9 +55,11 @@ public record AnalysisActionPayload(BlockPos pos, Action action, Map<ResourceLoc
     }
 
     public enum Action {
-        DIRECT_ANALYSIS, // 学者路线：直接分析
-        START_GUESS,     // 直觉路线：开始猜测
-        SUBMIT_GUESS,    // 提交猜测数据
-        QUIT_GUESS       // 放弃猜测（转为直接分析或退出）
+        DIRECT_ANALYSIS,
+        START_GUESS,
+        SUBMIT_GUESS,
+        QUIT_GUESS
     }
+
+    public record GuessData(int value, boolean isPrecise) {}
 }

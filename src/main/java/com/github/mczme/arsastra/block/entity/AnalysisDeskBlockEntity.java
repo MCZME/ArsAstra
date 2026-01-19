@@ -5,6 +5,7 @@ import com.github.mczme.arsastra.core.element.profile.ElementProfileManager;
 import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.menu.AnalysisDeskMenu;
 import com.github.mczme.arsastra.network.AANetwork;
+import com.github.mczme.arsastra.network.payload.AnalysisActionPayload;
 import com.github.mczme.arsastra.registry.AAAttachments;
 import com.github.mczme.arsastra.registry.AABlockEntities;
 import net.minecraft.core.BlockPos;
@@ -53,6 +54,13 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
 
     // 学者路线消耗的等级
     private static final int SCHOLAR_XP_COST_LEVELS = 5;
+    
+    // 直觉路线配置
+    private static final int TOLERANCE_PRECISE = 5;
+    private static final int TOLERANCE_RANGE = 15;
+    private static final int XP_REWARD_BASE = 50;
+    private static final float XP_MULTIPLIER_PRECISE = 1.5f;
+    private static final float XP_MULTIPLIER_RANGE = 0.5f;
 
     public AnalysisDeskBlockEntity(BlockPos pos, BlockState blockState) {
         super(AABlockEntities.ANALYSIS_DESK.get(), pos, blockState);
@@ -190,7 +198,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
 
-    public void serverSubmitGuess(Player player, Map<ResourceLocation, Integer> guesses) {
+    public void serverSubmitGuess(Player player, Map<ResourceLocation, AnalysisActionPayload.GuessData> guesses) {
         if (level == null || level.isClientSide) return;
         if (!isResearching || !isLocked) return;
 
@@ -207,24 +215,31 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
 
         boolean allCorrect = true;
         this.lastFeedback.clear();
+        
+        float totalXpMultiplier = 0.0f;
+        int elementCount = actualElements.size();
 
         for (Map.Entry<ResourceLocation, Float> entry : actualElements.entrySet()) {
             ResourceLocation elementId = entry.getKey();
             float actualVal = entry.getValue();
             
-            Integer guessVal = guesses.get(elementId);
-            if (guessVal == null) {
-                guessVal = 0; // Treat missing guess as 0
-            }
-
+            AnalysisActionPayload.GuessData guessData = guesses.get(elementId);
+            int guessVal = (guessData != null) ? guessData.value() : 0;
+            boolean isPrecise = (guessData != null) && guessData.isPrecise();
+            
+            int tolerance = isPrecise ? TOLERANCE_PRECISE : TOLERANCE_RANGE;
             int diff = 0;
-            // 容差范围
-            if (guessVal < actualVal - 5) diff = -1; // 猜小了
-            else if (guessVal > actualVal + 5) diff = 1; // 猜大了
+            
+            if (guessVal < actualVal - tolerance) diff = -1; // 猜小了
+            else if (guessVal > actualVal + tolerance) diff = 1; // 猜大了
             
             this.lastFeedback.put(elementId, diff);
             
-            if (diff != 0) allCorrect = false;
+            if (diff != 0) {
+                allCorrect = false;
+            } else {
+                totalXpMultiplier += isPrecise ? XP_MULTIPLIER_PRECISE : XP_MULTIPLIER_RANGE;
+            }
         }
 
         if (allCorrect) {
@@ -235,7 +250,11 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             }
 
             player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.success_intuition"), true);
-            player.giveExperiencePoints(50);
+            
+            float avgMult = totalXpMultiplier / Math.max(1, elementCount);
+            int reward = Math.round(XP_REWARD_BASE * avgMult * 2);
+            
+            player.giveExperiencePoints(Math.max(10, reward));
             resetResearch();
         } else {
             this.guessesRemaining--;
@@ -252,9 +271,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
     }
 
     public void serverQuitGuess(Player player) {
-        // 作为"安全逃生"，直接转为直接分析
         if (isResearching) {
-            // 注意：这里我们允许从中途转为直接分析，逻辑同 DirectAnalysis，但无需检查是否已分析（因为肯定未分析）
              if (player.experienceLevel < SCHOLAR_XP_COST_LEVELS && !player.isCreative()) {
                 player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.not_enough_xp"), true);
                 return;

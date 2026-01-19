@@ -87,6 +87,20 @@ public class ZH_CN extends LanguageProvider  {
         add(AAElements.GROWTH, "生长");
         add(AAElements.CORROSION, "腐蚀");
         add(AAElements.DECAY, "凋零");
+
+        // 分析台 GUI
+        add("gui.ars_astra.analysis.btn_direct", "直接分析");
+        add("gui.ars_astra.analysis.btn_intuition", "开始猜测");
+        add("gui.ars_astra.analysis.btn_submit", "提交校准");
+        add("gui.ars_astra.analysis.btn_quit", "放弃");
+        add("gui.ars_astra.analysis.guesses_left", "剩余尝试: %s");
+        add("gui.ars_astra.analysis.already_known", "该物品的性质已记录在案。");
+        add("gui.ars_astra.analysis.not_enough_xp", "经验不足以进行直接解析。");
+        add("gui.ars_astra.analysis.success", "解析完成，知识已记录。");
+        add("gui.ars_astra.analysis.no_elements", "该物品似乎不含任何魔力要素。");
+        add("gui.ars_astra.analysis.success_intuition", "完美的校准！你洞悉了它的本质。");
+        add("gui.ars_astra.analysis.failure_destroyed", "操作失误导致样本损毁。");
+        add("gui.ars_astra.analysis.guess_wrong", "校准失败。剩余机会: %s");
     }
 
     private void add(Supplier<? extends Element> key, String name) {

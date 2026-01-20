@@ -139,25 +139,6 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
         guiGraphics.drawString(this.font, this.title, this.titleLabelX, this.titleLabelY, 0xFFFFFF, false);
         guiGraphics.drawString(this.font, this.playerInventoryTitle, this.inventoryLabelX, this.inventoryLabelY, 0xFFFFFF, false);
-        
-        AnalysisDeskBlockEntity be = this.menu.blockEntity;
-        if (be.isResearching()) {
-            guiGraphics.drawString(this.font, Component.translatable("gui.ars_astra.analysis.guesses_left", be.getGuessesRemaining()), 10, 100, 0xFF5555, false);
-            
-            Map<ResourceLocation, Integer> feedback = be.getLastFeedback();
-            for (VerticalElementSlider slider : sliders) {
-                if (feedback.containsKey(slider.elementId)) {
-                    int val = feedback.get(slider.elementId);
-                    String icon = "";
-                    int color = 0xFFFFFF;
-                    if (val < 0) { icon = "↑"; color = 0xFFAA00; }
-                    else if (val > 0) { icon = "↓"; color = 0xFF5555; }
-                    else { icon = "√"; color = 0x55FF55; }
-                    
-                    guiGraphics.drawCenteredString(this.font, icon, slider.getX() + slider.getWidth() / 2, slider.getY() - 10, color);
-                }
-            }
-        }
     }
 
     @Override
@@ -171,7 +152,33 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float delta) {
         renderBackground(guiGraphics, mouseX, mouseY, delta);
         super.render(guiGraphics, mouseX, mouseY, delta);
+        
+        renderFeedbackIcons(guiGraphics);
+
         renderTooltip(guiGraphics, mouseX, mouseY);
+    }
+
+    private void renderFeedbackIcons(GuiGraphics guiGraphics) {
+        AnalysisDeskBlockEntity be = this.menu.blockEntity;
+        if (be.isResearching()) {
+            guiGraphics.drawString(this.font, Component.translatable("gui.ars_astra.analysis.guesses_left", be.getGuessesRemaining()), this.leftPos + 10, this.topPos + 100, 0xFF5555, false);
+
+            Map<ResourceLocation, Integer> feedback = be.getLastFeedback();
+            for (VerticalElementSlider slider : sliders) {
+                if (feedback.containsKey(slider.elementId)) {
+                    int val = feedback.get(slider.elementId);
+                    String icon = "";
+                    int color = 0xFFFFFF;
+                    if (val < 0) { icon = "↑"; color = 0xFFAA00; }
+                    else if (val > 0) { icon = "↓"; color = 0xFF5555; }
+                    else { icon = "√"; color = 0x55FF55; }
+                    
+                    // 绘制在滑块上方 (绝对坐标)
+                    // slider.getX() 是绝对坐标
+                    guiGraphics.drawCenteredString(this.font, icon, slider.getX() + slider.getWidth() / 2, slider.getY() - 10, color);
+                }
+            }
+        }
     }
 
     /**
@@ -208,7 +215,8 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
             guiGraphics.pose().scale(scale, scale, 1.0f);
             
             int textColor = 0xFFFFFF;
-            guiGraphics.drawCenteredString(font, getMessage(), 0, 0, textColor);
+            int textWidth = font.width(getMessage());
+            guiGraphics.drawString(font, getMessage(), -textWidth / 2, 0, textColor, false);
             guiGraphics.pose().popPose();
             
             RenderSystem.disableBlend();

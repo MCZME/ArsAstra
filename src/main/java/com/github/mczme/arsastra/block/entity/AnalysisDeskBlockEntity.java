@@ -176,6 +176,12 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             return;
         }
 
+        Optional<ElementProfile> profile = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
+        if (profile.isEmpty()) {
+            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.no_elements"), true);
+            return;
+        }
+
         if (player.experienceLevel < SCHOLAR_XP_COST_LEVELS && !player.isCreative()) {
             player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.not_enough_xp"), true);
             return;

@@ -2,6 +2,8 @@ package com.github.mczme.arsastra.client;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.client.gui.AnalysisDeskScreen;
+import com.github.mczme.arsastra.client.renderer.AnalysisDeskRenderer;
+import com.github.mczme.arsastra.registry.AABlockEntities;
 import com.github.mczme.arsastra.registry.AAMenus;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.renderer.ShaderInstance;
@@ -9,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.RegisterShadersEvent;
 
@@ -46,6 +49,11 @@ public class AAClientEvents {
     @SubscribeEvent
     public static void registerScreens(RegisterMenuScreensEvent event) {
         event.register(AAMenus.ANALYSIS_DESK.get(), AnalysisDeskScreen::new);
+    }
+
+    @SubscribeEvent
+    public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerBlockEntityRenderer(AABlockEntities.ANALYSIS_DESK.get(), AnalysisDeskRenderer::new);
     }
 
     @SubscribeEvent

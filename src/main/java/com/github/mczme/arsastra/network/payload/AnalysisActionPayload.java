@@ -57,7 +57,8 @@ public record AnalysisActionPayload(BlockPos pos, Action action, Map<ResourceLoc
     public enum Action {
         DIRECT_ANALYSIS,
         START_GUESS,
-        SUBMIT_GUESS
+        SUBMIT_GUESS,
+        BATCH_ANALYSIS
     }
 
     public record GuessData(int value, boolean isPrecise) {}

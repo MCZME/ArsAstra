@@ -22,6 +22,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 
 import java.util.ArrayList;
@@ -90,13 +91,19 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
                 this.addRenderableWidget(new LensButton(btnX, btnStartY, btnWidth, btnHeight, 
                         Component.translatable("gui.ars_astra.analysis.btn_direct"), Palette.BTN_DIRECT, button -> {
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.DIRECT_ANALYSIS, Map.of()));
-                }));
+                }, Component.translatable("gui.ars_astra.analysis.btn_direct.tooltip")));
 
                 // 开始猜测 (直觉路径)
                 this.addRenderableWidget(new LensButton(btnX, btnStartY + 16, btnWidth, btnHeight, 
                         Component.translatable("gui.ars_astra.analysis.btn_intuition"), Palette.BTN_INTUITION, button -> {
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.START_GUESS, Map.of()));
-                }));
+                }, Component.translatable("gui.ars_astra.analysis.btn_intuition.tooltip")));
+
+                // 一键分析 (批量处理)
+                this.addRenderableWidget(new LensButton(btnX, btnStartY + 32, btnWidth, btnHeight, 
+                        Component.translatable("gui.ars_astra.analysis.btn_batch"), Palette.BTN_DIRECT, button -> {
+                    PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.BATCH_ANALYSIS, Map.of()));
+                }, Component.translatable("gui.ars_astra.analysis.btn_batch.tooltip")));
             }
         } else {
             // 滑块区域：右侧
@@ -124,13 +131,13 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
                         guesses.put(s.elementId, new AnalysisActionPayload.GuessData(s.getValueInt(), s.isPrecise));
                     }
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.SUBMIT_GUESS, guesses));
-                }));
+                }, null));
 
                 // 直接分析 (在猜测中也可以使用)
                 this.addRenderableWidget(new LensButton(btnX, btnStartY + 16, btnWidth, btnHeight, 
                         Component.translatable("gui.ars_astra.analysis.btn_direct"), Palette.BTN_DIRECT, button -> {
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.DIRECT_ANALYSIS, Map.of()));
-                }));
+                }, Component.translatable("gui.ars_astra.analysis.btn_direct.tooltip")));
             }
         }
     }
@@ -243,9 +250,12 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
     private class LensButton extends Button {
         private final int baseColor;
 
-        public LensButton(int x, int y, int width, int height, Component message, int color, OnPress onPress) {
+        public LensButton(int x, int y, int width, int height, Component message, int color, OnPress onPress, @Nullable Component tooltip) {
             super(x, y, width, height, message, onPress, DEFAULT_NARRATION);
             this.baseColor = color;
+            if (tooltip != null) {
+                this.setTooltip(net.minecraft.client.gui.components.Tooltip.create(tooltip));
+            }
         }
 
         @Override

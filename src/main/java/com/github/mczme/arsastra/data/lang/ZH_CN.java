@@ -92,9 +92,14 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.analysis.btn_direct", "直接分析");
         add("gui.ars_astra.analysis.btn_intuition", "开始猜测");
         add("gui.ars_astra.analysis.btn_submit", "提交校准");
+        add("gui.ars_astra.analysis.btn_batch", "一键分析");
+        add("gui.ars_astra.analysis.btn_direct.tooltip", "直接消耗经验进行分析。");
+        add("gui.ars_astra.analysis.btn_intuition.tooltip", "通过博弈小游戏进行分析。");
+        add("gui.ars_astra.analysis.btn_batch.tooltip", "消耗经验一键分析背包中的所有物品。");
         add("gui.ars_astra.analysis.guesses_left", "剩余尝试: %s");
         add("gui.ars_astra.analysis.already_known", "该物品的性质已记录在案。");
         add("gui.ars_astra.analysis.not_enough_xp", "经验不足以进行直接解析。");
+        add("gui.ars_astra.analysis.not_enough_xp_batch", "经验不足。分析所有物品共需 %s 经验。");
         add("gui.ars_astra.analysis.success", "解析完成，知识已记录。");
         add("gui.ars_astra.analysis.no_elements", "该物品似乎不含任何魔力要素。");
         add("gui.ars_astra.analysis.success_intuition", "完美的校准！你洞悉了它的本质。");
@@ -102,6 +107,8 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.analysis.guess_wrong", "校准失败。剩余机会: %s");
         add("gui.ars_astra.analysis.mode.precise", "精确校准（点击切换）");
         add("gui.ars_astra.analysis.mode.range", "模糊校准（点击切换）");
+        add("gui.ars_astra.analysis.batch_success", "批量分析完成。成功记录了 %s 个新物品。");
+        add("gui.ars_astra.analysis.batch_none", "没有找到可分析的新物品。");
     }
 
     private void add(Supplier<? extends Element> key, String name) {

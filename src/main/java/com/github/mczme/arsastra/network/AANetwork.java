@@ -133,6 +133,7 @@ public class AANetwork {
                                 case DIRECT_ANALYSIS -> analysisDesk.serverPerformDirectAnalysis(player);
                                 case START_GUESS -> analysisDesk.serverStartIntuitionAnalysis(player);
                                 case SUBMIT_GUESS -> analysisDesk.serverSubmitGuess(player, payload.guesses());
+                                case BATCH_ANALYSIS -> analysisDesk.serverPerformBatchAnalysis(player);
                             }
                         }
                     });

@@ -320,6 +320,66 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
 
+    public void serverPerformBatchAnalysis(Player player) {
+        if (level == null || level.isClientSide) return;
+
+        PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+        Inventory inventory = player.getInventory();
+        int successCount = 0;
+        int totalCost = 0;
+        
+        // 第一次遍历：计算总消耗
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            ItemStack stack = inventory.getItem(i);
+            if (stack.isEmpty()) continue;
+            
+            if (knowledge.hasAnalyzed(stack.getItem())) continue;
+            
+            Optional<ElementProfile> profileOpt = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
+            if (profileOpt.isPresent()) {
+                int strength = calculateTotalStrength(profileOpt.get());
+                totalCost += calculateAnalysisCost(strength);
+            }
+        }
+        
+        if (totalCost > 0) {
+            if (player.totalExperience < totalCost && !player.isCreative()) {
+                if (player instanceof ServerPlayer sp) {
+                    PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.not_enough_xp_batch", totalCost), true));
+                }
+                return;
+            }
+            
+            if (!player.isCreative()) {
+                player.giveExperiencePoints(-totalCost);
+            }
+            
+            // 第二次遍历：执行分析
+            for (int i = 0; i < inventory.getContainerSize(); i++) {
+                ItemStack stack = inventory.getItem(i);
+                if (stack.isEmpty()) continue;
+                
+                if (knowledge.hasAnalyzed(stack.getItem())) continue;
+                
+                if (ElementProfileManager.getInstance().getElementProfile(stack.getItem()).isPresent()) {
+                    knowledge.analyzeItem(stack.getItem());
+                    successCount++;
+                }
+            }
+            
+            if (successCount > 0) {
+                if (player instanceof ServerPlayer sp) {
+                    AANetwork.sendToPlayer(sp);
+                    PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.batch_success", successCount), false));
+                }
+            }
+        } else {
+             if (player instanceof ServerPlayer sp) {
+                PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.batch_none"), true));
+            }
+        }
+    }
+
     public void serverSubmitGuess(Player player, Map<ResourceLocation, AnalysisActionPayload.GuessData> guesses) {
         if (level == null || level.isClientSide) return;
         if (!isResearching || !isLocked) return;

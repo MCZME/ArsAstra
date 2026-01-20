@@ -101,6 +101,8 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.analysis.success_intuition", "完美的校准！你洞悉了它的本质。");
         add("gui.ars_astra.analysis.failure_destroyed", "操作失误导致样本损毁。");
         add("gui.ars_astra.analysis.guess_wrong", "校准失败。剩余机会: %s");
+        add("gui.ars_astra.analysis.mode.precise", "精确校准（点击切换）");
+        add("gui.ars_astra.analysis.mode.range", "模糊校准（点击切换）");
     }
 
     private void add(Supplier<? extends Element> key, String name) {

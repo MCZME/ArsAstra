@@ -16,6 +16,8 @@
   "gui.ars_astra.analysis.failure_destroyed": "操作失误导致样本损毁。",
   "gui.ars_astra.analysis.guess_wrong": "校准失败。剩余机会: %s",
   "gui.ars_astra.analysis.guesses_left": "剩余尝试: %s",
+  "gui.ars_astra.analysis.mode.precise": "精确校准（点击切换）",
+  "gui.ars_astra.analysis.mode.range": "模糊校准（点击切换）",
   "gui.ars_astra.analysis.no_elements": "该物品似乎不含任何魔力要素。",
   "gui.ars_astra.analysis.not_enough_xp": "经验不足以进行直接解析。",
   "gui.ars_astra.analysis.success": "解析完成，知识已记录。",

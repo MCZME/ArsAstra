@@ -51,7 +51,7 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
     @Override
     protected void init() {
         super.init();
-        this.titleLabelY = 10;
+        this.titleLabelY = 0;
         this.inventoryLabelY = 110;
         rebuildCustomWidgets();
     }
@@ -315,8 +315,18 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
             
             RenderSystem.disableBlend();
             
-            if (isHovered && mouseY < trackBottom) {
-                 guiGraphics.renderTooltip(font, Component.literal(String.valueOf(getValueInt())), mouseX, mouseY);
+            if (isHovered) {
+                 if (mouseY < trackBottom) {
+                     guiGraphics.renderTooltip(font, Component.literal(String.valueOf(getValueInt())), mouseX, mouseY);
+                 } else if (mouseOverIcon) {
+                     var element = AARegistries.ELEMENT_REGISTRY.get(elementId);
+                     Component name = Component.translatable(element.getDescriptionId());
+                     Component mode = isPrecise ? 
+                         Component.translatable("gui.ars_astra.analysis.mode.precise") : 
+                         Component.translatable("gui.ars_astra.analysis.mode.range");
+                     
+                     guiGraphics.renderTooltip(font, List.of(name, mode), Optional.empty(), mouseX, mouseY);
+                 }
             }
         }
 

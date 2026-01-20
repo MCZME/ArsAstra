@@ -55,6 +55,7 @@ public class AnalysisDeskBlock extends Block implements EntityBlock {
         if (!level.isClientSide) {
             BlockEntity entity = level.getBlockEntity(pos);
             if (entity instanceof AnalysisDeskBlockEntity) {
+                level.playSound(null, pos, net.minecraft.sounds.SoundEvents.BOOK_PAGE_TURN, net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, 1.0f);
                 ((ServerPlayer) player).openMenu((MenuProvider) entity, pos);
             } else {
                 throw new IllegalStateException("Our Container provider is missing!");

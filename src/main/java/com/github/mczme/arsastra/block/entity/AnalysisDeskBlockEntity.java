@@ -18,6 +18,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -251,6 +253,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         }
 
         knowledge.analyzeItem(stack.getItem());
+        level.playSound(null, worldPosition, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.BLOCKS, 1.0f, 1.0f);
         if (player instanceof ServerPlayer sp) {
             AANetwork.sendToPlayer(sp);
             PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.success"), false));
@@ -316,6 +319,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             this.currentTolerances.put(entry.getKey(), tolerance);
         }
 
+        level.playSound(null, worldPosition, SoundEvents.ITEM_FRAME_ADD_ITEM, SoundSource.BLOCKS, 1.0f, 1.0f);
         this.setChanged();
         level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
@@ -368,6 +372,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             }
             
             if (successCount > 0) {
+                level.playSound(null, worldPosition, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.BLOCKS, 1.0f, 1.0f);
                 if (player instanceof ServerPlayer sp) {
                     AANetwork.sendToPlayer(sp);
                     PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.batch_success", successCount), false));
@@ -447,6 +452,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         if (allCorrect) {
             PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
             knowledge.analyzeItem(stack.getItem());
+            level.playSound(null, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 1.0f, 1.0f);
             if (player instanceof ServerPlayer sp) {
                 AANetwork.sendToPlayer(sp);
                 PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.success_intuition"), false));
@@ -462,11 +468,13 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             this.guessesRemaining--;
             if (this.guessesRemaining <= 0) {
                 itemHandler.setStackInSlot(0, ItemStack.EMPTY);
+                level.playSound(null, worldPosition, SoundEvents.ITEM_BREAK, SoundSource.BLOCKS, 1.0f, 1.0f);
                 if (player instanceof ServerPlayer sp) {
                     PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.failure_destroyed"), true));
                 }
                 resetResearch();
             } else {
+                level.playSound(null, worldPosition, SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 1.0f, 0.5f);
                 if (player instanceof ServerPlayer sp) {
                     PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.guess_wrong", guessesRemaining), true));
                 }

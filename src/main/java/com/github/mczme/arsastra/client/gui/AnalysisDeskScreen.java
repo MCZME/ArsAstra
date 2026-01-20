@@ -8,6 +8,7 @@ import com.github.mczme.arsastra.menu.AnalysisDeskMenu;
 import com.github.mczme.arsastra.network.payload.AnalysisActionPayload;
 import com.github.mczme.arsastra.registry.AARegistries;
 import com.github.mczme.arsastra.client.gui.util.Palette;
+import com.github.mczme.arsastra.client.gui.util.StarChartRenderUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -21,6 +22,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.PacketDistributor;
+import org.joml.Vector2f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -271,40 +273,45 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
                 guiGraphics.blit(TEXTURE_0, knobX, knobY, knobW, knobH, 0, 520, 77, 35, 85, 555);
             }
 
-            // 4. 绘制要素图标及其边框 (程序绘制)
-            int borderSize = 16; // 缩小边框到 16x16
+            // 4. 绘制要素图标及其边框 (使用 StarChartRenderUtils)
+            int borderSize = 16; 
             int borderX = trackCenter - borderSize / 2;
             int borderY = getY() + SLIDER_AREA_HEIGHT + 4; 
             
             boolean mouseOverIcon = isHovered && mouseY >= (getY() + SLIDER_AREA_HEIGHT);
 
-            // 绘制程序生成的边框 - 增加厚度 (绘制多层)
             int borderColor = isPrecise ? Palette.BRASS : 0xFF00FFFF;
             if (mouseOverIcon) {
                 borderColor = isPrecise ? 0xFFFFEEAA : 0xFF88FFFF;
             }
 
-            if (isPrecise) {
-                // 绘制 2px 厚度的边框，紧凑地包裹 12x12 图标
-                guiGraphics.renderOutline(borderX, borderY, borderSize, borderSize, borderColor);
-                guiGraphics.renderOutline(borderX + 1, borderY + 1, borderSize - 2, borderSize - 2, borderColor);
-            } else {
-                // 范围模式
-                guiGraphics.renderOutline(borderX, borderY, borderSize, borderSize, borderColor);
-                guiGraphics.renderOutline(borderX + 1, borderY + 1, borderSize - 2, borderSize - 2, borderColor);
-                // 内部填充缩小，避免盖住加粗边框
-                guiGraphics.fill(borderX + 2, borderY + 2, borderX + borderSize - 2, borderY + borderSize - 2, mouseOverIcon ? 0x6600FFFF : 0x3300FFFF);
-            }
-            
+            // 准备矩形顶点
+            List<Vector2f> vertices = List.of(
+                new Vector2f(borderX, borderY),
+                new Vector2f(borderX + borderSize, borderY),
+                new Vector2f(borderX + borderSize, borderY + borderSize),
+                new Vector2f(borderX, borderY + borderSize)
+            );
+
+            guiGraphics.pose().pushPose();
+            guiGraphics.pose().translate(0, 0, 1.0f); // 稍微抬高 Z 轴，防止与背景 Z-fighting
+            RenderSystem.disableCull(); // 确保不剔除双面几何体
+
             if (mouseOverIcon) {
                 guiGraphics.fill(borderX, borderY, borderX + borderSize, borderY + borderSize, 0x22FFFFFF);
             }
 
-            // 绘制要素图标 (12x12)
+            // 绘制要素图标 (12x12) - 在高亮之上，边框之下
             int iconX = borderX + (borderSize - ICON_SIZE) / 2;
             int iconY = borderY + (borderSize - ICON_SIZE) / 2;
             ResourceLocation texture = AARegistries.ELEMENT_REGISTRY.get(elementId).getIcon();
             guiGraphics.blit(texture, iconX, iconY, 0, 0, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+
+            // 绘制动态手绘边框
+            StarChartRenderUtils.drawDynamicLoop(guiGraphics.pose(), vertices, borderColor, 1.2f);
+            
+            RenderSystem.enableCull(); // 恢复状态
+            guiGraphics.pose().popPose();
             
             RenderSystem.disableBlend();
             

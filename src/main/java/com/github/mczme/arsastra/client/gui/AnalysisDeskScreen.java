@@ -317,7 +317,16 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
             
             if (isHovered) {
                  if (mouseY < trackBottom) {
-                     guiGraphics.renderTooltip(font, Component.literal(String.valueOf(getValueInt())), mouseX, mouseY);
+                     Component valueText;
+                     int val = getValueInt();
+                     if (isPrecise) {
+                         valueText = Component.literal(String.valueOf(val));
+                     } else {
+                         int min = Math.max(0, val - 15);
+                         int max = Math.min(100, val + 15);
+                         valueText = Component.literal(min + " - " + max);
+                     }
+                     guiGraphics.renderTooltip(font, valueText, mouseX, mouseY);
                  } else if (mouseOverIcon) {
                      var element = AARegistries.ELEMENT_REGISTRY.get(elementId);
                      Component name = Component.translatable(element.getDescriptionId());

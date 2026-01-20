@@ -112,10 +112,10 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
                     PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.SUBMIT_GUESS, guesses));
                 }));
 
-                // 放弃
+                // 直接分析 (在猜测中也可以使用)
                 this.addRenderableWidget(new LensButton(btnX, btnStartY + 16, btnWidth, btnHeight, 
-                        Component.translatable("gui.ars_astra.analysis.btn_quit"), Palette.BTN_QUIT, button -> {
-                    PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.QUIT_GUESS, Map.of()));
+                        Component.translatable("gui.ars_astra.analysis.btn_direct"), Palette.BTN_DIRECT, button -> {
+                    PacketDistributor.sendToServer(new AnalysisActionPayload(be.getBlockPos(), AnalysisActionPayload.Action.DIRECT_ANALYSIS, Map.of()));
                 }));
             }
         }

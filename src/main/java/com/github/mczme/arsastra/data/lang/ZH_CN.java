@@ -92,7 +92,6 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.analysis.btn_direct", "直接分析");
         add("gui.ars_astra.analysis.btn_intuition", "开始猜测");
         add("gui.ars_astra.analysis.btn_submit", "提交校准");
-        add("gui.ars_astra.analysis.btn_quit", "放弃");
         add("gui.ars_astra.analysis.guesses_left", "剩余尝试: %s");
         add("gui.ars_astra.analysis.already_known", "该物品的性质已记录在案。");
         add("gui.ars_astra.analysis.not_enough_xp", "经验不足以进行直接解析。");

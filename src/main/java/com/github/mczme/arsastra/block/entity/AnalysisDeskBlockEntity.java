@@ -35,6 +35,9 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
     private final ItemStackHandler itemHandler = new ItemStackHandler(1) {
         @Override
         protected void onContentsChanged(int slot) {
+            if (getStackInSlot(slot).isEmpty() && isLocked) {
+                resetResearch();
+            }
             setChanged();
             if (level != null && !level.isClientSide) {
                 level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
@@ -43,7 +46,20 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
 
         @Override
         public boolean isItemValid(int slot, net.minecraft.world.item.ItemStack stack) {
-            return !isLocked; // 锁定时禁止放入或取出
+            return !isLocked; // 锁定时禁止放入
+        }
+
+        @Override
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            if (isLocked) {
+                return ItemStack.EMPTY; // 锁定时禁止取出
+            }
+            return super.extractItem(slot, amount, simulate);
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return 1; // 一次只能输入一个物品
         }
     };
 
@@ -184,6 +200,12 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         ItemStack stack = itemHandler.getStackInSlot(0);
         if (stack.isEmpty()) return;
 
+        PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
+        if (knowledge.hasAnalyzed(stack.getItem())) {
+            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.already_known"), true);
+            return;
+        }
+
         Optional<ElementProfile> profile = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
         if (profile.isEmpty()) {
             player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.no_elements"), true);
@@ -267,31 +289,6 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             }
             this.setChanged();
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
-        }
-    }
-
-    public void serverQuitGuess(Player player) {
-        if (isResearching) {
-             if (player.experienceLevel < SCHOLAR_XP_COST_LEVELS && !player.isCreative()) {
-                player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.not_enough_xp"), true);
-                return;
-            }
-
-            if (!player.isCreative()) {
-                player.giveExperienceLevels(-SCHOLAR_XP_COST_LEVELS);
-            }
-            
-            ItemStack stack = itemHandler.getStackInSlot(0);
-            if (!stack.isEmpty()) {
-                PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
-                knowledge.analyzeItem(stack.getItem());
-                if (player instanceof ServerPlayer sp) {
-                    AANetwork.sendToPlayer(sp);
-                }
-            }
-            
-            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.success"), true);
-            resetResearch();
         }
     }
 

@@ -3,6 +3,7 @@ package com.github.mczme.arsastra.item;
 import com.github.mczme.arsastra.client.renderer.StarChartJournalItemRenderer;
 import com.github.mczme.arsastra.registry.AAComponents;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.Entity;
@@ -77,6 +78,13 @@ public class StarChartJournalItem extends Item implements GeoItem {
             }
 
             return event.setAndContinue(IDLE_ANIM);
+        }).setSoundKeyframeHandler(event -> {
+            Player player = software.bernie.geckolib.util.ClientUtil.getClientPlayer();
+            if (player != null) {
+                if ("open_book".equals(event.getKeyframeData().getSound())) {
+                    player.playSound(SoundEvents.BOOK_PAGE_TURN, 1.0f, 1.0f);
+                }
+            }
         }));
     }
 

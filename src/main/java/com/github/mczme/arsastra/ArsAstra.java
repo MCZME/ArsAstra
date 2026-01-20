@@ -25,5 +25,6 @@ public class ArsAstra {
         AAComponents.register(modEventBus);
         AAAttachments.register(modEventBus);
         AAMenus.register(modEventBus);
+        AASounds.register(modEventBus);
     }
 }

@@ -75,11 +75,17 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
     private final Map<ResourceLocation, Integer> currentScales = new HashMap<>();
     private final Map<ResourceLocation, Integer> currentTolerances = new HashMap<>();
 
-    // 学者路线消耗的等级
-    private static final int SCHOLAR_XP_COST_LEVELS = 5;
+    // 经验经济配置
+    private static final int BASE_ANALYSIS_COST = 150;
+    private static final float STRENGTH_COST_FACTOR = 2.0f;
     
-    private static final int XP_REWARD_BASE = 50;
-    
+    // 直觉路线配置
+    private static final int TOLERANCE_PRECISE = 5;
+    private static final int TOLERANCE_RANGE = 15;
+    private static final float REWARD_FACTOR = 1.5f;
+    private static final float XP_MULTIPLIER_PRECISE = 1.2f;
+    private static final float XP_MULTIPLIER_RANGE = 0.6f;
+
     public AnalysisDeskBlockEntity(BlockPos pos, BlockState blockState) {
         super(AABlockEntities.ANALYSIS_DESK.get(), pos, blockState);
     }
@@ -224,23 +230,28 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             return;
         }
 
-        Optional<ElementProfile> profile = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
-        if (profile.isEmpty()) {
+        Optional<ElementProfile> profileOpt = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
+        if (profileOpt.isEmpty()) {
             if (player instanceof ServerPlayer sp) {
                 PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.no_elements"), true));
             }
             return;
         }
+        ElementProfile profile = profileOpt.get();
 
-        if (player.experienceLevel < SCHOLAR_XP_COST_LEVELS && !player.isCreative()) {
+        int totalStrength = calculateTotalStrength(profile);
+        int cost = calculateAnalysisCost(totalStrength);
+
+        if (player.totalExperience < cost && !player.isCreative()) {
             if (player instanceof ServerPlayer sp) {
+                // 暂时使用通用提示，虽然最好能显示具体数值
                 PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.not_enough_xp"), true));
             }
             return;
         }
 
         if (!player.isCreative()) {
-            player.giveExperienceLevels(-SCHOLAR_XP_COST_LEVELS);
+            player.giveExperiencePoints(-cost);
         }
 
         knowledge.analyzeItem(stack.getItem());
@@ -357,11 +368,9 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             if (diff != 0) {
                 allCorrect = false;
             } else {
-                // 动态计算奖励倍率：难度越高(宽容度越低)，倍率越高
-                // Standard base tolerance is ~10. If tolerance is 2, multiplier should be high.
-                // Ref: 10 / tolerance
+                // 动态计算奖励倍率
                 float difficultyMult = 10.0f / Math.max(1, baseTolerance);
-                totalXpMultiplier += isPrecise ? (1.0f * difficultyMult) : (0.3f * difficultyMult);
+                totalXpMultiplier += isPrecise ? (XP_MULTIPLIER_PRECISE * difficultyMult) : (XP_MULTIPLIER_RANGE * difficultyMult);
             }
         }
 
@@ -373,8 +382,9 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
                 PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.success_intuition"), false));
             }
             
+            int totalStrength = calculateTotalStrength(profile);
             float avgMult = totalXpMultiplier / Math.max(1, elementCount);
-            int reward = Math.round(XP_REWARD_BASE * avgMult * 2);
+            int reward = Math.round((totalStrength * REWARD_FACTOR) * avgMult);
             
             player.giveExperiencePoints(Math.max(10, reward));
             resetResearch();
@@ -405,5 +415,17 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         if (level != null) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }
+    }
+
+    private int calculateTotalStrength(ElementProfile profile) {
+        float total = 0;
+        for (float val : profile.elements().values()) {
+            total += val;
+        }
+        return Math.round(total);
+    }
+
+    private int calculateAnalysisCost(int totalStrength) {
+        return Math.round(BASE_ANALYSIS_COST + (totalStrength * STRENGTH_COST_FACTOR));
     }
 }

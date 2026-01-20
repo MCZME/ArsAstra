@@ -329,8 +329,8 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
             // 2. 如果是范围模式，绘制范围指示器
             if (!isPrecise) {
                 int rangeW = 10;
-                // 计算显示范围高度比例: (tolerance * 2 * 2) / maxScale
-                float rangeRatio = (tolerance * 2.0f * 2.0f) / (float)maxScale;
+                // 计算显示范围高度比例: (radius * 2) / maxScale
+                float rangeRatio = (tolerance * 2.0f) / (float)maxScale;
                 int rangeH = (int)(rangeRatio * trackHeight);
                 rangeH = Math.max(4, Math.min(rangeH, trackHeight)); 
 
@@ -398,7 +398,8 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
                      if (isPrecise) {
                          valueText = Component.literal(String.valueOf(val));
                      } else {
-                         int t = tolerance * 2;
+                         // 范围模式半径 = tolerance
+                         int t = tolerance;
                          int min = Math.max(0, val - t);
                          int max = Math.min(maxScale, val + t);
                          valueText = Component.literal(min + " - " + max);

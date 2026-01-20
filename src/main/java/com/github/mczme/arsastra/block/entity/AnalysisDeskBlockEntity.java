@@ -76,13 +76,9 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
     private final Map<ResourceLocation, Integer> currentTolerances = new HashMap<>();
 
     // 经验经济配置
-    private static final int BASE_ANALYSIS_COST = 150;
+    private static final int BASE_ANALYSIS_COST = 20;
     private static final float STRENGTH_COST_FACTOR = 2.0f;
     
-    // 直觉路线配置
-    private static final int TOLERANCE_PRECISE = 5;
-    private static final int TOLERANCE_RANGE = 15;
-    private static final float REWARD_FACTOR = 1.5f;
     private static final float XP_MULTIPLIER_PRECISE = 1.2f;
     private static final float XP_MULTIPLIER_RANGE = 0.6f;
 
@@ -347,21 +343,35 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
 
         for (Map.Entry<ResourceLocation, Float> entry : actualElements.entrySet()) {
             ResourceLocation elementId = entry.getKey();
-            float actualVal = entry.getValue();
+            float actualValFloat = entry.getValue();
+            int actualVal = Math.round(actualValFloat);
             
             AnalysisActionPayload.GuessData guessData = guesses.get(elementId);
             int guessVal = (guessData != null) ? guessData.value() : 0;
             boolean isPrecise = (guessData != null) && guessData.isPrecise();
             
-            // 获取动态宽容度，默认为 5 (防空指针)
-            int baseTolerance = currentTolerances.getOrDefault(elementId, 5);
-            // 模糊模式宽容度放大 2 倍
-            int tolerance = isPrecise ? baseTolerance : baseTolerance * 2;
+            // 获取范围模式的覆盖半径 (原 currentTolerances 存储的值即为半径)
+            int rangeRadius = currentTolerances.getOrDefault(elementId, 5);
             
             int diff = 0;
             
-            if (guessVal < actualVal - tolerance) diff = -1; // 猜小了
-            else if (guessVal > actualVal + tolerance) diff = 1; // 猜大了
+            if (isPrecise) {
+                // 精确模式：绝对点判定
+                if (guessVal < actualVal) diff = -1; // 猜小了
+                else if (guessVal > actualVal) diff = 1; // 猜大了
+                else diff = 0; // 完全命中
+            } else {
+                // 范围模式：区间判定
+                // 玩家的猜测范围是 [guessVal - rangeRadius, guessVal + rangeRadius]
+                int rangeMin = guessVal - rangeRadius;
+                int rangeMax = guessVal + rangeRadius;
+                
+                if (actualVal < rangeMin) diff = 1; // 猜测区间整体偏大 (真实值在区间左侧)
+                else if (actualVal > rangeMax) diff = -1; // 猜测区间整体偏小 (真实值在区间右侧)
+                else diff = 0; // 真实值落在区间内，命中
+            }
+            
+            this.lastFeedback.put(elementId, diff);
             
             this.lastFeedback.put(elementId, diff);
             
@@ -369,7 +379,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
                 allCorrect = false;
             } else {
                 // 动态计算奖励倍率
-                float difficultyMult = 10.0f / Math.max(1, baseTolerance);
+                float difficultyMult = 10.0f / Math.max(1, rangeRadius);
                 totalXpMultiplier += isPrecise ? (XP_MULTIPLIER_PRECISE * difficultyMult) : (XP_MULTIPLIER_RANGE * difficultyMult);
             }
         }
@@ -384,7 +394,7 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             
             int totalStrength = calculateTotalStrength(profile);
             float avgMult = totalXpMultiplier / Math.max(1, elementCount);
-            int reward = Math.round((totalStrength * REWARD_FACTOR) * avgMult);
+            int reward = Math.round(totalStrength * avgMult);
             
             player.giveExperiencePoints(Math.max(10, reward));
             resetResearch();

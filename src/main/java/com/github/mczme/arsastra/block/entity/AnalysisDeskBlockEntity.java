@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+@SuppressWarnings("null")
 public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider {
     private final ItemStackHandler itemHandler = new ItemStackHandler(1) {
         @Override
@@ -69,17 +70,16 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
     private int guessesRemaining = 5;
     private boolean isResearching = false;
     private final Map<ResourceLocation, Integer> lastFeedback = new HashMap<>(); // -1: Low, 0: Match, 1: High
+    
+    // 动态会话数据
+    private final Map<ResourceLocation, Integer> currentScales = new HashMap<>();
+    private final Map<ResourceLocation, Integer> currentTolerances = new HashMap<>();
 
     // 学者路线消耗的等级
     private static final int SCHOLAR_XP_COST_LEVELS = 5;
     
-    // 直觉路线配置
-    private static final int TOLERANCE_PRECISE = 5;
-    private static final int TOLERANCE_RANGE = 15;
     private static final int XP_REWARD_BASE = 50;
-    private static final float XP_MULTIPLIER_PRECISE = 1.5f;
-    private static final float XP_MULTIPLIER_RANGE = 0.5f;
-
+    
     public AnalysisDeskBlockEntity(BlockPos pos, BlockState blockState) {
         super(AABlockEntities.ANALYSIS_DESK.get(), pos, blockState);
     }
@@ -124,6 +124,24 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             feedbackTag.add(entry);
         });
         pTag.put("lastFeedback", feedbackTag);
+
+        ListTag scalesTag = new ListTag();
+        currentScales.forEach((key, val) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putString("id", key.toString());
+            entry.putInt("val", val);
+            scalesTag.add(entry);
+        });
+        pTag.put("currentScales", scalesTag);
+
+        ListTag tolerancesTag = new ListTag();
+        currentTolerances.forEach((key, val) -> {
+            CompoundTag entry = new CompoundTag();
+            entry.putString("id", key.toString());
+            entry.putInt("val", val);
+            tolerancesTag.add(entry);
+        });
+        pTag.put("currentTolerances", tolerancesTag);
     }
 
     @Override
@@ -140,6 +158,24 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             for (Tag t : list) {
                 CompoundTag entry = (CompoundTag) t;
                 lastFeedback.put(ResourceLocation.parse(entry.getString("id")), entry.getInt("val"));
+            }
+        }
+        
+        currentScales.clear();
+        if (pTag.contains("currentScales", Tag.TAG_LIST)) {
+            ListTag list = pTag.getList("currentScales", Tag.TAG_COMPOUND);
+            for (Tag t : list) {
+                CompoundTag entry = (CompoundTag) t;
+                currentScales.put(ResourceLocation.parse(entry.getString("id")), entry.getInt("val"));
+            }
+        }
+
+        currentTolerances.clear();
+        if (pTag.contains("currentTolerances", Tag.TAG_LIST)) {
+            ListTag list = pTag.getList("currentTolerances", Tag.TAG_COMPOUND);
+            for (Tag t : list) {
+                CompoundTag entry = (CompoundTag) t;
+                currentTolerances.put(ResourceLocation.parse(entry.getString("id")), entry.getInt("val"));
             }
         }
     }
@@ -162,6 +198,14 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
     
     public Map<ResourceLocation, Integer> getLastFeedback() {
         return lastFeedback;
+    }
+
+    public Map<ResourceLocation, Integer> getCurrentScales() {
+        return currentScales;
+    }
+
+    public Map<ResourceLocation, Integer> getCurrentTolerances() {
+        return currentTolerances;
     }
 
     // ================== 业务逻辑 ==================
@@ -234,6 +278,37 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         this.isResearching = true;
         this.guessesRemaining = 5;
         this.lastFeedback.clear();
+        this.currentScales.clear();
+        this.currentTolerances.clear();
+        
+        ElementProfile profileObj = profile.get();
+        for (Map.Entry<ResourceLocation, Float> entry : profileObj.elements().entrySet()) {
+            float actual = entry.getValue();
+            
+            // 动态标尺生成
+            // Scale Max = actual * (1.2 ~ 2.2) + (10 ~ 40)
+            float randomScaleMult = 1.2f + level.random.nextFloat();
+            float randomOffset = 10.0f + level.random.nextFloat() * 30.0f;
+            int scaleMax = Math.round(actual * randomScaleMult + randomOffset);
+            this.currentScales.put(entry.getKey(), scaleMax);
+            
+            // 动态难度/宽容度生成
+            // Difficulty = (0.5 ~ 2.0) + (actual / 100) * (0 ~ 1.0)
+            // 强度越大，难度系数上限越高
+            float difficulty = 0.5f + level.random.nextFloat() * 1.5f;
+            difficulty += (actual / 100.0f) * level.random.nextFloat();
+            
+            // Base Tolerance = 10
+            // Tolerance = 10 / Difficulty
+            int rawTolerance = Math.round(10.0f / difficulty);
+            
+            // 限制 Tolerance 不超过 Scale Max 的 10% (精确模式下)
+            int maxAllowedTolerance = Math.max(1, (int)(scaleMax * 0.1f));
+            int tolerance = Math.max(1, Math.min(rawTolerance, maxAllowedTolerance));
+            
+            this.currentTolerances.put(entry.getKey(), tolerance);
+        }
+
         this.setChanged();
         level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
@@ -267,7 +342,11 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             int guessVal = (guessData != null) ? guessData.value() : 0;
             boolean isPrecise = (guessData != null) && guessData.isPrecise();
             
-            int tolerance = isPrecise ? TOLERANCE_PRECISE : TOLERANCE_RANGE;
+            // 获取动态宽容度，默认为 5 (防空指针)
+            int baseTolerance = currentTolerances.getOrDefault(elementId, 5);
+            // 模糊模式宽容度放大 2 倍
+            int tolerance = isPrecise ? baseTolerance : baseTolerance * 2;
+            
             int diff = 0;
             
             if (guessVal < actualVal - tolerance) diff = -1; // 猜小了
@@ -278,7 +357,11 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             if (diff != 0) {
                 allCorrect = false;
             } else {
-                totalXpMultiplier += isPrecise ? XP_MULTIPLIER_PRECISE : XP_MULTIPLIER_RANGE;
+                // 动态计算奖励倍率：难度越高(宽容度越低)，倍率越高
+                // Standard base tolerance is ~10. If tolerance is 2, multiplier should be high.
+                // Ref: 10 / tolerance
+                float difficultyMult = 10.0f / Math.max(1, baseTolerance);
+                totalXpMultiplier += isPrecise ? (1.0f * difficultyMult) : (0.3f * difficultyMult);
             }
         }
 

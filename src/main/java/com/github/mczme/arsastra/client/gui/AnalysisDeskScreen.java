@@ -107,7 +107,10 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
                 int sliderSpacing = 22; 
 
                 for (ResourceLocation elementId : profile.get().elements().keySet()) {
-                    VerticalElementSlider slider = new VerticalElementSlider(sliderX, sliderY, 18, 85, elementId);
+                    int maxScale = be.getCurrentScales().getOrDefault(elementId, 100);
+                    int tolerance = be.getCurrentTolerances().getOrDefault(elementId, 10);
+                    
+                    VerticalElementSlider slider = new VerticalElementSlider(sliderX, sliderY, 18, 85, elementId, maxScale, tolerance);
                     this.addRenderableWidget(slider);
                     this.sliders.add(slider);
                     sliderX += sliderSpacing;
@@ -288,6 +291,9 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
      */
     private class VerticalElementSlider extends AbstractWidget {
         private final ResourceLocation elementId;
+        private final int maxScale;
+        private final int tolerance;
+        
         private double value = 0.5;
         private boolean isPrecise = true;
         private boolean isDragging = false;
@@ -295,11 +301,14 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         private static final int ICON_SIZE = 12; // 缩小图标
         private static final int SLIDER_AREA_HEIGHT = 64; // 滑动区域高度
 
-        public VerticalElementSlider(int x, int y, int width, int height, ResourceLocation elementId) {
+        public VerticalElementSlider(int x, int y, int width, int height, ResourceLocation elementId, int maxScale, int tolerance) {
             super(x, y, width, height, Component.empty());
             this.elementId = elementId;
+            this.maxScale = maxScale;
+            this.tolerance = tolerance;
         }
 
+        @SuppressWarnings("null")
         @Override
         protected void renderWidget(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
             RenderSystem.enableBlend();
@@ -320,10 +329,16 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
             // 2. 如果是范围模式，绘制范围指示器
             if (!isPrecise) {
                 int rangeW = 10;
-                int rangeH = 24;
+                // 计算显示范围高度比例: (tolerance * 2 * 2) / maxScale
+                float rangeRatio = (tolerance * 2.0f * 2.0f) / (float)maxScale;
+                int rangeH = (int)(rangeRatio * trackHeight);
+                rangeH = Math.max(4, Math.min(rangeH, trackHeight)); 
+
                 int rangeX = trackCenter - rangeW / 2;
                 int rangeY = handleY - rangeH / 2;
-                rangeY = Mth.clamp(rangeY, trackTop, trackBottom - rangeH);
+                if (rangeY < trackTop) rangeY = trackTop;
+                if (rangeY + rangeH > trackBottom) rangeY = trackBottom - rangeH;
+
                 guiGraphics.blit(TEXTURE_0, rangeX, rangeY, rangeW, rangeH, 0, 388, 54, 127, 85, 555);
             } else {
                 // 3. 仅在精确模式下绘制滑块游标
@@ -383,8 +398,9 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
                      if (isPrecise) {
                          valueText = Component.literal(String.valueOf(val));
                      } else {
-                         int min = Math.max(0, val - 15);
-                         int max = Math.min(100, val + 15);
+                         int t = tolerance * 2;
+                         int min = Math.max(0, val - t);
+                         int max = Math.min(maxScale, val + t);
                          valueText = Component.literal(min + " - " + max);
                      }
                      guiGraphics.renderTooltip(font, valueText, mouseX, mouseY);
@@ -433,7 +449,7 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         }
 
         public int getValueInt() {
-            return (int) (this.value * 100);
+            return (int) (this.value * maxScale);
         }
 
         @Override

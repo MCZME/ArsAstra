@@ -6,6 +6,7 @@ import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.menu.AnalysisDeskMenu;
 import com.github.mczme.arsastra.network.AANetwork;
 import com.github.mczme.arsastra.network.payload.AnalysisActionPayload;
+import com.github.mczme.arsastra.network.payload.AnalysisResultPayload;
 import com.github.mczme.arsastra.registry.AAAttachments;
 import com.github.mczme.arsastra.registry.AABlockEntities;
 import net.minecraft.core.BlockPos;
@@ -25,6 +26,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.neoforged.neoforge.items.ItemStackHandler;
+import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -172,18 +174,24 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
 
         PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
         if (knowledge.hasAnalyzed(stack.getItem())) {
-            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.already_known"), true);
+            if (player instanceof ServerPlayer sp) {
+                PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.already_known"), true));
+            }
             return;
         }
 
         Optional<ElementProfile> profile = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
         if (profile.isEmpty()) {
-            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.no_elements"), true);
+            if (player instanceof ServerPlayer sp) {
+                PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.no_elements"), true));
+            }
             return;
         }
 
         if (player.experienceLevel < SCHOLAR_XP_COST_LEVELS && !player.isCreative()) {
-            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.not_enough_xp"), true);
+            if (player instanceof ServerPlayer sp) {
+                PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.not_enough_xp"), true));
+            }
             return;
         }
 
@@ -194,9 +202,9 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
         knowledge.analyzeItem(stack.getItem());
         if (player instanceof ServerPlayer sp) {
             AANetwork.sendToPlayer(sp);
+            PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.success"), false));
         }
-
-        player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.success"), true);
+        
         resetResearch();
     }
 
@@ -208,13 +216,17 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
 
         PlayerKnowledge knowledge = player.getData(AAAttachments.PLAYER_KNOWLEDGE);
         if (knowledge.hasAnalyzed(stack.getItem())) {
-            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.already_known"), true);
+            if (player instanceof ServerPlayer sp) {
+                PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.already_known"), true));
+            }
             return;
         }
 
         Optional<ElementProfile> profile = ElementProfileManager.getInstance().getElementProfile(stack.getItem());
         if (profile.isEmpty()) {
-            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.no_elements"), true);
+            if (player instanceof ServerPlayer sp) {
+                PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.no_elements"), true));
+            }
             return;
         }
 
@@ -275,9 +287,8 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             knowledge.analyzeItem(stack.getItem());
             if (player instanceof ServerPlayer sp) {
                 AANetwork.sendToPlayer(sp);
+                PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.success_intuition"), false));
             }
-
-            player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.success_intuition"), true);
             
             float avgMult = totalXpMultiplier / Math.max(1, elementCount);
             int reward = Math.round(XP_REWARD_BASE * avgMult * 2);
@@ -288,10 +299,14 @@ public class AnalysisDeskBlockEntity extends BlockEntity implements MenuProvider
             this.guessesRemaining--;
             if (this.guessesRemaining <= 0) {
                 itemHandler.setStackInSlot(0, ItemStack.EMPTY);
-                player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.failure_destroyed"), true);
+                if (player instanceof ServerPlayer sp) {
+                    PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.failure_destroyed"), true));
+                }
                 resetResearch();
             } else {
-                player.displayClientMessage(Component.translatable("gui.ars_astra.analysis.guess_wrong", guessesRemaining), true);
+                if (player instanceof ServerPlayer sp) {
+                    PacketDistributor.sendToPlayer(sp, new AnalysisResultPayload(Component.translatable("gui.ars_astra.analysis.guess_wrong", guessesRemaining), true));
+                }
             }
             this.setChanged();
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);

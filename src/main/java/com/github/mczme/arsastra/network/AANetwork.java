@@ -72,6 +72,20 @@ public class AANetwork {
                 }
         );
 
+        registrar.playToClient(
+                AnalysisResultPayload.TYPE,
+                AnalysisResultPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    context.enqueueWork(() -> {
+                        if (Minecraft.getInstance().screen instanceof com.github.mczme.arsastra.client.gui.AnalysisDeskScreen screen) {
+                            screen.showStatusMessage(payload.message(), payload.isError());
+                        } else {
+                            context.player().displayClientMessage(payload.message(), true);
+                        }
+                    });
+                }
+        );
+
         registrar.playToServer(
                 RequestDeductionPayload.TYPE,
                 RequestDeductionPayload.STREAM_CODEC,

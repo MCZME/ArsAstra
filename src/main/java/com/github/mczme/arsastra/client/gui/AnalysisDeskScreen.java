@@ -41,11 +41,22 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
 
     private boolean wasResearching = false;
     private ItemStack lastStack = ItemStack.EMPTY;
+    
+    // 状态消息相关
+    private Component statusMessage = null;
+    private long statusMessageTime = 0;
+    private boolean statusMessageIsError = false;
 
     public AnalysisDeskScreen(AnalysisDeskMenu menu, Inventory inventory, Component title) {
         super(menu, inventory, title);
         this.imageWidth = 176;
         this.imageHeight = 202;
+    }
+    
+    public void showStatusMessage(Component message, boolean isError) {
+        this.statusMessage = message;
+        this.statusMessageIsError = isError;
+        this.statusMessageTime = System.currentTimeMillis();
     }
 
     @Override
@@ -156,12 +167,54 @@ public class AnalysisDeskScreen extends AbstractContainerScreen<AnalysisDeskMenu
         renderFeedbackIcons(guiGraphics);
 
         renderTooltip(guiGraphics, mouseX, mouseY);
+        
+        renderStatusMessage(guiGraphics);
+    }
+    
+    private void renderStatusMessage(GuiGraphics guiGraphics) {
+        if (statusMessage == null) return;
+        
+        long elapsed = System.currentTimeMillis() - statusMessageTime;
+        if (elapsed > 3000) {
+            statusMessage = null;
+            return;
+        }
+        
+        float alpha = 1.0f;
+        if (elapsed > 2500) {
+            alpha = 1.0f - (elapsed - 2500) / 500.0f;
+        }
+        
+        int alphaInt = (int) (alpha * 255);
+        if (alphaInt <= 0) return;
+        
+        int bgColor = (alphaInt << 24) | 0x000000;
+        int textColor = (alphaInt << 24) | (statusMessageIsError ? 0xFF5555 : 0x55FF55);
+        
+        int textWidth = font.width(statusMessage);
+        int centerX = this.leftPos + this.imageWidth / 2;
+        int centerY = this.topPos + this.imageHeight - 20; // 底部上方
+        
+        int padding = 4;
+        
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(0, 0, 500); // 最上层
+        
+        // 背景
+        guiGraphics.fill(centerX - textWidth / 2 - padding, centerY - padding, 
+                         centerX + textWidth / 2 + padding, centerY + 9 + padding, 
+                         bgColor);
+                         
+        // 文字
+        guiGraphics.drawString(font, statusMessage, centerX - textWidth / 2, centerY, textColor, false);
+        
+        guiGraphics.pose().popPose();
     }
 
     private void renderFeedbackIcons(GuiGraphics guiGraphics) {
         AnalysisDeskBlockEntity be = this.menu.blockEntity;
         if (be.isResearching()) {
-            guiGraphics.drawString(this.font, Component.translatable("gui.ars_astra.analysis.guesses_left", be.getGuessesRemaining()), this.leftPos + 10, this.topPos + 100, 0xFF5555, false);
+            guiGraphics.drawString(this.font, Component.translatable("gui.ars_astra.analysis.guesses_left", be.getGuessesRemaining()), this.leftPos + 48, this.topPos, 0xFF5555, false);
 
             Map<ResourceLocation, Integer> feedback = be.getLastFeedback();
             for (VerticalElementSlider slider : sliders) {

@@ -14,6 +14,11 @@ public class AABlocks {
     public static final DeferredBlock<AnalysisDeskBlock> ANALYSIS_DESK = BLOCKS.register("analysis_desk",
             () -> new AnalysisDeskBlock(BlockBehaviour.Properties.ofFullCopy(Blocks.OAK_PLANKS).strength(2.5f).noOcclusion()));
 
+    public static final DeferredBlock<com.github.mczme.arsastra.block.CopperTunBlock> COPPER_TUN = BLOCKS.register("copper_tun",
+            () -> new com.github.mczme.arsastra.block.CopperTunBlock(BlockBehaviour.Properties.of()
+                    .mapColor(net.minecraft.world.level.material.MapColor.COLOR_ORANGE)
+                    .strength(3.0f).sound(net.minecraft.world.level.block.SoundType.COPPER).noOcclusion()));
+
     public static void register(IEventBus eventBus) {
         BLOCKS.register(eventBus);
     }

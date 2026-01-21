@@ -26,6 +26,7 @@ public class ZH_CN extends LanguageProvider  {
 
         // 方块
         addBlock(AABlocks.ANALYSIS_DESK, "分析台");
+        addBlock(AABlocks.COPPER_TUN, "铜釜");
 
         // GUI 文本
         add("gui.ars_astra.journal.tab.compendium", "要素典籍");

@@ -13,6 +13,6 @@ public class AAItemModelProvider extends ItemModelProvider {
     @Override
     protected void registerModels() {
         withExistingParent("analysis_desk", modLoc("block/analysis_desk"));
-
+        withExistingParent("copper_tun", modLoc("block/copper_tun"));
     }
 }

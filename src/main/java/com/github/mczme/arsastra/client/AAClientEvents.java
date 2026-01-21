@@ -54,6 +54,7 @@ public class AAClientEvents {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(AABlockEntities.ANALYSIS_DESK.get(), AnalysisDeskRenderer::new);
+        event.registerBlockEntityRenderer(AABlockEntities.COPPER_TUN.get(), com.github.mczme.arsastra.client.renderer.CopperTunRenderer::new);
     }
 
     @SubscribeEvent

@@ -16,6 +16,7 @@ public class AABlockLootSubProvider extends BlockLootSubProvider {
     @Override
     protected void generate() {
         dropSelf(AABlocks.ANALYSIS_DESK.get());
+        dropSelf(AABlocks.COPPER_TUN.get());
     }
 
     @Override

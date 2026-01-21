@@ -14,5 +14,8 @@ public class AABlockStateProvider extends BlockStateProvider {
     @Override
     protected void registerStatesAndModels() {
         horizontalBlock(AABlocks.ANALYSIS_DESK.get(), models().getExistingFile(modLoc("block/analysis_desk")));
+
+        simpleBlock(AABlocks.COPPER_TUN.get(), models().getBuilder("copper_tun")
+                .texture("particle", "minecraft:block/copper_block"));
     }
 }

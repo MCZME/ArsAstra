@@ -16,6 +16,10 @@ public class AABlockEntities {
             BLOCK_ENTITIES.register("analysis_desk",
                     () -> BlockEntityType.Builder.of(AnalysisDeskBlockEntity::new, AABlocks.ANALYSIS_DESK.get()).build(null));
 
+    public static final Supplier<BlockEntityType<com.github.mczme.arsastra.block.entity.CopperTunBlockEntity>> COPPER_TUN =
+            BLOCK_ENTITIES.register("copper_tun",
+                    () -> BlockEntityType.Builder.of(com.github.mczme.arsastra.block.entity.CopperTunBlockEntity::new, AABlocks.COPPER_TUN.get()).build(null));
+
     public static void register(IEventBus eventBus) {
         BLOCK_ENTITIES.register(eventBus);
     }

@@ -24,6 +24,9 @@ public class AAItems {
     public static final Supplier<Item> ANALYSIS_DESK = register("analysis_desk",
             () -> new BlockItem(AABlocks.ANALYSIS_DESK.get(), new Item.Properties()));
 
+    public static final Supplier<Item> COPPER_TUN = register("copper_tun",
+            () -> new BlockItem(AABlocks.COPPER_TUN.get(), new Item.Properties()));
+
     private static Supplier<Item> register(String name, Supplier<Item> supplier) {
         Supplier<Item> registeredItem = ITEMS.register(name, supplier);
         CREATIVE_TAB_ITEMS.add(registeredItem);

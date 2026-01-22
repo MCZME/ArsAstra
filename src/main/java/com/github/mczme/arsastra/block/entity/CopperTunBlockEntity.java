@@ -16,12 +16,14 @@ import net.minecraft.world.phys.AABB;
 import software.bernie.geckolib.animatable.GeoBlockEntity;
 import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.animation.AnimatableManager;
+import software.bernie.geckolib.animation.AnimationController;
+import software.bernie.geckolib.animation.RawAnimation;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
 import java.util.List;
 
 public class CopperTunBlockEntity extends BlockEntity implements GeoBlockEntity {
-    private static final software.bernie.geckolib.animation.RawAnimation IDLE_ANIM = software.bernie.geckolib.animation.RawAnimation.begin().thenLoop("animation.copper_tun.idle");
+    private static final RawAnimation IDLE_ANIM = RawAnimation.begin().thenLoop("animation.copper_tun.idle");
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
 
     public CopperTunBlockEntity(BlockPos pos, BlockState state) {
@@ -29,7 +31,7 @@ public class CopperTunBlockEntity extends BlockEntity implements GeoBlockEntity 
     }
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, CopperTunBlockEntity entity) {
-        // 1. Heat Check (MVP: check every tick)
+        // 1. 热源检查（MVP 阶段：每个 tick 都检查）
         if (checkHeat(level, pos.below())) {
             handleItemInput(level, pos, entity);
         }
@@ -44,7 +46,7 @@ public class CopperTunBlockEntity extends BlockEntity implements GeoBlockEntity 
     }
 
     private static void handleItemInput(Level level, BlockPos pos, CopperTunBlockEntity entity) {
-        // Capture area: Inside the tun
+        // 捕获范围：釜内空间
         AABB captureArea = new AABB(pos.getX() + 0.2, pos.getY() + 0.2, pos.getZ() + 0.2,
                                     pos.getX() + 0.8, pos.getY() + 1.0, pos.getZ() + 0.8);
 
@@ -56,25 +58,25 @@ public class CopperTunBlockEntity extends BlockEntity implements GeoBlockEntity 
             ItemStack stack = itemEntity.getItem();
             int count = stack.getCount();
 
-            // Log for debug
-            ArsAstra.LOGGER.info("Copper Tun absorbed {} x {}", count, stack.getHoverName().getString());
+            // 调试日志输出
+            ArsAstra.LOGGER.info("铜釜吸入了 {} x {}", count, stack.getHoverName().getString());
 
-            // Placeholder for Alchemy Logic: Process stack one by one
+            // 炼金逻辑占位：逐个处理物品堆叠
             for (int i = 0; i < count; i++) {
-                // TODO: Add alchemy logic here
+                // TODO: 在此处添加炼金处理逻辑
             }
 
-            // Visual/Audio Feedback
+            // 视觉与音频反馈
             level.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 0.2f, 1.0f);
             
-            // Consume item
+            // 消耗物品
             itemEntity.discard();
         }
     }
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new software.bernie.geckolib.animation.AnimationController<>(this, "controller", 0, 
+        controllers.add(new AnimationController<>(this, "controller", 0, 
             state -> state.setAndContinue(IDLE_ANIM)));
     }
 

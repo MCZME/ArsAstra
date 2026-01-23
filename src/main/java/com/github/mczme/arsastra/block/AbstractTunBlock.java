@@ -19,6 +19,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.core.Direction;
+import net.minecraft.world.Containers;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -42,6 +43,19 @@ public abstract class AbstractTunBlock extends BaseEntityBlock {
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         return this.defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean isMoving) {
+        if (!state.is(newState.getBlock())) {
+            BlockEntity blockEntity = level.getBlockEntity(pos);
+            if (blockEntity instanceof AbstractTunBlockEntity tun) {
+                if (!tun.getStirringStick().isEmpty()) {
+                    Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), tun.getStirringStick());
+                }
+            }
+            super.onRemove(state, level, pos, newState, isMoving);
+        }
     }
 
     @Override

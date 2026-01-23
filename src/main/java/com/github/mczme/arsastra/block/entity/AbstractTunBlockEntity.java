@@ -46,14 +46,37 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     protected StarChartContext context;
     protected final StarChartEngine engine = new StarChartEngineImpl();
 
+    // 搅拌状态
+    protected ItemStack stirringStick = ItemStack.EMPTY;
+    protected float stirProgress = 0.0f; // 0.0 - 1.0 (动画插值)
+    protected boolean isStirring = false;
+    protected boolean isStirringClockwise = true;
+
     // 性能优化状态
     protected boolean isHeated = false;
     protected int activeTimer = 0; // 活跃状态计时器 (ticks)
+    
+    // 客户端渲染状态 (不序列化)
+    public float clientStirAnim = 0;
 
     public AbstractTunBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         this.context = new StarChartContext(Collections.emptyList(), StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap());
     }
+
+    // --- Getter / Setter ---
+    
+    public ItemStack getStirringStick() { return stirringStick; }
+    public void setStirringStick(ItemStack stick) { this.stirringStick = stick; }
+    
+    public float getStirProgress() { return stirProgress; }
+    public void setStirProgress(float progress) { this.stirProgress = progress; }
+    
+    public boolean isStirring() { return isStirring; }
+    public void setStirring(boolean stirring) { this.isStirring = stirring; }
+    
+    public boolean isStirringClockwise() { return isStirringClockwise; }
+    public void setStirringClockwise(boolean clockwise) { this.isStirringClockwise = clockwise; }
 
     // --- 各等级特有属性的抽象方法 ---
     
@@ -79,6 +102,18 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         // 1. 每 20 ticks 检查一次热源，结果缓存到 isHeated
         if (level.getGameTime() % 20 == 0) {
             entity.isHeated = entity.checkHeat(level, pos.below());
+        }
+        
+        // 搅拌动画逻辑 (不受热源影响，只要有操作就播放)
+        if (entity.isStirring()) {
+            float speed = 0.05f; // 20 tick (1秒) 完成
+            entity.stirProgress += speed;
+            if (entity.stirProgress >= 1.0f) {
+                entity.stirProgress = 0.0f;
+                entity.isStirring = false;
+                entity.setChanged();
+                entity.sync();
+            }
         }
 
         // 无热源时不处理任何物品吸入
@@ -232,6 +267,13 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         tag.putString("FluidType", fluidType.toString());
         tag.putInt("FluidLevel", fluidLevel);
         
+        if (!stirringStick.isEmpty()) {
+            tag.put("StirringStick", stirringStick.save(registries));
+        }
+        tag.putFloat("StirProgress", stirProgress);
+        tag.putBoolean("IsStirring", isStirring);
+        tag.putBoolean("StirClockwise", isStirringClockwise);
+        
         ListTag inputsTag = new ListTag();
         for (AlchemyInput input : context.inputs()) {
             AlchemyInput.CODEC.encodeStart(NbtOps.INSTANCE, input)
@@ -250,6 +292,15 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         if (tag.contains("FluidLevel")) {
             this.fluidLevel = tag.getInt("FluidLevel");
         }
+        
+        if (tag.contains("StirringStick")) {
+            this.stirringStick = ItemStack.parse(registries, tag.getCompound("StirringStick")).orElse(ItemStack.EMPTY);
+        } else {
+            this.stirringStick = ItemStack.EMPTY;
+        }
+        this.stirProgress = tag.getFloat("StirProgress");
+        this.isStirring = tag.getBoolean("IsStirring");
+        this.isStirringClockwise = tag.getBoolean("StirClockwise");
         
         List<AlchemyInput> loadedInputs = new ArrayList<>();
         if (tag.contains("Inputs", Tag.TAG_LIST)) {
@@ -293,6 +344,12 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     public ResourceLocation getFluidType() { return fluidType; }
 
     public static void clientTick(Level level, BlockPos pos, BlockState state, AbstractTunBlockEntity entity) {
+        if (entity.isStirring) {
+            entity.clientStirAnim += 1.0f;
+        } else {
+            entity.clientStirAnim = 0;
+        }
+        
         if (entity.fluidLevel <= 0) return;
 
         float stability = entity.context.stability();

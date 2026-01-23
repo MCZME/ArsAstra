@@ -30,10 +30,49 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
     public void render(CopperTunBlockEntity animatable, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
         super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay);
 
-        // 渲染液面
+        // 渲染搅拌棒 (先渲染实体)
+        renderStirringStick(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay);
+
+        // 渲染液面 (后渲染半透明)
         if (animatable.getFluidLevel() > 0) {
             renderFluid(animatable, poseStack, bufferSource, packedLight);
         }
+    }
+
+    private void renderStirringStick(CopperTunBlockEntity entity, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+        net.minecraft.world.item.ItemStack stick = entity.getStirringStick();
+        if (stick.isEmpty()) return;
+
+        poseStack.pushPose();
+
+        // 1. 基础定位：釜口中心上方
+        poseStack.translate(0.5, 0.7, 0.5);
+
+        // 2. 搅拌动画 (公转)
+        float angle = 0;
+        if (entity.isStirring()) {
+             // 速度: 1圈/20ticks
+             float time = entity.clientStirAnim + partialTick;
+             angle = time * 18.0f;
+             if (!entity.isStirringClockwise()) angle = -angle;
+        }
+        
+        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));
+
+        // 3. 偏心 (绕着 Y 轴旋转后，向 Z 轴平移，实现公转)
+        poseStack.translate(0, -0.1, 0.18); 
+
+        // 4. 自身姿态 (翻转并倾斜插入)
+        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(100)); // 修复头朝下的问题
+        poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-20)); // 向外倾斜
+        poseStack.scale(1.2f, 1.2f, 1.2f);
+
+        // 5. 渲染物品 (强制立即绘制以确保深度顺序)
+        MultiBufferSource.BufferSource immediate = Minecraft.getInstance().renderBuffers().bufferSource();
+        Minecraft.getInstance().getItemRenderer().renderStatic(stick, net.minecraft.world.item.ItemDisplayContext.FIXED, light, overlay, poseStack, immediate, entity.getLevel(), 0);
+        immediate.endBatch();
+
+        poseStack.popPose();
     }
 
     /**

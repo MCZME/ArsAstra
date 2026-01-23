@@ -20,5 +20,11 @@ public class AABlockTagsProvider extends BlockTagsProvider {
     protected void addTags(HolderLookup.Provider pProvider) {
         tag(BlockTags.MINEABLE_WITH_AXE)
                 .add(AABlocks.ANALYSIS_DESK.get());
+
+        tag(BlockTags.MINEABLE_WITH_PICKAXE)
+                .add(AABlocks.COPPER_TUN.get());
+
+        tag(BlockTags.NEEDS_STONE_TOOL)
+                .add(AABlocks.COPPER_TUN.get());
     }
 }

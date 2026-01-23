@@ -42,8 +42,8 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
     private void renderFluid(CopperTunBlockEntity entity, PoseStack poseStack, MultiBufferSource buffer, int light) {
         poseStack.pushPose();
 
-        // 计算高度
-        float y = 0.2f + (entity.getFluidLevel() * 0.25f);
+        // 计算高度 (下移 2 个像素, 1 像素 = 0.0625f)
+        float y = 0.2f + (entity.getFluidLevel() * 0.25f) - 0.125f;
         
         // 确定颜色
         int color = 0xFF3F76E4; // 默认水色
@@ -82,8 +82,8 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
         VertexConsumer vertexConsumer = buffer.getBuffer(RenderType.translucent());
         Matrix4f matrix = poseStack.last().pose();
 
-        float min = 0.15f;
-        float max = 0.85f;
+        float min = 0.125f;
+        float max = 0.875f;
 
         // 使用 Sprite 的 UV 坐标
         vertexConsumer.addVertex(matrix, min, y, min).setColor(r, g, b, a).setUv(sprite.getU0(), sprite.getV0()).setLight(light).setNormal(0, 1, 0);

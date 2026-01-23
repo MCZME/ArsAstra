@@ -8,6 +8,7 @@ import com.github.mczme.arsastra.core.starchart.engine.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -242,7 +243,6 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     }
 
     protected void computeContext(List<AlchemyInput> inputs) {
-        Optional<StarChart> chartOpt = StarChartManager.getInstance().getStarChart(fluidType); 
         ResourceLocation chartId = fluidType.getPath().equals("water") 
                 ? ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "base_chart") 
                 : fluidType;
@@ -354,35 +354,38 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         double surfaceY = pos.getY() + 0.2 + (entity.fluidLevel * 0.25);
 
         // 基础循环：根据稳定度决定粒子密度
-        // 稳定度越低，粒子产生的概率越高
-        float particleChance = 0.1f + (1.0f - stability) * 0.4f;
+        // 稳定度越低，粒子产生的概率越高 (0.02 - 0.3)
+        float particleChance = 0.02f + (1.0f - stability) * 0.28f;
 
         if (random < particleChance) {
             double px = pos.getX() + 0.2 + level.random.nextDouble() * 0.6;
             double pz = pos.getZ() + 0.2 + level.random.nextDouble() * 0.6;
 
             if (stability > 0.8f) {
-                // 高稳定：金色微光
-                level.addParticle(net.minecraft.core.particles.ParticleTypes.END_ROD, px, surfaceY, pz, 0, 0.01, 0);
+                // 高稳定：金色微光 (极其稀疏)
+                level.addParticle(ParticleTypes.END_ROD, px, surfaceY, pz, 0, 0.005, 0);
             } else if (stability > 0.4f) {
                 // 中稳定：正常气泡
-                level.addParticle(net.minecraft.core.particles.ParticleTypes.BUBBLE, px, surfaceY, pz, 0, 0.02, 0);
+                level.addParticle(ParticleTypes.BUBBLE, px, surfaceY, pz, 0, 0.01, 0);
             } else if (stability > 0.2f) {
                 // 低稳定：飞溅水花
-                level.addParticle(net.minecraft.core.particles.ParticleTypes.SPLASH, px, surfaceY, pz, 0, 0.1, 0);
+                level.addParticle(ParticleTypes.SPLASH, px, surfaceY, pz, 0, 0.1, 0);
             } else {
                 // 临界：黑烟与愤怒粒子
-                level.addParticle(net.minecraft.core.particles.ParticleTypes.SMOKE, px, surfaceY, pz, 0, 0.05, 0);
+                level.addParticle(ParticleTypes.SMOKE, px, surfaceY, pz, 0, 0.05, 0);
                 if (level.random.nextFloat() < 0.3f) {
-                    level.addParticle(net.minecraft.core.particles.ParticleTypes.ANGRY_VILLAGER, px, surfaceY + 0.2, pz, 0, 0, 0);
+                    level.addParticle(ParticleTypes.ANGRY_VILLAGER, px, surfaceY + 0.2, pz, 0, 0, 0);
                 }
             }
         }
 
         // 听觉反馈：随着稳定度降低，播放音效的频率增加
-        if (level.getGameTime() % (Math.max(2, (int)(stability * 40))) == 0) {
-             float pitch = 0.5f + (1.0f - stability); // 稳定度越低，音调越高
-             level.playLocalSound(pos, SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundSource.BLOCKS, 0.2f, pitch, false);
+        // 高稳定 (>0.8): 80 tick (4s)
+        // 临界 (0.0): 10 tick (0.5s)
+        int soundInterval = (int) (10 + stability * 70);
+        if (level.getGameTime() % soundInterval == 0) {
+             float pitch = 0.8f + (1.0f - stability) * 0.5f; // 稳定度越低，音调越高 (0.8 ~ 1.3)
+             level.playLocalSound(pos, SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundSource.BLOCKS, 0.15f, pitch, false);
         }
     }
 

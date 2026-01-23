@@ -1,0 +1,297 @@
+package com.github.mczme.arsastra.block.entity;
+
+import com.github.mczme.arsastra.ArsAstra;
+import com.github.mczme.arsastra.core.starchart.EffectField;
+import com.github.mczme.arsastra.core.starchart.StarChart;
+import com.github.mczme.arsastra.core.starchart.StarChartManager;
+import com.github.mczme.arsastra.core.starchart.engine.*;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUtils;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
+import software.bernie.geckolib.animatable.GeoBlockEntity;
+import software.bernie.geckolib.animatable.instance.AnimatableInstanceCache;
+import software.bernie.geckolib.util.GeckoLibUtil;
+
+import java.util.*;
+
+@SuppressWarnings("null")
+public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoBlockEntity {
+    private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
+
+    // 状态
+    protected ResourceLocation fluidType = ResourceLocation.withDefaultNamespace("water");
+    protected int fluidLevel = 0; // 0-3
+    protected StarChartContext context;
+    protected final StarChartEngine engine = new StarChartEngineImpl();
+
+    public AbstractTunBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
+        this.context = new StarChartContext(Collections.emptyList(), StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap());
+    }
+
+    // --- 各等级特有属性的抽象方法 ---
+    
+    /**
+     * @return 该等级釜的最大投入物品数量 (例如：铜釜为 8)
+     */
+    public abstract int getMaxInputCount();
+
+    /**
+     * @param fluid 流体类型 ID
+     * @return 该流体是否可作为此釜的基底
+     */
+    public abstract boolean isFluidValid(ResourceLocation fluid);
+
+    // --- 逻辑实现 ---
+
+    public static void serverTick(Level level, BlockPos pos, BlockState state, AbstractTunBlockEntity entity) {
+        // 热源检查
+        if (entity.checkHeat(level, pos.below())) {
+            entity.handleItemInput(level, pos);
+        }
+    }
+
+    protected boolean checkHeat(Level level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return state.is(BlockTags.CAMPFIRES)
+                || state.is(BlockTags.FIRE)
+                || state.is(Blocks.LAVA)
+                || state.is(Blocks.MAGMA_BLOCK);
+    }
+
+    protected void handleItemInput(Level level, BlockPos pos) {
+        if (this.fluidLevel <= 0) return;
+
+        // 捕获范围：釜内液体上方的空间
+        AABB captureArea = new AABB(pos.getX() + 0.2, pos.getY() + 0.2, pos.getZ() + 0.2,
+                                    pos.getX() + 0.8, pos.getY() + 1.0, pos.getZ() + 0.8);
+
+        List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, captureArea);
+        boolean changed = false;
+
+        for (ItemEntity itemEntity : items) {
+            if (!itemEntity.isAlive()) continue;
+
+            ItemStack stack = itemEntity.getItem();
+            int count = stack.getCount();
+            int currentInputCount = this.context.inputs().size();
+
+            // 检查容量限制
+            if (currentInputCount >= getMaxInputCount()) {
+                continue; 
+            }
+
+            // 计算实际可吸收的数量
+            int toTake = Math.min(count, getMaxInputCount() - currentInputCount);
+            if (toTake <= 0) continue;
+
+            List<AlchemyInput> newInputs = new ArrayList<>(this.context.inputs());
+            for (int i = 0; i < toTake; i++) {
+                newInputs.add(AlchemyInput.of(stack.copy().split(1)));
+            }
+
+            // 更新物品实体状态
+            if (count == toTake) {
+                itemEntity.discard();
+            } else {
+                stack.shrink(toTake);
+                itemEntity.setItem(stack);
+            }
+
+            computeContext(newInputs);
+            changed = true;
+            level.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 0.2f, 1.0f);
+        }
+
+        if (changed) {
+            setChanged();
+            sync();
+        }
+    }
+
+    public InteractionResult onUse(Player player, InteractionHand hand) {
+        ItemStack heldItem = player.getItemInHand(hand);
+
+        // 1. 使用水桶填充 (当前仅支持水，未来将根据子类 isFluidValid 扩展)
+        if (heldItem.getItem() == Items.WATER_BUCKET && fluidLevel < 3) {
+            if (!isFluidValid(ResourceLocation.withDefaultNamespace("water"))) return InteractionResult.FAIL;
+            
+            player.setItemInHand(hand, ItemUtils.createFilledResult(heldItem, player, new ItemStack(Items.BUCKET)));
+            this.fluidLevel = 3;
+            this.fluidType = ResourceLocation.withDefaultNamespace("water");
+            resetContext();
+            this.setChanged();
+            this.sync();
+            this.level.playSound(null, this.worldPosition, SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 1.0f, 1.0f);
+            return InteractionResult.SUCCESS;
+        }
+
+        // 2. 使用空桶提取
+        if (heldItem.getItem() == Items.BUCKET && fluidLevel > 0) {
+            player.setItemInHand(hand, ItemUtils.createFilledResult(heldItem, player, new ItemStack(Items.WATER_BUCKET)));
+            this.fluidLevel = 0;
+            resetContext();
+            this.setChanged();
+            this.sync();
+            this.level.playSound(null, this.worldPosition, SoundEvents.BUCKET_FILL, SoundSource.BLOCKS, 1.0f, 1.0f);
+            return InteractionResult.SUCCESS;
+        }
+
+        // 3. 使用玻璃瓶提取产物
+        if (heldItem.getItem() == Items.GLASS_BOTTLE && fluidLevel > 0) {
+            ItemStack potionStack = new ItemStack(Items.POTION);
+            
+            // 根据预测效果构建药水内容
+            List<MobEffectInstance> effects = new ArrayList<>();
+            for (Map.Entry<EffectField, PotionData> entry : context.predictedEffects().entrySet()) {
+                 EffectField field = entry.getKey();
+                 PotionData data = entry.getValue();
+                 var effectHolder = BuiltInRegistries.MOB_EFFECT.getHolder(field.effect());
+                 effectHolder.ifPresent(holder -> 
+                     effects.add(new MobEffectInstance(holder, data.duration(), data.level()))
+                 );
+            }
+
+            potionStack.set(DataComponents.POTION_CONTENTS, new PotionContents(Optional.empty(), Optional.of(PotionContents.getColor(effects)), effects));
+            
+            player.setItemInHand(hand, ItemUtils.createFilledResult(heldItem, player, potionStack));
+            
+            this.fluidLevel--;
+            this.setChanged();
+            this.sync();
+            this.level.playSound(null, this.worldPosition, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0f, 1.0f);
+            return InteractionResult.SUCCESS;
+        }
+
+        return InteractionResult.PASS;
+    }
+    
+    protected void resetContext() {
+        this.context = new StarChartContext(Collections.emptyList(), StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap());
+    }
+
+    protected void computeContext(List<AlchemyInput> inputs) {
+        Optional<StarChart> chartOpt = StarChartManager.getInstance().getStarChart(fluidType); 
+        ResourceLocation chartId = fluidType.getPath().equals("water") 
+                ? ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "base_chart") 
+                : fluidType;
+
+        if (StarChartManager.getInstance().getStarChart(chartId).isPresent()) {
+            StarChart chart = StarChartManager.getInstance().getStarChart(chartId).get();
+            this.context = engine.compute(chart, new StarChartContext(inputs, StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap()));
+        } else {
+             this.context = new StarChartContext(inputs, StarChartRoute.EMPTY, Collections.emptyList(), 0.0f, Collections.emptyMap());
+        }
+    }
+
+    // --- 数据持久化 ---
+
+    @Override
+    protected void saveAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.saveAdditional(tag, registries);
+        tag.putString("FluidType", fluidType.toString());
+        tag.putInt("FluidLevel", fluidLevel);
+        
+        ListTag inputsTag = new ListTag();
+        for (AlchemyInput input : context.inputs()) {
+            AlchemyInput.CODEC.encodeStart(NbtOps.INSTANCE, input)
+                    .resultOrPartial(ArsAstra.LOGGER::error)
+                    .ifPresent(inputsTag::add);
+        }
+        tag.put("Inputs", inputsTag);
+    }
+
+    @Override
+    public void loadAdditional(CompoundTag tag, HolderLookup.Provider registries) {
+        super.loadAdditional(tag, registries);
+        if (tag.contains("FluidType")) {
+            this.fluidType = ResourceLocation.parse(tag.getString("FluidType"));
+        }
+        if (tag.contains("FluidLevel")) {
+            this.fluidLevel = tag.getInt("FluidLevel");
+        }
+        
+        List<AlchemyInput> loadedInputs = new ArrayList<>();
+        if (tag.contains("Inputs", Tag.TAG_LIST)) {
+            ListTag inputsTag = tag.getList("Inputs", Tag.TAG_COMPOUND);
+            for (Tag t : inputsTag) {
+                AlchemyInput.CODEC.parse(NbtOps.INSTANCE, t)
+                        .resultOrPartial(ArsAstra.LOGGER::error)
+                        .ifPresent(loadedInputs::add);
+            }
+        }
+        computeContext(loadedInputs);
+    }
+
+    @Override
+    public CompoundTag getUpdateTag(HolderLookup.Provider registries) {
+        CompoundTag tag = new CompoundTag();
+        saveAdditional(tag, registries);
+        return tag;
+    }
+
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt, HolderLookup.Provider lookupProvider) {
+        loadAdditional(pkt.getTag(), lookupProvider);
+    }
+
+    protected void sync() {
+        if (level != null && !level.isClientSide) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
+    // --- Getter 方法与客户端逻辑 ---
+
+    public StarChartContext getContext() { return context; }
+    public int getFluidLevel() { return fluidLevel; }
+    public ResourceLocation getFluidType() { return fluidType; }
+
+    public static void clientTick(Level level, BlockPos pos, BlockState state, AbstractTunBlockEntity entity) {
+        if (entity.fluidLevel > 0 && level.random.nextFloat() < 0.1f) {
+            // 在液面产生基础气泡粒子
+            double x = pos.getX() + 0.3 + level.random.nextDouble() * 0.4;
+            double y = pos.getY() + 0.2 + (entity.fluidLevel * 0.25);
+            double z = pos.getZ() + 0.3 + level.random.nextDouble() * 0.4;
+            level.addParticle(net.minecraft.core.particles.ParticleTypes.BUBBLE, x, y, z, 0, 0.02, 0);
+        }
+    }
+
+    @Override
+    public AnimatableInstanceCache getAnimatableInstanceCache() {
+        return cache;
+    }
+}

@@ -26,6 +26,11 @@ public class CopperTunBlockEntity extends AbstractTunBlockEntity {
     }
 
     @Override
+    public float getStabilityCoefficient() {
+        return 1.0f; // Tier 1: 标准衰减
+    }
+
+    @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
         controllers.add(new AnimationController<>(this, "controller", 0, 
             state -> state.setAndContinue(IDLE_ANIM)));

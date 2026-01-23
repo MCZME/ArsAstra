@@ -74,6 +74,11 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
      */
     public abstract boolean isFluidValid(ResourceLocation fluid);
 
+    /**
+     * @return 该釜的稳定性衰减系数 (1.0 = Tier 1, 越小衰减越少)
+     */
+    public abstract float getStabilityCoefficient();
+
     // --- 逻辑实现 ---
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, AbstractTunBlockEntity entity) {
@@ -244,7 +249,7 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
 
         if (StarChartManager.getInstance().getStarChart(chartId).isPresent()) {
             StarChart chart = StarChartManager.getInstance().getStarChart(chartId).get();
-            this.context = engine.compute(chart, new StarChartContext(inputs, StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap()));
+            this.context = engine.compute(chart, new StarChartContext(inputs, StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap()), getStabilityCoefficient());
         } else {
              this.context = new StarChartContext(inputs, StarChartRoute.EMPTY, Collections.emptyList(), 0.0f, Collections.emptyMap());
         }

@@ -52,6 +52,10 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     protected StarChartContext context;
     protected final StarChartEngine engine = new StarChartEngineImpl();
 
+    // 性能优化状态
+    protected boolean isHeated = false;
+    protected int activeTimer = 0; // 活跃状态计时器 (ticks)
+
     public AbstractTunBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
         this.context = new StarChartContext(Collections.emptyList(), StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap());
@@ -73,9 +77,31 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     // --- 逻辑实现 ---
 
     public static void serverTick(Level level, BlockPos pos, BlockState state, AbstractTunBlockEntity entity) {
-        // 热源检查
-        if (entity.checkHeat(level, pos.below())) {
-            entity.handleItemInput(level, pos);
+        // 1. 每 20 ticks 检查一次热源，结果缓存到 isHeated
+        if (level.getGameTime() % 20 == 0) {
+            entity.isHeated = entity.checkHeat(level, pos.below());
+        }
+
+        // 无热源时不处理任何物品吸入
+        if (!entity.isHeated) return;
+
+        // 2. 自适应频率扫描物品
+        // 策略:
+        // - 活跃态 (activeTimer > 0): 每 2 ticks 扫描一次
+        // - 空闲态 (activeTimer == 0): 每 20 ticks 扫描一次
+        boolean shouldScan;
+        if (entity.activeTimer > 0) {
+            entity.activeTimer--;
+            shouldScan = level.getGameTime() % 2 == 0;
+        } else {
+            shouldScan = level.getGameTime() % 20 == 0;
+        }
+
+        if (shouldScan) {
+            if (entity.handleItemInput(level, pos)) {
+                // 发现物品，进入/维持活跃态 (持续 100 ticks = 5秒)
+                entity.activeTimer = 100;
+            }
         }
     }
 
@@ -87,18 +113,28 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
                 || state.is(Blocks.MAGMA_BLOCK);
     }
 
-    protected void handleItemInput(Level level, BlockPos pos) {
-        if (this.fluidLevel <= 0) return;
+    /**
+     * 处理物品吸入逻辑
+     * @return 如果在此次扫描中发现了任何有效的物品实体，返回 true
+     */
+    protected boolean handleItemInput(Level level, BlockPos pos) {
+        if (this.fluidLevel <= 0) return false;
 
         // 捕获范围：釜内液体上方的空间
         AABB captureArea = new AABB(pos.getX() + 0.2, pos.getY() + 0.2, pos.getZ() + 0.2,
                                     pos.getX() + 0.8, pos.getY() + 1.0, pos.getZ() + 0.8);
 
         List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, captureArea);
+        if (items.isEmpty()) return false;
+
         boolean changed = false;
+        boolean foundValidItem = false;
 
         for (ItemEntity itemEntity : items) {
             if (!itemEntity.isAlive()) continue;
+
+            // 只要发现活着的物品，就标记为发现有效物品，用于触发/维持活跃态
+            foundValidItem = true;
 
             ItemStack stack = itemEntity.getItem();
             int count = stack.getCount();
@@ -135,6 +171,8 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
             setChanged();
             sync();
         }
+        
+        return foundValidItem;
     }
 
     public InteractionResult onUse(Player player, InteractionHand hand) {

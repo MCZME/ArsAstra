@@ -8,10 +8,10 @@ import java.util.List;
  */
 public interface StabilityService {
     /**
-     * 计算当前物品组合的稳定性。
-     *
-     * @param inputs 投入的物品及参数列表
-     * @return 稳定性 (0.0 - 1.0)
+     * 计算当前的稳定度
+     * @param inputs 当前的输入列表
+     * @param decayCoefficient 容器的衰减系数 (1.0 = 标准衰减, 越小衰减越少)
+     * @return 稳定度 (0.0 - 1.0)
      */
-    float computeStability(List<AlchemyInput> inputs);
+    float computeStability(List<AlchemyInput> inputs, float decayCoefficient);
 }

@@ -36,10 +36,22 @@ public class DeductionServiceImpl implements DeductionService {
         // 3. 计算最终药水效果
         Map<EffectField, PotionData> predictedEffects = interactionService.calculateEffects(interactions);
 
-        // 4. 计算稳定性
-        float finalStability = stabilityService.computeStability(inputs);
+        // 4. 计算稳定性 (默认基准系数 1.0)
+        float finalStability = stabilityService.computeStability(inputs, 1.0f);
+        
+        // 5. 应用稳定性修正 (保持与 Engine 一致的预测逻辑)
+        Map<EffectField, PotionData> finalEffects = new java.util.HashMap<>();
+        for (Map.Entry<EffectField, PotionData> entry : predictedEffects.entrySet()) {
+            PotionData original = entry.getValue();
+            int newDuration = (int) (original.duration() * finalStability);
+            int newLevel = finalStability < 0.4f ? Math.max(0, original.level() - 1) : original.level();
+            
+            if (newDuration > 0) {
+                finalEffects.put(entry.getKey(), new PotionData(newLevel, newDuration));
+            }
+        }
 
-        return new DeductionResult(route, finalStability, predictedEffects);
+        return new DeductionResult(route, finalStability, finalEffects);
     }
 
     @Override

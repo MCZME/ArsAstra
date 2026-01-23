@@ -1,10 +1,13 @@
 package com.github.mczme.arsastra.registry;
 
 import com.github.mczme.arsastra.ArsAstra;
+import com.github.mczme.arsastra.item.GeckoLibBlockItem;
 import com.github.mczme.arsastra.item.StarChartJournalItem;
+import com.github.mczme.arsastra.item.StirringStickItem;
 
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Tiers;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import java.util.ArrayList;
@@ -25,10 +28,13 @@ public class AAItems {
             () -> new BlockItem(AABlocks.ANALYSIS_DESK.get(), new Item.Properties()));
 
     public static final Supplier<Item> COPPER_TUN = register("copper_tun",
-            () -> new com.github.mczme.arsastra.item.GeckoLibBlockItem(AABlocks.COPPER_TUN.get(), new Item.Properties(), "copper_tun"));
+            () -> new GeckoLibBlockItem(AABlocks.COPPER_TUN.get(), new Item.Properties(), "copper_tun"));
 
     public static final Supplier<Item> STIRRING_STICK = register("stirring_stick",
-            () -> new Item(new Item.Properties().stacksTo(1)));
+            () -> new StirringStickItem(new Item.Properties()
+                    .stacksTo(1)
+                    .durability(128)
+                    .attributes(StirringStickItem.createAttributes(Tiers.STONE, 2.5f, -2.4f))));
 
     private static Supplier<Item> register(String name, Supplier<Item> supplier) {
         Supplier<Item> registeredItem = ITEMS.register(name, supplier);

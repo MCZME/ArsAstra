@@ -27,6 +27,9 @@ public class AAItems {
     public static final Supplier<Item> COPPER_TUN = register("copper_tun",
             () -> new com.github.mczme.arsastra.item.GeckoLibBlockItem(AABlocks.COPPER_TUN.get(), new Item.Properties(), "copper_tun"));
 
+    public static final Supplier<Item> STIRRING_STICK = register("stirring_stick",
+            () -> new Item(new Item.Properties().stacksTo(1)));
+
     private static Supplier<Item> register(String name, Supplier<Item> supplier) {
         Supplier<Item> registeredItem = ITEMS.register(name, supplier);
         CREATIVE_TAB_ITEMS.add(registeredItem);

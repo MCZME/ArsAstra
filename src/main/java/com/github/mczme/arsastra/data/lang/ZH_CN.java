@@ -23,6 +23,7 @@ public class ZH_CN extends LanguageProvider  {
 
         // 物品
         addItem(AAItems.STAR_CHART_JOURNAL, "星图日志");
+        addItem(AAItems.STIRRING_STICK, "搅拌棒");
 
         // 方块
         addBlock(AABlocks.ANALYSIS_DESK, "分析台");

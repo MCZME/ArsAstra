@@ -1,15 +1,12 @@
 package com.github.mczme.arsastra.block.entity;
 
 import com.github.mczme.arsastra.ArsAstra;
-import com.github.mczme.arsastra.core.starchart.EffectField;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
-import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
@@ -24,13 +21,9 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUtils;
-import net.minecraft.world.item.Items;
-import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -182,67 +175,22 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     }
 
     public InteractionResult onUse(Player player, InteractionHand hand) {
-        ItemStack heldItem = player.getItemInHand(hand);
-
-        // 1. 使用水桶填充 (当前仅支持水，未来将根据子类 isFluidValid 扩展)
-        if (heldItem.getItem() == Items.WATER_BUCKET && fluidLevel < 3) {
-            if (!isFluidValid(ResourceLocation.withDefaultNamespace("water"))) return InteractionResult.FAIL;
-            
-            player.setItemInHand(hand, ItemUtils.createFilledResult(heldItem, player, new ItemStack(Items.BUCKET)));
-            this.fluidLevel = 3;
-            this.fluidType = ResourceLocation.withDefaultNamespace("water");
-            resetContext();
-            this.setChanged();
-            this.sync();
-            this.level.playSound(null, this.worldPosition, SoundEvents.BUCKET_EMPTY, SoundSource.BLOCKS, 1.0f, 1.0f);
-            return InteractionResult.SUCCESS;
-        }
-
-        // 2. 使用空桶提取
-        if (heldItem.getItem() == Items.BUCKET && fluidLevel > 0) {
-            player.setItemInHand(hand, ItemUtils.createFilledResult(heldItem, player, new ItemStack(Items.WATER_BUCKET)));
-            this.fluidLevel = 0;
-            resetContext();
-            this.setChanged();
-            this.sync();
-            this.level.playSound(null, this.worldPosition, SoundEvents.BUCKET_FILL, SoundSource.BLOCKS, 1.0f, 1.0f);
-            return InteractionResult.SUCCESS;
-        }
-
-        // 3. 使用玻璃瓶提取产物
-        if (heldItem.getItem() == Items.GLASS_BOTTLE && fluidLevel > 0) {
-            ItemStack potionStack = new ItemStack(Items.POTION);
-            
-            // 根据预测效果构建药水内容
-            List<MobEffectInstance> effects = new ArrayList<>();
-            for (Map.Entry<EffectField, PotionData> entry : context.predictedEffects().entrySet()) {
-                 EffectField field = entry.getKey();
-                 PotionData data = entry.getValue();
-                 var effectHolder = BuiltInRegistries.MOB_EFFECT.getHolder(field.effect());
-                 effectHolder.ifPresent(holder -> 
-                     effects.add(new MobEffectInstance(holder, data.duration(), data.level()))
-                 );
-            }
-
-            potionStack.set(DataComponents.POTION_CONTENTS, new PotionContents(Optional.empty(), Optional.of(PotionContents.getColor(effects)), effects));
-            
-            player.setItemInHand(hand, ItemUtils.createFilledResult(heldItem, player, potionStack));
-            
-            this.fluidLevel--;
-            this.setChanged();
-            this.sync();
-            this.level.playSound(null, this.worldPosition, SoundEvents.BOTTLE_FILL, SoundSource.BLOCKS, 1.0f, 1.0f);
-            return InteractionResult.SUCCESS;
-        }
-
-        return InteractionResult.PASS;
+        return com.github.mczme.arsastra.block.interaction.TunInteractions.handleInteraction(this, player, hand);
     }
     
-    protected void resetContext() {
+    public void setFluidLevel(int fluidLevel) {
+        this.fluidLevel = fluidLevel;
+    }
+
+    public void setFluidType(ResourceLocation fluidType) {
+        this.fluidType = fluidType;
+    }
+
+    public void resetContext() {
         this.context = new StarChartContext(Collections.emptyList(), StarChartRoute.EMPTY, Collections.emptyList(), 1.0f, Collections.emptyMap());
     }
 
-    protected void computeContext(List<AlchemyInput> inputs) {
+    public void computeContext(List<AlchemyInput> inputs) {
         ResourceLocation chartId = fluidType.getPath().equals("water") 
                 ? ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "base_chart") 
                 : fluidType;
@@ -332,7 +280,7 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         loadAdditional(pkt.getTag(), lookupProvider);
     }
 
-    protected void sync() {
+    public void sync() {
         if (level != null && !level.isClientSide) {
             level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
         }

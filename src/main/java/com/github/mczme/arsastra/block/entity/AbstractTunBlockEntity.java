@@ -253,6 +253,27 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         } else {
              this.context = new StarChartContext(inputs, StarChartRoute.EMPTY, Collections.emptyList(), 0.0f, Collections.emptyMap());
         }
+
+        // 检查炸锅逻辑：稳定度归零触发爆炸
+        if (this.context.stability() <= 0.0f && !inputs.isEmpty()) {
+            triggerExplosion();
+        }
+    }
+
+    protected void triggerExplosion() {
+        if (this.level == null) return;
+        
+        BlockPos pos = this.worldPosition;
+        // 1. 触发物理爆炸 (无方块破坏)
+        this.level.explode(null, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 2.0f, Level.ExplosionInteraction.NONE);
+        
+        // 2. 清空状态
+        this.fluidLevel = 0;
+        resetContext();
+        
+        // 3. 同步
+        this.setChanged();
+        this.sync();
     }
 
     // --- 数据持久化 ---
@@ -324,12 +345,44 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     public ResourceLocation getFluidType() { return fluidType; }
 
     public static void clientTick(Level level, BlockPos pos, BlockState state, AbstractTunBlockEntity entity) {
-        if (entity.fluidLevel > 0 && level.random.nextFloat() < 0.1f) {
-            // 在液面产生基础气泡粒子
-            double x = pos.getX() + 0.3 + level.random.nextDouble() * 0.4;
-            double y = pos.getY() + 0.2 + (entity.fluidLevel * 0.25);
-            double z = pos.getZ() + 0.3 + level.random.nextDouble() * 0.4;
-            level.addParticle(net.minecraft.core.particles.ParticleTypes.BUBBLE, x, y, z, 0, 0.02, 0);
+        if (entity.fluidLevel <= 0) return;
+
+        float stability = entity.context.stability();
+        float random = level.random.nextFloat();
+
+        // 计算液面高度
+        double surfaceY = pos.getY() + 0.2 + (entity.fluidLevel * 0.25);
+
+        // 基础循环：根据稳定度决定粒子密度
+        // 稳定度越低，粒子产生的概率越高
+        float particleChance = 0.1f + (1.0f - stability) * 0.4f;
+
+        if (random < particleChance) {
+            double px = pos.getX() + 0.2 + level.random.nextDouble() * 0.6;
+            double pz = pos.getZ() + 0.2 + level.random.nextDouble() * 0.6;
+
+            if (stability > 0.8f) {
+                // 高稳定：金色微光
+                level.addParticle(net.minecraft.core.particles.ParticleTypes.END_ROD, px, surfaceY, pz, 0, 0.01, 0);
+            } else if (stability > 0.4f) {
+                // 中稳定：正常气泡
+                level.addParticle(net.minecraft.core.particles.ParticleTypes.BUBBLE, px, surfaceY, pz, 0, 0.02, 0);
+            } else if (stability > 0.2f) {
+                // 低稳定：飞溅水花
+                level.addParticle(net.minecraft.core.particles.ParticleTypes.SPLASH, px, surfaceY, pz, 0, 0.1, 0);
+            } else {
+                // 临界：黑烟与愤怒粒子
+                level.addParticle(net.minecraft.core.particles.ParticleTypes.SMOKE, px, surfaceY, pz, 0, 0.05, 0);
+                if (level.random.nextFloat() < 0.3f) {
+                    level.addParticle(net.minecraft.core.particles.ParticleTypes.ANGRY_VILLAGER, px, surfaceY + 0.2, pz, 0, 0, 0);
+                }
+            }
+        }
+
+        // 听觉反馈：随着稳定度降低，播放音效的频率增加
+        if (level.getGameTime() % (Math.max(2, (int)(stability * 40))) == 0) {
+             float pitch = 0.5f + (1.0f - stability); // 稳定度越低，音调越高
+             level.playLocalSound(pos, SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundSource.BLOCKS, 0.2f, pitch, false);
         }
     }
 

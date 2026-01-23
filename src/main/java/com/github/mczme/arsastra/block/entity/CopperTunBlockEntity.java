@@ -10,6 +10,8 @@ import software.bernie.geckolib.animation.RawAnimation;
 
 public class CopperTunBlockEntity extends AbstractTunBlockEntity {
     private static final RawAnimation IDLE_ANIM = RawAnimation.begin().thenLoop("animation.copper_tun.idle");
+    private static final RawAnimation BOIL_MILD = RawAnimation.begin().thenLoop("animation.copper_tun.boil_mild");
+    private static final RawAnimation BOIL_INTENSE = RawAnimation.begin().thenLoop("animation.copper_tun.boil_intense");
 
     public CopperTunBlockEntity(BlockPos pos, BlockState state) {
         super(AABlockEntities.COPPER_TUN.get(), pos, state);
@@ -32,7 +34,20 @@ public class CopperTunBlockEntity extends AbstractTunBlockEntity {
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
-        controllers.add(new AnimationController<>(this, "controller", 0, 
-            state -> state.setAndContinue(IDLE_ANIM)));
+        controllers.add(new AnimationController<>(this, "controller", 5, state -> {
+            if (this.fluidLevel > 0) {
+                float stability = getContext().stability();
+                // 临界状态: 剧烈晃动
+                if (stability < 0.2f) {
+                    return state.setAndContinue(BOIL_INTENSE);
+                } 
+                // 低稳定状态: 轻微晃动
+                else if (stability < 0.4f) {
+                    return state.setAndContinue(BOIL_MILD);
+                }
+            }
+            // 正常或空载: 保持静止
+            return state.setAndContinue(IDLE_ANIM);
+        }));
     }
 }

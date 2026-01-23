@@ -73,5 +73,6 @@
   "gui.ars_astra.workshop.stability": "稳定性",
   "item.ars_astra.star_chart_journal": "星图日志",
   "item.ars_astra.stirring_stick": "搅拌棒",
+  "item.ars_astra.stirring_stick.desc": "用于在釜与坩埚中旋转",
   "itemGroup.ars_astra.ars_astra_tab": "星枢万象"
 }

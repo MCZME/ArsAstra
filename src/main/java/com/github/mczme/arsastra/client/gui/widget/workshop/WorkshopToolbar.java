@@ -71,6 +71,7 @@ public class WorkshopToolbar extends ToolbarWidget {
                 iconId,
                 System.currentTimeMillis(),
                 session.getStarChartId(),
+                session.getDecayFactor(),
                 inputs,
                 effectIds
             );

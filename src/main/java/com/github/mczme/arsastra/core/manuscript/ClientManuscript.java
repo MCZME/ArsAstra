@@ -18,6 +18,7 @@ public record ClientManuscript(
         String icon,
         long createdAt,
         ResourceLocation chart,
+        float decayFactor,
         List<AlchemyInput> inputs,
         List<ResourceLocation> effectIds
 ) {
@@ -26,6 +27,7 @@ public record ClientManuscript(
             Codec.STRING.optionalFieldOf("icon", "0").forGetter(ClientManuscript::icon),
             Codec.LONG.fieldOf("created_at").forGetter(ClientManuscript::createdAt),
             ResourceLocation.CODEC.fieldOf("chart").forGetter(ClientManuscript::chart),
+            Codec.FLOAT.optionalFieldOf("decay_factor", 1.0f).forGetter(ClientManuscript::decayFactor),
             AlchemyInput.CODEC.listOf().fieldOf("inputs").forGetter(ClientManuscript::inputs),
             ResourceLocation.CODEC.listOf().optionalFieldOf("effect_ids", List.of()).forGetter(ClientManuscript::effectIds)
     ).apply(instance, ClientManuscript::new));

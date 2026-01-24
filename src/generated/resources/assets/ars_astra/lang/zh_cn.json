@@ -53,6 +53,8 @@
   "gui.ars_astra.journal.tab.manuscripts": "手稿档案",
   "gui.ars_astra.journal.tab.workshop": "推演工坊",
   "gui.ars_astra.load": "加载配置",
+  "gui.ars_astra.manuscript.chart": "星图",
+  "gui.ars_astra.manuscript.decay": "容器系数",
   "gui.ars_astra.manuscript.delete_selected": "删除所选",
   "gui.ars_astra.manuscript.error.unknown_chart": "无法识别星图配置: %s",
   "gui.ars_astra.manuscript.error.unknown_item": "缺少对物品的认知: %s",

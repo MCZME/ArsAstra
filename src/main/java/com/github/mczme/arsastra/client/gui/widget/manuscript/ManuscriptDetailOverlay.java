@@ -91,6 +91,10 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
 
                     if (parentTab.getScreen().getTab(1) instanceof WorkshopTab workshopTab) {
                         workshopTab.getSession().setStarChartId(manuscript.chart());
+                        // 将模拟容量设置为手稿输入序列的大小，并同步衰减系数
+                        int requiredCapacity = manuscript.inputs().size();
+                        workshopTab.getSession().setSimulationParameters(requiredCapacity, manuscript.decayFactor());
+                        
                         workshopTab.getSession().loadSequence(manuscript.inputs());
                         parentTab.getScreen().switchTab(1);
                         hide();
@@ -247,9 +251,27 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         float titleScale = titleWidth > 80 ? 80.0f / titleWidth : 1.0f;
         
         guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(paperX + PAPER_WIDTH / 2.0f, paperY + 12, 0);
+        guiGraphics.pose().translate(paperX + PAPER_WIDTH / 2.0f, paperY + 10, 0);
         guiGraphics.pose().scale(titleScale, titleScale, 1.0f);
         guiGraphics.drawString(font, title, -titleWidth / 2, 0, 0x4A3B2A, false);
+        guiGraphics.pose().popPose();
+
+        // 渲染星图 ID
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(paperX + PAPER_WIDTH / 2.0f, paperY + 18, 0);
+        guiGraphics.pose().scale(0.5f, 0.5f, 1.0f);
+        String chartText = Component.translatable("gui.ars_astra.manuscript.chart").getString() + ": " + manuscript.chart().toString();
+        int chartWidth = font.width(chartText);
+        guiGraphics.drawString(font, chartText, -chartWidth / 2, 0, 0x804A3B2A, false);
+        guiGraphics.pose().popPose();
+
+        // 渲染衰减系数
+        guiGraphics.pose().pushPose();
+        guiGraphics.pose().translate(paperX + PAPER_WIDTH / 2.0f, paperY + 23, 0);
+        guiGraphics.pose().scale(0.5f, 0.5f, 1.0f);
+        String decayText = Component.translatable("gui.ars_astra.manuscript.decay").getString() + ": " + String.format("%.1f", manuscript.decayFactor());
+        int decayWidth = font.width(decayText);
+        guiGraphics.drawString(font, decayText, -decayWidth / 2, 0, 0x804A3B2A, false);
         guiGraphics.pose().popPose();
     }
 

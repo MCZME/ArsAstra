@@ -36,7 +36,7 @@ public class DeductionServiceImpl implements DeductionService {
         // 3. 计算最终药水效果
         Map<EffectField, PotionData> predictedEffects = interactionService.calculateEffects(interactions);
 
-        // 4. 计算稳定性 (使用传入的容器系数)
+        // 4. 计算稳定性 (使用传入的容器衰减系数)
         float finalStability = stabilityService.computeStability(inputs, decayFactor);
         
         // 5. 应用稳定性修正 (保持与 Engine 一致的预测逻辑)

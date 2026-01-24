@@ -65,42 +65,18 @@ public class WorkshopTab implements JournalTab, DragHandler {
         screen.addTabWidget(this.selectionInfoCard);
 
         // 4. 工具栏 (中层)
-        this.toolbar = new WorkshopToolbar(x + 15, y - 13, 270, 22, session, new WorkshopActionHandler() {
-            @Override
-            public void onFilterChanged() {
+        this.toolbar = new WorkshopToolbar(x + 15, y - 13, 270, 22, session, 
+            () -> { // onFilterChanged
                 if (sourcePanel != null && toolbar != null) {
                     sourcePanel.updateFilter(toolbar.getSearchQuery(), toolbar.getElementFilter(), toolbar.getTagFilter());
                 }
-            }
-
-            @Override
-            public void onClearRequest() {
-                session.clear();
-            }
-
-            @Override
-            public void onInfoToggle() {
+            },
+            () -> { // onInfoToggle
                 if (stickyNote != null) {
                     stickyNote.visible = !stickyNote.visible;
                 }
             }
-
-            @Override
-            public void onSettingsToggle() {
-                // Handled internally by toolbar widget
-            }
-
-            @Override
-            public void onSaveRequest() {
-                // TODO: Save implementation
-            }
-
-            @Override
-            public void onChartTypeChanged(String type) {
-                // TODO: 切换星图类型逻辑
-                // session.setStarChartId(...);
-            }
-        });
+        );
         this.toolbar.visible = false;
         screen.addTabWidget(this.toolbar);
 
@@ -208,7 +184,6 @@ public class WorkshopTab implements JournalTab, DragHandler {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         // Special handling for Drag & Drop
         if (isDragging) {
-            boolean intercepted = false;
 
             // Check Drop Targets: Top -> Bottom
             // If mouse is over a component, we consider the drop "intercepted" by that layer.
@@ -216,27 +191,21 @@ public class WorkshopTab implements JournalTab, DragHandler {
             
             if (stickyNote != null && stickyNote.visible && stickyNote.isMouseOver(mouseX, mouseY)) {
                  stickyNote.mouseReleased(mouseX, mouseY, button);
-                 intercepted = true;
             }
             else if (sourcePanel != null && sourcePanel.visible && sourcePanel.isMouseOver(mouseX, mouseY)) {
                 sourcePanel.mouseReleased(mouseX, mouseY, button);
-                intercepted = true;
             }
             else if (toolbar != null && toolbar.visible && toolbar.isMouseOver(mouseX, mouseY)) {
                 toolbar.mouseReleased(mouseX, mouseY, button);
-                intercepted = true;
             }
             else if (selectionInfoCard != null && selectionInfoCard.visible && selectionInfoCard.isMouseOver(mouseX, mouseY)) {
                 selectionInfoCard.mouseReleased(mouseX, mouseY, button);
-                intercepted = true;
             }
             else if (sequenceStrip != null && sequenceStrip.visible && sequenceStrip.isMouseOver(mouseX, mouseY)) {
                 sequenceStrip.mouseReleased(mouseX, mouseY, button);
-                intercepted = true;
             }
             else if (canvasWidget != null && canvasWidget.visible && canvasWidget.isMouseOver(mouseX, mouseY)) {
                 canvasWidget.mouseReleased(mouseX, mouseY, button);
-                intercepted = true;
             }
 
             // If drag is still active (meaning no component consumed it and called endDrag),

@@ -95,10 +95,42 @@ public class WorkshopSession {
     }
 
     /**
+     * 切换到下一个已解锁的星图。
+     */
+    public void cycleNextStarChart() {
+        if (knowledge == null) return;
+        List<ResourceLocation> unlocked = new ArrayList<>(knowledge.getVisitedStarCharts());
+        
+        ResourceLocation base = ResourceLocation.fromNamespaceAndPath("ars_astra", "base_chart");
+        if (!unlocked.contains(base)) {
+            unlocked.add(base);
+        }
+        
+        // 排序以保证切换顺序一致
+        unlocked.sort(ResourceLocation::compareTo);
+        
+        int index = unlocked.indexOf(currentStarChartId);
+        // 如果当前 ID 不在列表中（异常情况），从 0 开始
+        int nextIndex = (index == -1) ? 0 : (index + 1) % unlocked.size();
+        
+        setStarChartId(unlocked.get(nextIndex));
+    }
+
+    /**
      * 设置当前推演使用的星图 ID。
+     * 只有当玩家已解锁该星图时才会生效。
      */
     public void setStarChartId(ResourceLocation id) {
-        if (id != null && !id.equals(this.currentStarChartId)) {
+        if (id == null) return;
+        
+        // 校验：必须是已探索的星图 (除非是 base_chart，通常作为默认值)
+        boolean isBaseChart = id.equals(ResourceLocation.fromNamespaceAndPath("ars_astra", "base_chart"));
+        if (!isBaseChart && knowledge != null && !knowledge.hasVisitedStarChart(id)) {
+            // Log warning or notify user? For now just ignore.
+            return;
+        }
+
+        if (!id.equals(this.currentStarChartId)) {
             this.currentStarChartId = id;
             requestDeduction();
         }

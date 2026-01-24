@@ -217,6 +217,16 @@ public class StarChartJournalScreen extends Screen {
         if (tab != null && tab.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
+
+        // 检查 E 键关闭 (类似于 AbstractContainerScreen 的逻辑)
+        if (Minecraft.getInstance().options.keyInventory.matches(keyCode, scanCode)) {
+            // 如果当前焦点不是输入框，则关闭界面
+            if (!(getFocused() instanceof net.minecraft.client.gui.components.EditBox)) {
+                this.onClose();
+                return true;
+            }
+        }
+
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 

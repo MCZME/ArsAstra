@@ -12,7 +12,7 @@ public class ToolbarSettingsWidget extends ToolbarExpandableWidget {
     
     private SettingSlider capacitySlider;
     private SettingSlider decaySlider;
-    private Button baseChartButton; // 恢复星图切换按钮
+    private Button chartSwitchButton;
 
     public ToolbarSettingsWidget(int x, int y, WorkshopSession session) {
         // 宽度 140, 高度 100 (容纳 2 个滑块 + 1 个按钮 + 间距)
@@ -58,18 +58,30 @@ public class ToolbarSettingsWidget extends ToolbarExpandableWidget {
             }
         };
         
-        // 3. 基础星图切换按钮 (临时功能，用于重置)
-        this.baseChartButton = Button.builder(Component.translatable("gui.ars_astra.workshop.settings.base_chart"), (btn) -> {
-            session.setStarChartId(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("ars_astra", "base_chart"));
-            setExpanded(false);
+        // 3. 星图切换按钮 (循环切换)
+        this.chartSwitchButton = Button.builder(Component.empty(), (btn) -> {
+            session.cycleNextStarChart();
+            updateChartButtonMessage();
         }).bounds(0, 0, 120, 20).build();
+        updateChartButtonMessage();
+    }
+    
+    private void updateChartButtonMessage() {
+        if (chartSwitchButton != null && session.getStarChartId() != null) {
+            String name = session.getStarChartId().getPath();
+            // 首字母大写优化显示
+            if (!name.isEmpty()) {
+                name = name.substring(0, 1).toUpperCase() + name.substring(1);
+            }
+            chartSwitchButton.setMessage(Component.literal(name));
+        }
     }
 
     @Override
     protected void onCollapse() {
         this.capacitySlider.setFocused(false);
         this.decaySlider.setFocused(false);
-        this.baseChartButton.setFocused(false);
+        this.chartSwitchButton.setFocused(false);
     }
     
     @Override
@@ -80,6 +92,8 @@ public class ToolbarSettingsWidget extends ToolbarExpandableWidget {
         
         double decayVal = (session.getDecayFactor() - 0.5) / 1.5;
         this.decaySlider.setSliderValue(decayVal);
+        
+        updateChartButtonMessage();
     }
 
     @Override
@@ -102,9 +116,9 @@ public class ToolbarSettingsWidget extends ToolbarExpandableWidget {
             yOffset += 24;
         }
         
-        if (baseChartButton != null) {
-            baseChartButton.setX(bgX + padding);
-            baseChartButton.setY(yOffset);
+        if (chartSwitchButton != null) {
+            chartSwitchButton.setX(bgX + padding);
+            chartSwitchButton.setY(yOffset);
         }
     }
 
@@ -112,15 +126,15 @@ public class ToolbarSettingsWidget extends ToolbarExpandableWidget {
     protected void renderPopupContent(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick, int bgX, int bgY) {
         capacitySlider.render(guiGraphics, mouseX, mouseY, partialTick);
         decaySlider.render(guiGraphics, mouseX, mouseY, partialTick);
-        baseChartButton.render(guiGraphics, mouseX, mouseY, partialTick);
+        chartSwitchButton.render(guiGraphics, mouseX, mouseY, partialTick);
     }
 
     @Override
     protected boolean mouseClickedInPopup(double mouseX, double mouseY, int button) {
-        boolean handled = false;
-        if (capacitySlider.mouseClicked(mouseX, mouseY, button)) handled = true;
-        else if (decaySlider.mouseClicked(mouseX, mouseY, button)) handled = true;
-        else if (baseChartButton.mouseClicked(mouseX, mouseY, button)) handled = true;
+        if (capacitySlider.mouseClicked(mouseX, mouseY, button)) {
+        } else if (decaySlider.mouseClicked(mouseX, mouseY, button)) {
+        } else if (chartSwitchButton.mouseClicked(mouseX, mouseY, button)) {
+        }
         
         // 关键修复：只要是点击在 Popup 范围内（父类已经判断过 inPopup=true 才会调用此方法），
         // 即使没有点中任何按钮，也返回 true 以消费事件，防止穿透到底层。
@@ -141,7 +155,7 @@ public class ToolbarSettingsWidget extends ToolbarExpandableWidget {
         if (expanded) {
             if (capacitySlider.mouseReleased(mouseX, mouseY, button)) return true;
             if (decaySlider.mouseReleased(mouseX, mouseY, button)) return true;
-            if (baseChartButton.mouseReleased(mouseX, mouseY, button)) return true;
+            if (chartSwitchButton.mouseReleased(mouseX, mouseY, button)) return true;
         }
         return super.mouseReleased(mouseX, mouseY, button);
     }

@@ -21,8 +21,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class WorkshopToolbar extends ToolbarWidget {
-    private final WorkshopActionHandler handler;
     private final WorkshopSession session;
+    private final Runnable onFilterChanged;
+    private final Runnable onInfoToggle;
     
     private ToolbarSearchWidget searchWidget;
     private ToolbarFilterWidget filterWidget;
@@ -32,18 +33,18 @@ public class WorkshopToolbar extends ToolbarWidget {
     private ToolbarSettingsWidget settingsBtn;
     private String currentSearchQuery = "";
 
-    public WorkshopToolbar(int x, int y, int width, int height, WorkshopSession session, WorkshopActionHandler handler) {
+    public WorkshopToolbar(int x, int y, int width, int height, WorkshopSession session, 
+                           Runnable onFilterChanged, Runnable onInfoToggle) {
         super(x, y, width, height);
-        this.handler = handler;
         this.session = session;
+        this.onFilterChanged = onFilterChanged;
+        this.onInfoToggle = onInfoToggle;
         initButtons();
     }
     
     private void initButtons() {
         // 1. [Clear] 清空组件
-        this.clearBtn = new ToolbarClearWidget(0, 0, () -> {
-            if (handler != null) handler.onClearRequest();
-        });
+        this.clearBtn = new ToolbarClearWidget(0, 0, session::clear);
         this.addChild(clearBtn);
 
         // 2. [Save] 保存组件 (ManuscriptSaveWidget)
@@ -80,19 +81,19 @@ public class WorkshopToolbar extends ToolbarWidget {
         // 3. [Search] 搜索组件
         this.searchWidget = new ToolbarSearchWidget(0, 0, (query) -> {
             this.currentSearchQuery = query.toLowerCase();
-            if (handler != null) handler.onFilterChanged();
+            if (onFilterChanged != null) onFilterChanged.run();
         });
         this.addChild(this.searchWidget);
 
         // 4. [Filter] 筛选组件
         this.filterWidget = new ToolbarFilterWidget(0, 0, () -> {
-            if (handler != null) handler.onFilterChanged();
+            if (onFilterChanged != null) onFilterChanged.run();
         });
         this.addChild(this.filterWidget);
 
         // 5. [Info] 信息按钮: 靛蓝色 (0x406080), 图标索引 9 (信息)
         this.infoBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.workshop.info"), 9, 0x406080, () -> {
-            if (handler != null) handler.onInfoToggle();
+            if (onInfoToggle != null) onInfoToggle.run();
         });
         this.addChild(infoBtn);
 

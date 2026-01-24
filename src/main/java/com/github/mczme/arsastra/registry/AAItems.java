@@ -30,6 +30,9 @@ public class AAItems {
     public static final Supplier<Item> COPPER_TUN = register("copper_tun",
             () -> new GeckoLibBlockItem(AABlocks.COPPER_TUN.get(), new Item.Properties(), "copper_tun"));
 
+    public static final Supplier<Item> MANUSCRIPT = register("manuscript",
+            () -> new com.github.mczme.arsastra.item.ManuscriptItem(new Item.Properties().stacksTo(1)));
+
     public static final Supplier<Item> STIRRING_STICK = register("stirring_stick",
             () -> new StirringStickItem(new Item.Properties()
                     .stacksTo(1)

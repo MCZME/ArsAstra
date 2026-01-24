@@ -1,6 +1,7 @@
 package com.github.mczme.arsastra.registry;
 
 import com.github.mczme.arsastra.ArsAstra;
+import com.github.mczme.arsastra.core.manuscript.ClientManuscript;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.registries.Registries;
@@ -16,6 +17,9 @@ public class AAComponents {
 
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Boolean>> IS_OPEN = register("is_open",
             builder -> builder.persistent(Codec.BOOL));
+
+    public static final DeferredHolder<DataComponentType<?>, DataComponentType<ClientManuscript>> MANUSCRIPT_DATA = register("manuscript_data",
+            builder -> builder.persistent(ClientManuscript.CODEC).networkSynchronized(ClientManuscript.STREAM_CODEC));
 
     private static <T> DeferredHolder<DataComponentType<?>, DataComponentType<T>> register(String name,
                                                                                            UnaryOperator<DataComponentType.Builder<T>> builderOperator) {

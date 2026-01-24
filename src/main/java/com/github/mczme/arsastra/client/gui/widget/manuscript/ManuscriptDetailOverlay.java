@@ -32,6 +32,7 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
     private static final ResourceLocation MANUSCRIPT_PAPER = ResourceLocation.fromNamespaceAndPath("ars_astra", "textures/gui/manuscript_paper.png");
     
     private final ManuscriptsTab parentTab;
+    private final boolean isReadOnly;
     private ClientManuscript manuscript;
     private final Runnable onClose;
     private final int screenWidth;
@@ -60,10 +61,15 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
     private static final int PAPER_HEIGHT = 162;
     
     public ManuscriptDetailOverlay(int screenWidth, int screenHeight, ManuscriptsTab parentTab, Runnable onClose) {
+        this(screenWidth, screenHeight, parentTab, false, onClose);
+    }
+
+    public ManuscriptDetailOverlay(int screenWidth, int screenHeight, ManuscriptsTab parentTab, boolean isReadOnly, Runnable onClose) {
         super(0, 0, screenWidth, screenHeight, Component.empty());
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
         this.parentTab = parentTab;
+        this.isReadOnly = isReadOnly;
         this.onClose = onClose;
         this.visible = false;
         

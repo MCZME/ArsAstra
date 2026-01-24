@@ -4,7 +4,10 @@ import com.github.mczme.arsastra.core.knowledge.PlayerKnowledge;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
@@ -31,6 +34,31 @@ public record ClientManuscript(
             AlchemyInput.CODEC.listOf().fieldOf("inputs").forGetter(ClientManuscript::inputs),
             ResourceLocation.CODEC.listOf().optionalFieldOf("effect_ids", List.of()).forGetter(ClientManuscript::effectIds)
     ).apply(instance, ClientManuscript::new));
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, ClientManuscript> STREAM_CODEC = StreamCodec.of(
+            ClientManuscript::write, ClientManuscript::read
+    );
+
+    private static void write(RegistryFriendlyByteBuf buf, ClientManuscript manuscript) {
+        ByteBufCodecs.STRING_UTF8.encode(buf, manuscript.name);
+        ByteBufCodecs.STRING_UTF8.encode(buf, manuscript.icon);
+        ByteBufCodecs.VAR_LONG.encode(buf, manuscript.createdAt);
+        ResourceLocation.STREAM_CODEC.encode(buf, manuscript.chart);
+        ByteBufCodecs.FLOAT.encode(buf, manuscript.decayFactor);
+        AlchemyInput.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buf, manuscript.inputs);
+        ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list()).encode(buf, manuscript.effectIds);
+    }
+
+    private static ClientManuscript read(RegistryFriendlyByteBuf buf) {
+        String name = ByteBufCodecs.STRING_UTF8.decode(buf);
+        String icon = ByteBufCodecs.STRING_UTF8.decode(buf);
+        long createdAt = ByteBufCodecs.VAR_LONG.decode(buf);
+        ResourceLocation chart = ResourceLocation.STREAM_CODEC.decode(buf);
+        float decayFactor = ByteBufCodecs.FLOAT.decode(buf);
+        List<AlchemyInput> inputs = AlchemyInput.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buf);
+        List<ResourceLocation> effectIds = ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list()).decode(buf);
+        return new ClientManuscript(name, icon, createdAt, chart, decayFactor, inputs, effectIds);
+    }
 
     /**
      * 检查玩家是否拥有使用该手稿所需的知识。

@@ -23,6 +23,7 @@ public class ZH_CN extends LanguageProvider  {
 
         // 物品
         addItem(AAItems.STAR_CHART_JOURNAL, "星图日志");
+        addItem(AAItems.MANUSCRIPT, "星图手稿");
         addItem(AAItems.STIRRING_STICK, "搅拌棒");
         add(AAItems.STIRRING_STICK.get().getDescriptionId() + ".desc", "用于在釜与坩埚中旋转");
 

@@ -50,6 +50,9 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.workshop.rotation", "旋转角度： %s°");
         add("gui.ars_astra.workshop.save_manuscript.name_hint", "手稿名称...");
         add("gui.ars_astra.workshop.info", "信息");
+        add("gui.ars_astra.workshop.settings.capacity", "容量: %d");
+        add("gui.ars_astra.workshop.settings.decay", "容器系数: %s");
+        add("gui.ars_astra.workshop.settings.base_chart", "基础星图");
         
         // Sticky Note (Result Info)
         add("gui.ars_astra.workshop.note", "推演报告");

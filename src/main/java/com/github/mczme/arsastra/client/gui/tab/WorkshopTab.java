@@ -175,6 +175,12 @@ public class WorkshopTab implements JournalTab, DragHandler {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         activeWidget = null;
         
+        // 0. Priority: Toolbar Popups (Topmost Visual Layer)
+        if (toolbar != null && toolbar.handlePopupClick(mouseX, mouseY, button)) {
+            activeWidget = toolbar;
+            return true;
+        }
+        
         // HIT TEST ORDER: Top -> Bottom (Reverse Render Order)
         
         // 1. Sticky Note (Topmost Floating)

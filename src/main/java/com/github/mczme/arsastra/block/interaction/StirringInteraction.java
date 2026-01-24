@@ -18,6 +18,7 @@ import java.util.Optional;
  * 处理搅拌棒的插入、拔出及搅拌操作。
  */
 public class StirringInteraction implements TunInteraction {
+    @SuppressWarnings("null")
     @Override
     public Optional<InteractionResult> interact(AbstractTunBlockEntity entity, Player player, InteractionHand hand, ItemStack heldItem) {
         ItemStack stickInTun = entity.getStirringStick();
@@ -57,6 +58,7 @@ public class StirringInteraction implements TunInteraction {
         return Optional.empty();
     }
 
+    @SuppressWarnings("null")
     private void performStir(AbstractTunBlockEntity entity, boolean clockwise) {
         // 1. 设置动画状态
         entity.setStirring(true);

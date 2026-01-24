@@ -18,7 +18,10 @@ import java.util.function.Consumer;
  */
 public class WorkshopSession {
     private final List<AlchemyInput> inputs = new ArrayList<>();
-    private final int MAX_INPUTS = 16;
+    
+    // 模拟参数
+    private int maxInput = 8;
+    private float decayFactor = 1.0f;
     
     private DeductionResult deductionResult;
     private Runnable onUpdateListener;
@@ -47,6 +50,37 @@ public class WorkshopSession {
     
     public PlayerKnowledge getKnowledge() {
         return knowledge;
+    }
+
+    /**
+     * 设置模拟参数
+     * @param maxInput 最大输入数量 (1-16)
+     * @param decayFactor 热源衰减系数 (0.5-2.0)
+     */
+    public void setSimulationParameters(int maxInput, float decayFactor) {
+        boolean changed = false;
+        if (this.maxInput != maxInput) {
+            this.maxInput = Math.max(1, Math.min(16, maxInput));
+            changed = true;
+        }
+        if (Math.abs(this.decayFactor - decayFactor) > 0.001f) {
+            this.decayFactor = decayFactor;
+            changed = true;
+        }
+        
+        if (changed) {
+            // 如果新的容量小于当前物品数，我们需要截断吗？
+            // 暂时策略：保留物品，但 UI 可能会报错或无法计算超出部分
+            notifyUpdate();
+        }
+    }
+    
+    public int getMaxInput() {
+        return maxInput;
+    }
+    
+    public float getDecayFactor() {
+        return decayFactor;
     }
 
     /**
@@ -129,7 +163,7 @@ public class WorkshopSession {
      * 在序列末尾添加一个新物品（默认操作）。
      */
     public void addInput(ItemStack stack) {
-        if (inputs.size() < MAX_INPUTS && !stack.isEmpty()) {
+        if (inputs.size() < maxInput && !stack.isEmpty()) {
             boolean wasEmpty = inputs.isEmpty();
             ItemStack copy = stack.copy();
             copy.setCount(1);
@@ -167,7 +201,7 @@ public class WorkshopSession {
      * 在序列中的指定位置插入一个新物品。
      */
     public void insertInput(int index, ItemStack stack) {
-        if (index >= 0 && index <= inputs.size() && inputs.size() < MAX_INPUTS && !stack.isEmpty()) {
+        if (index >= 0 && index <= inputs.size() && inputs.size() < maxInput && !stack.isEmpty()) {
             boolean wasEmpty = inputs.isEmpty();
             ItemStack copy = stack.copy();
             copy.setCount(1);
@@ -312,7 +346,7 @@ public class WorkshopSession {
         }
 
         if (!combinedInputs.isEmpty()) {
-            PacketDistributor.sendToServer(new RequestDeductionPayload(currentStarChartId, combinedInputs));
+            PacketDistributor.sendToServer(new RequestDeductionPayload(currentStarChartId, decayFactor, combinedInputs));
         } else {
             this.deductionResult = null;
             if (onUpdateListener != null) {

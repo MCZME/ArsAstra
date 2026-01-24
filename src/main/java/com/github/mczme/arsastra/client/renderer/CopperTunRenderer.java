@@ -5,6 +5,7 @@ import com.github.mczme.arsastra.client.model.CopperTunModel;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartContext;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -14,10 +15,12 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.ItemDisplayContext;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.PotionContents;
-import org.joml.Matrix4f;
 import software.bernie.geckolib.renderer.GeoBlockRenderer;
 
+import org.joml.Matrix4f;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +43,7 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
     }
 
     private void renderStirringStick(CopperTunBlockEntity entity, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
-        net.minecraft.world.item.ItemStack stick = entity.getStirringStick();
+        ItemStack stick = entity.getStirringStick();
         if (stick.isEmpty()) return;
 
         poseStack.pushPose();
@@ -57,19 +60,19 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
              if (!entity.isStirringClockwise()) angle = -angle;
         }
         
-        poseStack.mulPose(com.mojang.math.Axis.YP.rotationDegrees(angle));
+        poseStack.mulPose(Axis.YP.rotationDegrees(angle));
 
         // 3. 偏心 (绕着 Y 轴旋转后，向 Z 轴平移，实现公转)
         poseStack.translate(0, -0.1, 0.18); 
 
         // 4. 自身姿态 (翻转并倾斜插入)
-        poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(100)); // 修复头朝下的问题
-        poseStack.mulPose(com.mojang.math.Axis.XP.rotationDegrees(-20)); // 向外倾斜
+        poseStack.mulPose(Axis.ZP.rotationDegrees(100)); // 修复头朝下的问题
+        poseStack.mulPose(Axis.XP.rotationDegrees(-20)); // 向外倾斜
         poseStack.scale(1.2f, 1.2f, 1.2f);
 
         // 5. 渲染物品 (强制立即绘制以确保深度顺序)
         MultiBufferSource.BufferSource immediate = Minecraft.getInstance().renderBuffers().bufferSource();
-        Minecraft.getInstance().getItemRenderer().renderStatic(stick, net.minecraft.world.item.ItemDisplayContext.FIXED, light, overlay, poseStack, immediate, entity.getLevel(), 0);
+        Minecraft.getInstance().getItemRenderer().renderStatic(stick, ItemDisplayContext.FIXED, light, overlay, poseStack, immediate, entity.getLevel(), 0);
         immediate.endBatch();
 
         poseStack.popPose();

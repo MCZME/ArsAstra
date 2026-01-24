@@ -16,12 +16,13 @@ public interface DeductionService {
     /**
      * 模拟整个炼金过程并返回详细结果。
      *
-     * @param chart      当前星图
-     * @param inputs     材料投入序列
-     * @param startPoint 发射起点
+     * @param chart       当前星图
+     * @param inputs      材料投入序列
+     * @param startPoint  发射起点
+     * @param decayFactor 容器系数 (默认 1.0)
      * @return 包含路径动画数据、稳定度、交互结果的推演报告
      */
-    DeductionResult deduce(StarChart chart, List<AlchemyInput> inputs, Vector2f startPoint);
+    DeductionResult deduce(StarChart chart, List<AlchemyInput> inputs, Vector2f startPoint, float decayFactor);
 
     /**
      * 模拟整个炼金过程并返回详细结果。

@@ -60,6 +60,11 @@ public class SequenceStripWidget extends FloatingWidget {
         guiGraphics.enableScissor(getX() + 2, getY() + 2, getX() + getWidth() - 2, getY() + getHeight() - 2);
 
         for (int i = 0; i <= sequence.size(); i++) {
+            // 如果已达到最大输入限制，不显示末尾的占位符
+            if (i == sequence.size() && sequence.size() >= session.getMaxInput()) {
+                break;
+            }
+
             int slotX = startX + i * (SLOT_SIZE + GAP);
             int slotY = centerY - SLOT_SIZE / 2;
 
@@ -201,7 +206,14 @@ public class SequenceStripWidget extends FloatingWidget {
         // 计算逻辑：根据相对于起点的位置，除以槽位宽+间距
         // 四舍五入到最近的索引位置
         int index = (relativeX + (SLOT_SIZE + GAP) / 2) / (SLOT_SIZE + GAP);
-        return Math.max(0, Math.min(index, listSize));
+        // 限制最大索引不能超过当前最大容量
+        int maxAllowed = session.getMaxInput();
+        // 如果当前列表已满，且我们不是在替换（逻辑上这里只处理插入），则只能是在满的位置（无效）
+        // 但为了简单，我们限制在 [0, listSize] 且 <= maxAllowed
+        // 注意：如果 listSize == maxAllowed，那么 index 最大只能是 listSize-1 (替换) 或者禁止插入
+        // 这里 session.insertInput 会做最终检查，但 UI 上不要显示越界的幽灵
+        
+        return Math.max(0, Math.min(index, Math.min(listSize, maxAllowed)));
     }
 
     @Override

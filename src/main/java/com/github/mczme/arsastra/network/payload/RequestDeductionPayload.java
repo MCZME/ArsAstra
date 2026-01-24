@@ -10,12 +10,14 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 
-public record RequestDeductionPayload(ResourceLocation starChartId, List<AlchemyInput> inputs) implements CustomPacketPayload {
+public record RequestDeductionPayload(ResourceLocation starChartId, float decayFactor, List<AlchemyInput> inputs) implements CustomPacketPayload {
     public static final Type<RequestDeductionPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, "request_deduction"));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, RequestDeductionPayload> STREAM_CODEC = StreamCodec.composite(
             ResourceLocation.STREAM_CODEC,
             RequestDeductionPayload::starChartId,
+            ByteBufCodecs.FLOAT,
+            RequestDeductionPayload::decayFactor,
             AlchemyInput.STREAM_CODEC.apply(ByteBufCodecs.list()),
             RequestDeductionPayload::inputs,
             RequestDeductionPayload::new

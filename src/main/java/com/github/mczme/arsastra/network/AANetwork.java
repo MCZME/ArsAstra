@@ -105,7 +105,7 @@ public class AANetwork {
                                     .map(p -> p.launchPoint())
                                     .orElse(new Vector2f(0, 0));
 
-                            DeductionResult result = DEDUCTION_SERVICE.deduce(chart, payload.inputs(), startPoint);
+                            DeductionResult result = DEDUCTION_SERVICE.deduce(chart, payload.inputs(), startPoint, payload.decayFactor());
                             
                             PacketDistributor.sendToPlayer(player, new DeductionResultPayload(result));
                         }

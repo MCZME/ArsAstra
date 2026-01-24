@@ -165,7 +165,7 @@ public class DebugCommands {
         profileOpt.ifPresent(p -> startPos.set(p.launchPoint()));
 
         DeductionService deductionService = new DeductionServiceImpl();
-        DeductionResult result = deductionService.deduce(chartOpt.get(), inputs, startPos);
+        DeductionResult result = deductionService.deduce(chartOpt.get(), inputs, startPos, 1.0f);
 
         // 准备输出内容
         StringBuilder sb = new StringBuilder();

@@ -3,6 +3,7 @@ package com.github.mczme.arsastra.client.gui.widget.workshop;
 import com.github.mczme.arsastra.client.gui.logic.WorkshopSession;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ManuscriptSaveWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarClearWidget;
+import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarExpandableWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarFilterWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSearchWidget;
 import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarSettingsWidget;
@@ -11,6 +12,8 @@ import com.github.mczme.arsastra.client.gui.widget.toolbar.ToolbarWidget;
 import com.github.mczme.arsastra.core.manuscript.ClientManuscript;
 import com.github.mczme.arsastra.core.manuscript.ManuscriptManager;
 import com.github.mczme.arsastra.core.starchart.engine.AlchemyInput;
+
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
@@ -94,9 +97,7 @@ public class WorkshopToolbar extends ToolbarWidget {
         this.addChild(infoBtn);
 
         // 6. [Settings] 设置组件
-        this.settingsBtn = new ToolbarSettingsWidget(0, 0, (type) -> {
-            if (handler != null) handler.onChartTypeChanged(type);
-        });
+        this.settingsBtn = new ToolbarSettingsWidget(0, 0, session);
         this.addChild(settingsBtn);
     }
     
@@ -163,5 +164,19 @@ public class WorkshopToolbar extends ToolbarWidget {
 
     public String getTagFilter() {
         return filterWidget != null ? filterWidget.getTagFilter() : "";
+    }
+
+    /**
+     * 优先处理子组件的弹出层点击
+     */
+    public boolean handlePopupClick(double mouseX, double mouseY, int button) {
+        for (AbstractWidget child : children) {
+            if (child.visible && child instanceof ToolbarExpandableWidget expandable) {
+                if (expandable.handlePopupClick(mouseX, mouseY, button)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

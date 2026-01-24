@@ -26,7 +26,7 @@ public class DeductionServiceImpl implements DeductionService {
     }
 
     @Override
-    public DeductionResult deduce(StarChart chart, List<AlchemyInput> inputs, Vector2f startPoint) {
+    public DeductionResult deduce(StarChart chart, List<AlchemyInput> inputs, Vector2f startPoint, float decayFactor) {
         // 1. 生成完整航线 (几何路径)
         StarChartRoute route = routeService.computeRoute(inputs, startPoint, chart);
 
@@ -36,8 +36,8 @@ public class DeductionServiceImpl implements DeductionService {
         // 3. 计算最终药水效果
         Map<EffectField, PotionData> predictedEffects = interactionService.calculateEffects(interactions);
 
-        // 4. 计算稳定性 (默认基准系数 1.0)
-        float finalStability = stabilityService.computeStability(inputs, 1.0f);
+        // 4. 计算稳定性 (使用传入的容器系数)
+        float finalStability = stabilityService.computeStability(inputs, decayFactor);
         
         // 5. 应用稳定性修正 (保持与 Engine 一致的预测逻辑)
         Map<EffectField, PotionData> finalEffects = new java.util.HashMap<>();
@@ -64,6 +64,6 @@ public class DeductionServiceImpl implements DeductionService {
                 .map(p -> new Vector2f(p.launchPoint()))
                 .orElse(new Vector2f(0, 0));
         }
-        return deduce(chart, inputs, startPoint);
+        return deduce(chart, inputs, startPoint, 1.0f);
     }
 }

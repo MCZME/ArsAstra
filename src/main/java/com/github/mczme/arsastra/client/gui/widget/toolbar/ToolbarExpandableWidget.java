@@ -5,7 +5,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 
 public abstract class ToolbarExpandableWidget extends AbstractWidget {
     public enum ExpandDirection {
@@ -129,16 +131,10 @@ public abstract class ToolbarExpandableWidget extends AbstractWidget {
         }
     }
 
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // 1. 检查主按钮点击
-        if (mainButton.mouseClicked(mouseX, mouseY, button)) {
-            toggleExpand();
-            Minecraft.getInstance().getSoundManager().play(net.minecraft.client.resources.sounds.SimpleSoundInstance.forUI(net.minecraft.sounds.SoundEvents.UI_BUTTON_CLICK, 1.0F));
-            return true;
-        }
-
-        // 2. 检查弹出面板点击
+    /**
+     * 专门处理弹出层的点击事件。应在事件分发的最高优先级调用。
+     */
+    public boolean handlePopupClick(double mouseX, double mouseY, int button) {
         if (expanded) {
             int finalBgX = getPopupX();
             boolean inPopup = mouseX >= finalBgX && mouseX <= finalBgX + popupWidth 
@@ -146,11 +142,31 @@ public abstract class ToolbarExpandableWidget extends AbstractWidget {
 
             if (inPopup) {
                 if (mouseClickedInPopup(mouseX, mouseY, button)) return true;
-                return true; // 拦截背景点击，防止穿透
-            } else {
-                setExpanded(false); // 点击外部关闭
-                return false; 
+                return true; // 拦截背景点击
             }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        // 1. 优先检查弹出面板点击 (如果外部已经调用过 handlePopupClick，这里再次调用是安全的，只是可能多余)
+        // 但为了防止外部没调用，这里保留逻辑。
+        if (handlePopupClick(mouseX, mouseY, button)) return true;
+
+        // 2. 检查主按钮点击
+        if (mainButton.mouseClicked(mouseX, mouseY, button)) {
+            toggleExpand();
+            Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+            return true;
+        }
+        
+        // 3. 点击外部关闭逻辑 (仅当已展开且点击未被拦截时)
+        if (expanded) {
+             setExpanded(false);
+             // 注意：这里返回 false，允许事件继续传递给下面的组件（除非我们想把所有点击都拦截？）
+             // 通常点击外部应该关闭 Popup 但允许触发外部的组件（比如点画布关闭 Popup 同时选中画布）。
+             return false; 
         }
 
         return false;

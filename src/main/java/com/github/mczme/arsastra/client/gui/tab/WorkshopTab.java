@@ -75,7 +75,8 @@ public class WorkshopTab implements JournalTab, DragHandler {
                 if (stickyNote != null) {
                     stickyNote.visible = !stickyNote.visible;
                 }
-            }
+            },
+            screen::refreshManuscripts // onSave
         );
         this.toolbar.visible = false;
         screen.addTabWidget(this.toolbar);

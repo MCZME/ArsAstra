@@ -24,6 +24,7 @@ public class WorkshopToolbar extends ToolbarWidget {
     private final WorkshopSession session;
     private final Runnable onFilterChanged;
     private final Runnable onInfoToggle;
+    private final Runnable onSave;
     
     private ToolbarSearchWidget searchWidget;
     private ToolbarFilterWidget filterWidget;
@@ -34,11 +35,12 @@ public class WorkshopToolbar extends ToolbarWidget {
     private String currentSearchQuery = "";
 
     public WorkshopToolbar(int x, int y, int width, int height, WorkshopSession session, 
-                           Runnable onFilterChanged, Runnable onInfoToggle) {
+                           Runnable onFilterChanged, Runnable onInfoToggle, Runnable onSave) {
         super(x, y, width, height);
         this.session = session;
         this.onFilterChanged = onFilterChanged;
         this.onInfoToggle = onInfoToggle;
+        this.onSave = onSave;
         initButtons();
     }
     
@@ -76,6 +78,9 @@ public class WorkshopToolbar extends ToolbarWidget {
                 effectIds
             );
             ManuscriptManager.getInstance().saveManuscript(manuscript);
+            
+            // 触发保存成功回调 (刷新 UI)
+            if (onSave != null) onSave.run();
         });
         this.addChild(saveWidget);
 

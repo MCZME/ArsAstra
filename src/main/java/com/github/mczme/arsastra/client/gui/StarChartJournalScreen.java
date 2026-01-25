@@ -131,6 +131,12 @@ public class StarChartJournalScreen extends Screen {
         }
     }
 
+    public void refreshManuscripts() {
+        if (this.manuscriptsTab != null) {
+            this.manuscriptsTab.refreshBook();
+        }
+    }
+
     private void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         int x = (this.width - BOOK_WIDTH) / 2;
         int y = (this.height - BOOK_HEIGHT) / 2;

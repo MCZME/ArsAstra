@@ -2,9 +2,12 @@ package com.github.mczme.arsastra.data.provider;
 
 import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.registry.AABlocks;
+import com.github.mczme.arsastra.registry.AATags;
+
 import net.minecraft.core.HolderLookup;
 import net.minecraft.data.PackOutput;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.common.data.BlockTagsProvider;
 import net.neoforged.neoforge.common.data.ExistingFileHelper;
 import org.jetbrains.annotations.Nullable;
@@ -26,5 +29,11 @@ public class AABlockTagsProvider extends BlockTagsProvider {
 
         tag(BlockTags.NEEDS_STONE_TOOL)
                 .add(AABlocks.COPPER_TUN.get());
+
+        tag(AATags.Blocks.HEAT_SOURCES)
+                .addTag(BlockTags.CAMPFIRES)
+                .addTag(BlockTags.FIRE)
+                .add(Blocks.LAVA)
+                .add(Blocks.MAGMA_BLOCK);
     }
 }

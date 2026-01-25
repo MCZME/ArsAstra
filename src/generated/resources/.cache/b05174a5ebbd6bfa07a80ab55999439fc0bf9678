@@ -1,4 +1,5 @@
-// 1.21.1	2026-01-24T03:04:14.5309869	Tags for minecraft:block mod id ars_astra
+// 1.21.1	2026-01-26T01:30:46.7055379	Tags for minecraft:block mod id ars_astra
+9e22942959bc2da0e366c31b92c70f9230fe0360 data/ars_astra/tags/block/heat_sources.json
 bf0003ffb42b30c5b2d3aee11181c951345f7ec2 data/minecraft/tags/block/mineable/axe.json
 d218e3f5bda4d4242bbcd13498949e34e286ae17 data/minecraft/tags/block/mineable/pickaxe.json
 d218e3f5bda4d4242bbcd13498949e34e286ae17 data/minecraft/tags/block/needs_stone_tool.json

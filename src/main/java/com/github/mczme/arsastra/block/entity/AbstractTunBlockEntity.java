@@ -4,6 +4,8 @@ import com.github.mczme.arsastra.ArsAstra;
 import com.github.mczme.arsastra.core.starchart.StarChart;
 import com.github.mczme.arsastra.core.starchart.StarChartManager;
 import com.github.mczme.arsastra.core.starchart.engine.*;
+import com.github.mczme.arsastra.registry.AATags;
+
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.particles.ParticleTypes;
@@ -19,14 +21,12 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.tags.BlockTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -279,10 +279,7 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
 
     protected boolean checkHeat(Level level, BlockPos pos) {
         BlockState state = level.getBlockState(pos);
-        return state.is(BlockTags.CAMPFIRES)
-                || state.is(BlockTags.FIRE)
-                || state.is(Blocks.LAVA)
-                || state.is(Blocks.MAGMA_BLOCK);
+        return state.is(AATags.Blocks.HEAT_SOURCES);
     }
 
     /**

@@ -16,6 +16,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.BlockTags;
@@ -105,10 +106,14 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
             // 播放失败音效
             level.playSound(null, worldPosition, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.BLOCKS, 1.0f, 1.0f);
             
-            if (!level.isClientSide) {
-                // TODO: 发送自定义 Packet 触发黑色烟雾粒子，暂时用现有方法同步
-                this.sync();
+            if (level instanceof ServerLevel serverLevel) {
+                // 触发黑色烟雾粒子
+                serverLevel.sendParticles(ParticleTypes.LARGE_SMOKE, 
+                        worldPosition.getX() + 0.5, worldPosition.getY() + 0.8, worldPosition.getZ() + 0.5, 
+                        20, 0.15, 0.15, 0.15, 0.05);
             }
+            
+            this.sync();
         }
     }
 

@@ -49,16 +49,10 @@ public class StirringInteraction implements TunInteraction {
 
             // Shift = 逆时针，普通 = 顺时针
             boolean clockwise = !player.isShiftKeyDown();
-            
                     // 执行搅拌
-            
                     performStir(entity, clockwise);
-            
                     entity.checkStir(clockwise);
-            
                     return Optional.of(InteractionResult.SUCCESS);
-            
-            
         }
 
         return Optional.empty();
@@ -69,7 +63,7 @@ public class StirringInteraction implements TunInteraction {
         // 1. 设置动画状态
         entity.setStirring(true);
         entity.setStirProgress(0.0f);
-        entity.setStirringClockwise(clockwise);
+        entity.setStirringClockwise(!clockwise);
         
         // 2. 修改逻辑数据 (旋转最后一个物品)
         List<AlchemyInput> inputs = entity.getContext().inputs();

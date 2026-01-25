@@ -19,7 +19,7 @@ public class ManuscriptToolbar extends ToolbarWidget {
     
     private ToolbarTabButton manageBtn;
     private ToolbarTabButton deleteBtn;
-    private ToolbarTabButton batchLoadBtn;
+    private ToolbarTabButton batchTranscribeBtn;
     
     private String currentSearchQuery = "";
 
@@ -51,13 +51,13 @@ public class ManuscriptToolbar extends ToolbarWidget {
         });
         this.addChild(manageBtn);
 
-        // 4. [Batch Load] 批量加载按钮
+        // 4. [Batch Transcribe] 批量誊录按钮
         // 图标索引 12, 绿色
-        this.batchLoadBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.batch_load"), 12, 0x1E7636, () -> {
-            parentTab.loadSelected();
+        this.batchTranscribeBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.batch_transcribe"), 8, 0x1E7636, () -> {
+            parentTab.transcribeSelected();
         });
-        this.batchLoadBtn.visible = false;
-        this.addChild(batchLoadBtn);
+        this.batchTranscribeBtn.visible = false;
+        this.addChild(batchTranscribeBtn);
         
         // 5. [Delete] 批量删除按钮 (初始隐藏)
         // 图标索引 14, 红色
@@ -71,14 +71,14 @@ public class ManuscriptToolbar extends ToolbarWidget {
     public void updateButtonsState() {
         boolean isManaging = parentTab.isSelectionMode();
         manageBtn.setColor(isManaging ? 0x9060D0 : 0x6080D0);
-        batchLoadBtn.visible = isManaging;
+        batchTranscribeBtn.visible = isManaging;
         deleteBtn.visible = isManaging;
         arrange();
     }
 
     @Override
     public void arrange() {
-        if (searchWidget == null || filterWidget == null || manageBtn == null || deleteBtn == null || batchLoadBtn == null) return;
+        if (searchWidget == null || filterWidget == null || manageBtn == null || deleteBtn == null || batchTranscribeBtn == null) return;
 
         int padding = 2;
         int currentX = this.getX() + padding;
@@ -102,10 +102,10 @@ public class ManuscriptToolbar extends ToolbarWidget {
             currentX += manageBtn.getWidth() + padding;
         }
 
-        if (batchLoadBtn.visible) {
-            batchLoadBtn.setX(currentX);
-            batchLoadBtn.setY(this.getY() + (this.height - batchLoadBtn.getHeight()));
-            currentX += batchLoadBtn.getWidth() + padding;
+        if (batchTranscribeBtn.visible) {
+            batchTranscribeBtn.setX(currentX);
+            batchTranscribeBtn.setY(this.getY() + (this.height - batchTranscribeBtn.getHeight()));
+            currentX += batchTranscribeBtn.getWidth() + padding;
         }
 
         if (deleteBtn.visible) {

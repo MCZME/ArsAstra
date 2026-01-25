@@ -85,8 +85,8 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         
         this.closeButton = new TextButton(centerX + PAPER_WIDTH - 15, centerY + 8, 10, 10, "x", 0xFF000000, b -> hide());
             
-        // 加载按钮 (底部居右文字)
-        this.loadButton = new TextButton(centerX + PAPER_WIDTH - 40, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.load").getString(), 0xFF1E7636, b -> {
+        // 加载按钮
+        this.loadButton = new TextButton(centerX + 68, centerY + PAPER_HEIGHT - 22, 25, 12, Component.translatable("gui.ars_astra.load").getString(), 0xFF1E7636, b -> {
             if (manuscript != null) {
                 var player = Minecraft.getInstance().player;
                 if (player != null) {
@@ -112,16 +112,16 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
             }
         });
 
-        // 誊录按钮 (位于加载按钮左侧)
-        this.transcribeButton = new TextButton(centerX + PAPER_WIDTH - 75, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.transcribe").getString(), 0xFF4A3B2A, b -> {
+        // 誊录按钮 (居中)
+        this.transcribeButton = new TextButton(centerX + 40, centerY + PAPER_HEIGHT - 22, 25, 12, Component.translatable("gui.ars_astra.transcribe").getString(), 0xFF4A3B2A, b -> {
             if (manuscript != null) {
                 com.github.mczme.arsastra.network.payload.TranscribeManuscriptPayload payload = new com.github.mczme.arsastra.network.payload.TranscribeManuscriptPayload(manuscript);
                 net.neoforged.neoforge.network.PacketDistributor.sendToServer(payload);
             }
         });
 
-        // 收录按钮
-        this.learnButton = new TextButton(centerX + PAPER_WIDTH - 40, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.learn").getString(), 0xFF1E7636, b -> {
+        // 收录按钮 (只读模式居中)
+        this.learnButton = new TextButton(centerX + 40, centerY + PAPER_HEIGHT - 22, 25, 12, Component.translatable("gui.ars_astra.learn").getString(), 0xFF1E7636, b -> {
             if (manuscript != null) {
                 ManuscriptManager.getInstance().saveManuscript(manuscript);
                 isLearned = true;
@@ -131,7 +131,8 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
             }
         });
 
-        this.deleteButton = new TextButton(centerX + 10, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.delete").getString(), 0xFF8B2500, b -> {
+        // 删除按钮
+        this.deleteButton = new TextButton(centerX + 12, centerY + PAPER_HEIGHT - 22, 25, 12, Component.translatable("gui.ars_astra.delete").getString(), 0xFF8B2500, b -> {
             if (!confirmDelete) {
                 confirmDelete = true;
                 b.setMessage(Component.translatable("gui.ars_astra.confirm"));

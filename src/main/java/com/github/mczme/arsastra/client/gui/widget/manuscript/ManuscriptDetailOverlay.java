@@ -41,8 +41,11 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
     private TextButton closeButton;
     private TextButton loadButton;
     private TextButton deleteButton;
+    private TextButton learnButton;
+    private TextButton transcribeButton;
     
     private boolean confirmDelete = false;
+    private boolean isLearned = false;
     
     private final DeductionService deductionService = new DeductionServiceImpl();
     private DeductionResult deductionResult; 
@@ -109,6 +112,25 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
             }
         });
 
+        // 誊录按钮 (位于加载按钮左侧)
+        this.transcribeButton = new TextButton(centerX + PAPER_WIDTH - 75, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.transcribe").getString(), 0xFF4A3B2A, b -> {
+            if (manuscript != null) {
+                com.github.mczme.arsastra.network.payload.TranscribeManuscriptPayload payload = new com.github.mczme.arsastra.network.payload.TranscribeManuscriptPayload(manuscript);
+                net.neoforged.neoforge.network.PacketDistributor.sendToServer(payload);
+            }
+        });
+
+        // 收录按钮
+        this.learnButton = new TextButton(centerX + PAPER_WIDTH - 40, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.learn").getString(), 0xFF1E7636, b -> {
+            if (manuscript != null) {
+                ManuscriptManager.getInstance().saveManuscript(manuscript);
+                isLearned = true;
+                b.setMessage(Component.translatable("gui.ars_astra.learned"));
+                b.active = false;
+                if (parentTab != null) parentTab.refreshBook();
+            }
+        });
+
         this.deleteButton = new TextButton(centerX + 10, centerY + PAPER_HEIGHT - 25, 30, 15, Component.translatable("gui.ars_astra.delete").getString(), 0xFF8B2500, b -> {
             if (!confirmDelete) {
                 confirmDelete = true;
@@ -129,6 +151,12 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         this.confirmDelete = false;
         this.deleteButton.setMessage(Component.translatable("gui.ars_astra.delete"));
         
+        // 检查是否已收录
+        this.isLearned = ManuscriptManager.getInstance().getManuscripts().stream()
+                .anyMatch(m -> m.name().equals(manuscript.name()));
+        this.learnButton.setMessage(Component.translatable(isLearned ? "gui.ars_astra.learned" : "gui.ars_astra.learn"));
+        this.learnButton.active = !isLearned;
+
         this.stepWidgets.clear();
         for (int i = 0; i < manuscript.inputs().size(); i++) {
             this.stepWidgets.add(new ManuscriptStepWidget(manuscript.inputs().get(i), i));
@@ -439,8 +467,13 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
     
     private void renderButtons(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
         closeButton.render(guiGraphics, mouseX, mouseY, partialTick);
-        loadButton.render(guiGraphics, mouseX, mouseY, partialTick);
-        deleteButton.render(guiGraphics, mouseX, mouseY, partialTick);
+        if (isReadOnly) {
+            learnButton.render(guiGraphics, mouseX, mouseY, partialTick);
+        } else {
+            loadButton.render(guiGraphics, mouseX, mouseY, partialTick);
+            deleteButton.render(guiGraphics, mouseX, mouseY, partialTick);
+            transcribeButton.render(guiGraphics, mouseX, mouseY, partialTick);
+        }
     }
 
     @Override
@@ -448,8 +481,13 @@ public class ManuscriptDetailOverlay extends AbstractWidget {
         if (!visible) return false;
         
         if (closeButton.mouseClicked(mouseX, mouseY, button)) return true;
-        if (loadButton.mouseClicked(mouseX, mouseY, button)) return true;
-        if (deleteButton.mouseClicked(mouseX, mouseY, button)) return true;
+        if (isReadOnly) {
+            if (learnButton.mouseClicked(mouseX, mouseY, button)) return true;
+        } else {
+            if (loadButton.mouseClicked(mouseX, mouseY, button)) return true;
+            if (deleteButton.mouseClicked(mouseX, mouseY, button)) return true;
+            if (transcribeButton.mouseClicked(mouseX, mouseY, button)) return true;
+        }
         
         // 点击外部关闭
         if (mouseX < paperX || mouseX > paperX + PAPER_WIDTH || mouseY < paperY || mouseY > paperY + PAPER_HEIGHT) {

@@ -103,6 +103,28 @@ public class ManuscriptsTab implements JournalTab {
         // 保持选择模式还是退出？通常保持方便继续操作，或者退出。这里保持。
     }
 
+    public void loadSelected() {
+        if (selectedManuscripts.isEmpty()) return;
+
+        java.util.List<com.github.mczme.arsastra.core.starchart.engine.AlchemyInput> combinedSequence = new java.util.ArrayList<>();
+        
+        // 按名称排序以保证一定程度的确定性，或者维持选中顺序
+        // 这里按本地存储的顺序查找选中的手稿
+        var allManuscripts = com.github.mczme.arsastra.core.manuscript.ManuscriptManager.getInstance().getManuscripts();
+        
+        for (var manuscript : allManuscripts) {
+            if (selectedManuscripts.contains(manuscript.name())) {
+                combinedSequence.addAll(manuscript.inputs());
+            }
+        }
+
+        if (screen.getTab(1) instanceof WorkshopTab workshopTab) {
+            workshopTab.getSession().loadSequence(combinedSequence);
+            screen.switchTab(1);
+            toggleSelectionMode(); // 加载后退出管理模式
+        }
+    }
+
     @Override
     public void tick() {}
 

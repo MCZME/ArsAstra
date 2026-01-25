@@ -19,6 +19,7 @@ public class ManuscriptToolbar extends ToolbarWidget {
     
     private ToolbarTabButton manageBtn;
     private ToolbarTabButton deleteBtn;
+    private ToolbarTabButton batchLoadBtn;
     
     private String currentSearchQuery = "";
 
@@ -49,8 +50,16 @@ public class ManuscriptToolbar extends ToolbarWidget {
             parentTab.toggleSelectionMode();
         });
         this.addChild(manageBtn);
+
+        // 4. [Batch Load] 批量加载按钮
+        // 图标索引 12, 绿色
+        this.batchLoadBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.batch_load"), 12, 0x1E7636, () -> {
+            parentTab.loadSelected();
+        });
+        this.batchLoadBtn.visible = false;
+        this.addChild(batchLoadBtn);
         
-        // 4. [Delete] 批量删除按钮 (初始隐藏)
+        // 5. [Delete] 批量删除按钮 (初始隐藏)
         // 图标索引 14, 红色
         this.deleteBtn = new ToolbarTabButton(0, 0, 20, 22, Component.translatable("gui.ars_astra.manuscript.delete_selected"), 14, 0xD06060, () -> {
             parentTab.deleteSelected();
@@ -62,18 +71,19 @@ public class ManuscriptToolbar extends ToolbarWidget {
     public void updateButtonsState() {
         boolean isManaging = parentTab.isSelectionMode();
         manageBtn.setColor(isManaging ? 0x9060D0 : 0x6080D0);
+        batchLoadBtn.visible = isManaging;
         deleteBtn.visible = isManaging;
         arrange();
     }
 
     @Override
     public void arrange() {
-        if (searchWidget == null || filterWidget == null || manageBtn == null || deleteBtn == null) return;
+        if (searchWidget == null || filterWidget == null || manageBtn == null || deleteBtn == null || batchLoadBtn == null) return;
 
         int padding = 2;
         int currentX = this.getX() + padding;
 
-        // Sequence: Search -> Filter -> Manage -> Delete
+        // Sequence: Search -> Filter -> Manage -> BatchLoad -> Delete
         if (searchWidget.visible) {
             searchWidget.setX(currentX);
             searchWidget.setY(this.getY() + (this.height - searchWidget.getHeight()));
@@ -90,6 +100,12 @@ public class ManuscriptToolbar extends ToolbarWidget {
             manageBtn.setX(currentX);
             manageBtn.setY(this.getY() + (this.height - manageBtn.getHeight()));
             currentX += manageBtn.getWidth() + padding;
+        }
+
+        if (batchLoadBtn.visible) {
+            batchLoadBtn.setX(currentX);
+            batchLoadBtn.setY(this.getY() + (this.height - batchLoadBtn.getHeight()));
+            currentX += batchLoadBtn.getWidth() + padding;
         }
 
         if (deleteBtn.visible) {

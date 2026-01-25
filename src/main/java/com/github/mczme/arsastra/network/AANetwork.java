@@ -139,6 +139,50 @@ public class AANetwork {
                     });
                 }
         );
+
+        registrar.playToServer(
+                TranscribeManuscriptPayload.TYPE,
+                TranscribeManuscriptPayload.STREAM_CODEC,
+                (payload, context) -> {
+                    context.enqueueWork(() -> {
+                        ServerPlayer player = (ServerPlayer) context.player();
+                        // 1. 查找玩家背包中的纸
+                        ItemStack paperStack = ItemStack.EMPTY;
+                        int paperSlot = -1;
+                        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+                            ItemStack stack = player.getInventory().getItem(i);
+                            if (stack.is(net.minecraft.world.item.Items.PAPER)) {
+                                paperStack = stack;
+                                paperSlot = i;
+                                break;
+                            }
+                        }
+
+                        if (!paperStack.isEmpty() || player.isCreative()) {
+                            // 2. 消耗纸张
+                            if (!player.isCreative()) {
+                                paperStack.shrink(1);
+                                if (paperStack.isEmpty()) {
+                                    player.getInventory().setItem(paperSlot, ItemStack.EMPTY);
+                                }
+                            }
+
+                            // 3. 创建手稿物品
+                            ItemStack manuscriptStack = new ItemStack(com.github.mczme.arsastra.registry.AAItems.MANUSCRIPT.get());
+                            com.github.mczme.arsastra.item.ManuscriptItem.setManuscript(manuscriptStack, payload.manuscript());
+                            
+                            // 4. 给予玩家
+                            if (!player.getInventory().add(manuscriptStack)) {
+                                player.drop(manuscriptStack, false);
+                            }
+                            
+                            player.level().playSound(null, player.getX(), player.getY(), player.getZ(), net.minecraft.sounds.SoundEvents.UI_CARTOGRAPHY_TABLE_TAKE_RESULT, net.minecraft.sounds.SoundSource.PLAYERS, 1.0f, 1.0f);
+                        } else {
+                            player.displayClientMessage(net.minecraft.network.chat.Component.translatable("gui.ars_astra.manuscript.error.no_paper").withStyle(net.minecraft.ChatFormatting.RED), true);
+                        }
+                    });
+                }
+        );
     }
 
     public static void sendToPlayer(ServerPlayer player) {

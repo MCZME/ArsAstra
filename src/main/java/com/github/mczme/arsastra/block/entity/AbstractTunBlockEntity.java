@@ -61,14 +61,26 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         this.currentGuideRotation = 0.0f;
         
         if (!sequence.isEmpty()) {
-            updateGuideStep();
+            updateGuideStep(false);
         }
         
         this.setChanged();
         this.sync();
     }
 
-    protected void updateGuideStep() {
+    /**
+     * 更新指引步骤状态
+     * @param playEffect 是否播放完成特效（仅在玩家操作触发晋级时为 true）
+     */
+    protected void updateGuideStep(boolean playEffect) {
+        if (playEffect && level instanceof ServerLevel serverLevel) {
+            // 步骤完成特效：闪光
+            serverLevel.sendParticles(ParticleTypes.WAX_ON, 
+                    worldPosition.getX() + 0.5, worldPosition.getY() + 1.2, worldPosition.getZ() + 0.5, 
+                    5, 0.2, 0.2, 0.2, 0.05);
+            level.playSound(null, worldPosition, SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 0.5f, 1.0f);
+        }
+
         if (guideIndex >= guidedSequence.size()) {
             // 指引全部完成，正常结束
             this.guidedSequence.clear();
@@ -84,7 +96,7 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
                 if (Math.abs(currentGuideRotation) < 0.001f) {
                     guideIndex++;
                     isWaitingForItem = true;
-                    updateGuideStep();
+                    updateGuideStep(playEffect);
                 }
             }
         } else {
@@ -93,9 +105,13 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
              if (Math.abs(currentGuideRotation) < 0.001f) {
                  guideIndex++;
                  isWaitingForItem = true;
-                 updateGuideStep();
+                 updateGuideStep(playEffect);
              }
         }
+    }
+    
+    protected void updateGuideStep() {
+        updateGuideStep(true);
     }
 
     public void failGuide() {
@@ -513,26 +529,36 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
 
         // 基础循环：根据稳定度决定粒子密度
         // 稳定度越低，粒子产生的概率越高 (0.02 - 0.3)
-        float particleChance = 0.02f + (1.0f - stability) * 0.28f;
+        // 调整公式: (1-S) * 0.4
+        float particleChance = 0.02f + (1.0f - stability) * 0.4f;
 
         if (random < particleChance) {
             double px = pos.getX() + 0.2 + level.random.nextDouble() * 0.6;
             double pz = pos.getZ() + 0.2 + level.random.nextDouble() * 0.6;
 
             if (stability > 0.8f) {
-                // 高稳定：金色微光 (极其稀疏)
-                level.addParticle(ParticleTypes.END_ROD, px, surfaceY, pz, 0, 0.005, 0);
+                // 高稳定：金色微光 (极其稀疏: 5% 的粒子概率)
+                if (random < 0.05f) {
+                    level.addParticle(ParticleTypes.END_ROD, px, surfaceY, pz, 0, 0.005, 0);
+                }
             } else if (stability > 0.4f) {
-                // 中稳定：正常气泡
-                level.addParticle(ParticleTypes.BUBBLE, px, surfaceY, pz, 0, 0.01, 0);
-            } else if (stability > 0.2f) {
-                // 低稳定：飞溅水花
-                level.addParticle(ParticleTypes.SPLASH, px, surfaceY, pz, 0, 0.1, 0);
+                // 中稳定：气泡与少量水花
+                if (random < 0.3f) {
+                     level.addParticle(ParticleTypes.BUBBLE, px, surfaceY, pz, 0, 0.01, 0);
+                } else {
+                     level.addParticle(ParticleTypes.SPLASH, px, surfaceY, pz, 0, 0.02, 0);
+                }
             } else {
-                // 临界：黑烟与愤怒粒子
-                level.addParticle(ParticleTypes.SMOKE, px, surfaceY, pz, 0, 0.05, 0);
-                if (level.random.nextFloat() < 0.3f) {
-                    level.addParticle(ParticleTypes.ANGRY_VILLAGER, px, surfaceY + 0.2, pz, 0, 0, 0);
+                // 低稳定：沸腾感 (大量水花 + 蒸汽)
+                level.addParticle(ParticleTypes.SPLASH, px, surfaceY, pz, 0, 0.1, 0);
+                if (random < 0.2f) {
+                    // 使用舒适的篝火烟雾模拟蒸汽
+                    level.addParticle(ParticleTypes.CAMPFIRE_COSY_SMOKE, px, surfaceY, pz, 0, 0.05, 0);
+                }
+                
+                // 临界危险：愤怒符号
+                if (stability < 0.1f && random < 0.1f) {
+                    level.addParticle(ParticleTypes.ANGRY_VILLAGER, px, surfaceY + 0.3, pz, 0, 0, 0);
                 }
             }
         }

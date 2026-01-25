@@ -3,6 +3,7 @@ package com.github.mczme.arsastra.client.renderer;
 import com.github.mczme.arsastra.block.entity.CopperTunBlockEntity;
 import com.github.mczme.arsastra.client.model.CopperTunModel;
 import com.github.mczme.arsastra.core.starchart.engine.StarChartContext;
+import com.github.mczme.arsastra.registry.AAItems;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -89,32 +90,33 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
         
         // 1. 基础定位：釜中心上方
         float time = (entity.getLevel().getGameTime() % 1000) + partialTick;
-        float bobbing = (float) Math.sin(time * 0.1f) * 0.05f;
-        poseStack.translate(0.5, 1.1 + bobbing, 0.5);
+        // 呼吸式浮动: 幅度加大，频率放缓
+        float bobbing = (float) Math.sin(time * 0.08f) * 0.1f;
+        poseStack.translate(0.5, 1.2 + bobbing, 0.5);
+
+        // 呼吸式缩放: 0.8 ~ 1.1 倍率变化
+        float breathingScale = 0.8f + ((float) Math.sin(time * 0.1f) + 1.0f) * 0.15f;
 
         if (entity.isWaitingForItem) {
             // --- 渲染幽灵物品 ---
             ItemStack targetStack = entity.guidedSequence.get(entity.guideIndex).stack();
             if (!targetStack.isEmpty()) {
                 poseStack.mulPose(Axis.YP.rotationDegrees(time * 2.0f));
-                poseStack.scale(0.6f, 0.6f, 0.6f);
+                poseStack.scale(0.6f * breathingScale, 0.6f * breathingScale, 0.6f * breathingScale);
                 
-                // 使用特殊的半透明 BufferSource
                 Minecraft.getInstance().getItemRenderer().renderStatic(targetStack, ItemDisplayContext.GROUND, light, overlay, poseStack, buffer, entity.getLevel(), 0);
             }
         } else {
             // --- 渲染搅拌指引 ---
             // 直接用搅拌棒物品代表搅拌操作
-            ItemStack stick = new ItemStack(com.github.mczme.arsastra.registry.AAItems.STIRRING_STICK.get());
+            ItemStack stick = new ItemStack(AAItems.STIRRING_STICK.get());
             boolean clockwise = entity.currentGuideRotation > 0;
             
-            poseStack.mulPose(Axis.YP.rotationDegrees(clockwise ? time * 5.0f : -time * 5.0f));
+            poseStack.mulPose(Axis.YP.rotationDegrees(!clockwise ? time * 5.0f : -time * 5.0f));
             poseStack.mulPose(Axis.ZP.rotationDegrees(45)); // 倾斜
-            poseStack.scale(0.8f, 0.8f, 0.8f);
+            poseStack.scale(0.8f * breathingScale, 0.8f * breathingScale, 0.8f * breathingScale);
 
             Minecraft.getInstance().getItemRenderer().renderStatic(stick, ItemDisplayContext.FIXED, light, overlay, poseStack, buffer, entity.getLevel(), 0);
-            
-            // 渲染一个简单的方向文字或箭头 (可选)
         }
 
         poseStack.popPose();

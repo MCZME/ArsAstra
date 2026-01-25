@@ -68,9 +68,10 @@ public class LinearStarChartPath implements StarChartPath {
     public StarChartPath rotate(float angle) {
         Vector2f relativeEnd = new Vector2f(this.endPoint).sub(this.startPoint);
         
-        // 应用旋转
-        float cos = (float) Math.cos(angle);
-        float sin = (float) Math.sin(angle);
+        // 应用旋转 (输入为角度，转换为弧度)
+        float radians = (float) Math.toRadians(angle);
+        float cos = (float) Math.cos(radians);
+        float sin = (float) Math.sin(radians);
         float newX = relativeEnd.x * cos - relativeEnd.y * sin;
         float newY = relativeEnd.x * sin + relativeEnd.y * cos;
         

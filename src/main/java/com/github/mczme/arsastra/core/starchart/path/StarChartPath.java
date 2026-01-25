@@ -84,7 +84,7 @@ public interface StarChartPath {
 
     /**
      * 以起点为圆心旋转路径指定的角度，并返回一个新的路径对象。
-     * @param angle 旋转角度 (弧度)
+     * @param angle 旋转角度 (角度 Degrees)
      * @return 旋转后的路径
      */
     StarChartPath rotate(float angle);

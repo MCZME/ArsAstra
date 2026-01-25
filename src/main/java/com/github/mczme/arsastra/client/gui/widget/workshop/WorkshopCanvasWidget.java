@@ -33,14 +33,14 @@ public class WorkshopCanvasWidget extends StarChartWidget {
         // 初始化旋转按钮
         // 逆时针 (-5度)
         this.btnRotateCCW = new ToolbarTabButton(0, 0, 24, 20, Component.empty(), 12, Palette.CINNABAR, () -> {
-            session.stirInput(session.getSelectedIndex(), session.getSelectedInput().rotation() - (float)Math.toRadians(5));
+            session.stirInput(session.getSelectedIndex(), session.getSelectedInput().rotation() - 5);
             Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
         });
         this.btnRotateCCW.setDirection(ToolbarTabButton.Direction.RIGHT);
         
         // 顺时针 (+5度)
         this.btnRotateCW = new ToolbarTabButton(0, 0, 24, 20, Component.empty(), 11, Palette.CINNABAR, () -> {
-            session.stirInput(session.getSelectedIndex(), session.getSelectedInput().rotation() + (float)Math.toRadians(5));
+            session.stirInput(session.getSelectedIndex(), session.getSelectedInput().rotation() + 5);
             Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
         });
         this.btnRotateCW.setDirection(ToolbarTabButton.Direction.RIGHT);

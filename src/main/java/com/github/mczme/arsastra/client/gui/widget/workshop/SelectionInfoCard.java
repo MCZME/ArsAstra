@@ -79,7 +79,7 @@ public class SelectionInfoCard extends AbstractWidget {
             guiGraphics.fill(getX() + padding, contentY, getX() + width - padding, contentY + 1, Palette.INK_LIGHT);
             contentY += 6;
 
-            float degrees = (float) Math.toDegrees(input.rotation());
+            float degrees = (float) input.rotation();
             Component rotComp = Component.translatable("gui.ars_astra.workshop.rotation", String.format("%.1f", degrees));
             guiGraphics.drawString(Minecraft.getInstance().font, rotComp, getX() + padding, contentY, Palette.INK_LIGHT, false);
             

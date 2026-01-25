@@ -538,9 +538,9 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         }
 
         // 听觉反馈：随着稳定度降低，播放音效的频率增加
-        // 高稳定 (>0.8): 80 tick (4s)
-        // 临界 (0.0): 10 tick (0.5s)
-        int soundInterval = (int) (10 + stability * 70);
+        // 高稳定 (>0.8): 约 150 tick (7.5s)
+        // 临界 (0.0): 30 tick (1.5s)
+        int soundInterval = (int) (30 + stability * 120);
         if (level.getGameTime() % soundInterval == 0) {
              float pitch = 0.8f + (1.0f - stability) * 0.5f; // 稳定度越低，音调越高 (0.8 ~ 1.3)
              level.playLocalSound(pos, SoundEvents.BUBBLE_COLUMN_UPWARDS_AMBIENT, SoundSource.BLOCKS, 0.15f, pitch, false);

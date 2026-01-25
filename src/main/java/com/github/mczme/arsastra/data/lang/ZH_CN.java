@@ -123,6 +123,9 @@ public class ZH_CN extends LanguageProvider  {
         add("gui.ars_astra.analysis.mode.range", "模糊校准（点击切换）");
         add("gui.ars_astra.analysis.batch_success", "批量分析完成。成功记录了 %s 个新物品。");
         add("gui.ars_astra.analysis.batch_none", "没有找到可分析的新物品。");
+
+        // 音效字幕
+        add("subtitles.ars_astra.stirring", "搅拌声");
     }
 
     private void add(Supplier<? extends Element> key, String name) {

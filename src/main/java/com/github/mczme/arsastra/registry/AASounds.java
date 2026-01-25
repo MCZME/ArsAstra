@@ -11,6 +11,8 @@ import net.neoforged.neoforge.registries.DeferredRegister;
 public class AASounds {
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, ArsAstra.MODID);
 
+    public static final DeferredHolder<SoundEvent, SoundEvent> STIRRING = registerSoundEvent("stirring");
+
     private static DeferredHolder<SoundEvent, SoundEvent> registerSoundEvent(String name) {
         return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(ArsAstra.MODID, name)));
     }

@@ -84,8 +84,8 @@ public class StirringInteraction implements TunInteraction {
         }
         
         // 3. 播放音效
-        // 使用 grindstone 音效模拟机械/摩擦感
-        entity.getLevel().playSound(null, entity.getBlockPos(), SoundEvents.GRINDSTONE_USE, SoundSource.BLOCKS, 1.0f, 1.5f);
+        // 使用自定义搅拌音效 (基于 grindstone 模拟机械/摩擦感)
+        entity.getLevel().playSound(null, entity.getBlockPos(), com.github.mczme.arsastra.registry.AASounds.STIRRING.get(), SoundSource.BLOCKS, 0.6f, 1.2f + entity.getLevel().getRandom().nextFloat() * 0.4f);
         
         entity.setChanged();
         entity.sync();

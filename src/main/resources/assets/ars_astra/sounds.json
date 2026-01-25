@@ -1,3 +1,11 @@
 {
-  
+  "stirring": {
+    "subtitle": "subtitles.ars_astra.stirring",
+    "sounds": [
+      {
+        "name": "minecraft:block/grindstone/use",
+        "stream": false
+      }
+    ]
+  }
 }

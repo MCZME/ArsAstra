@@ -56,7 +56,7 @@
   "gui.ars_astra.learn.success": "手稿配方已保存至本地档案。",
   "gui.ars_astra.learned": "已收录",
   "gui.ars_astra.load": "加载",
-  "gui.ars_astra.manuscript.batch_load": "批量加载",
+  "gui.ars_astra.manuscript.batch_transcribe": "批量誊录",
   "gui.ars_astra.manuscript.chart": "星图",
   "gui.ars_astra.manuscript.decay": "容器系数",
   "gui.ars_astra.manuscript.delete_selected": "删除所选",
@@ -85,5 +85,6 @@
   "item.ars_astra.star_chart_journal": "星图日志",
   "item.ars_astra.stirring_stick": "搅拌棒",
   "item.ars_astra.stirring_stick.desc": "用于在釜与坩埚中旋转",
-  "itemGroup.ars_astra.ars_astra_tab": "星枢万象"
+  "itemGroup.ars_astra.ars_astra_tab": "星枢万象",
+  "subtitles.ars_astra.stirring": "搅拌声"
 }

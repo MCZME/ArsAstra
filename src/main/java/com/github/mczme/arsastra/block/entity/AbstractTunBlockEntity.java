@@ -46,6 +46,123 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
     protected StarChartContext context;
     protected final StarChartEngine engine = new StarChartEngineImpl();
 
+    // 酿造指引状态
+    public final List<AlchemyInput> guidedSequence = new ArrayList<>();
+    public int guideIndex = 0;
+    public boolean isWaitingForItem = true; // true: 等待投物, false: 等待搅拌
+    public float currentGuideRotation = 0.0f; // 当前步骤还需旋转的总角度
+
+    public void startGuidedBrewing(List<AlchemyInput> sequence) {
+        this.guidedSequence.clear();
+        this.guidedSequence.addAll(sequence);
+        this.guideIndex = 0;
+        this.isWaitingForItem = true;
+        this.currentGuideRotation = 0.0f;
+        
+        if (!sequence.isEmpty()) {
+            updateGuideStep();
+        }
+        
+        this.setChanged();
+        this.sync();
+    }
+
+    protected void updateGuideStep() {
+        if (guideIndex >= guidedSequence.size()) {
+            // 指引全部完成，正常结束
+            this.guidedSequence.clear();
+            return;
+        }
+
+        AlchemyInput current = guidedSequence.get(guideIndex);
+        if (isWaitingForItem) {
+            // 如果这一步本来就不需要物品（纯搅拌步），则直接进入搅拌
+            if (current.stack().isEmpty()) {
+                isWaitingForItem = false;
+                currentGuideRotation = current.rotation();
+                if (Math.abs(currentGuideRotation) < 0.001f) {
+                    guideIndex++;
+                    isWaitingForItem = true;
+                    updateGuideStep();
+                }
+            }
+        } else {
+             currentGuideRotation = current.rotation();
+             // 如果旋转已达标，进入下一步
+             if (Math.abs(currentGuideRotation) < 0.001f) {
+                 guideIndex++;
+                 isWaitingForItem = true;
+                 updateGuideStep();
+             }
+        }
+    }
+
+    public void failGuide() {
+        if (this.guidedSequence.isEmpty()) return;
+        
+        this.guidedSequence.clear();
+        if (level != null) {
+            // 播放失败音效
+            level.playSound(null, worldPosition, SoundEvents.GENERIC_EXTINGUISH_FIRE, SoundSource.BLOCKS, 1.0f, 1.0f);
+            
+            if (!level.isClientSide) {
+                // TODO: 发送自定义 Packet 触发黑色烟雾粒子，暂时用现有方法同步
+                this.sync();
+            }
+        }
+    }
+
+    public void checkStir(boolean clockwise) {
+        if (guidedSequence.isEmpty() || isWaitingForItem) {
+            // 如果不在指引模式，或者正在等物品却来搅拌，不算错，但也不推进指引
+            return;
+        }
+
+        float delta = clockwise ? 5.0f : -5.0f;
+        float target = currentGuideRotation;
+
+        // 检查方向是否正确
+        if ((target > 0 && delta > 0) || (target < 0 && delta < 0)) {
+            currentGuideRotation -= delta;
+            // 只要转够了（或者转过头了），就进入下一步
+            if ((target > 0 && currentGuideRotation <= 0) || (target < 0 && currentGuideRotation >= 0)) {
+                guideIndex++;
+                isWaitingForItem = true;
+                updateGuideStep();
+            }
+        } else {
+            // 方向错误，指引失败
+            failGuide();
+        }
+        this.setChanged();
+        this.sync();
+    }
+
+    protected void checkItemInput(ItemStack stack) {
+        if (guidedSequence.isEmpty()) return;
+
+        if (!isWaitingForItem) {
+            // 应该搅拌却投了物品
+            failGuide();
+            return;
+        }
+
+        AlchemyInput target = guidedSequence.get(guideIndex);
+        if (ItemStack.isSameItemSameComponents(stack, target.stack())) {
+            // 物品匹配，检查是否需要搅拌
+            if (Math.abs(target.rotation()) > 0.001f) {
+                isWaitingForItem = false;
+                currentGuideRotation = target.rotation();
+            } else {
+                guideIndex++;
+                updateGuideStep();
+            }
+        } else {
+            // 物品错误
+            failGuide();
+        }
+    }
+
     // 搅拌状态
     protected ItemStack stirringStick = ItemStack.EMPTY;
     protected float stirProgress = 0.0f; // 0.0 - 1.0 (动画插值)
@@ -196,6 +313,9 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
                 itemEntity.setItem(stack);
             }
 
+            // 校验指引 (仅取走的那一个)
+            checkItemInput(newInputs.get(newInputs.size() - 1).stack());
+
             computeContext(newInputs);
             changed = true;
             level.playSound(null, pos, SoundEvents.GENERIC_SPLASH, SoundSource.BLOCKS, 0.2f, 1.0f);
@@ -274,6 +394,20 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         tag.putBoolean("IsStirring", isStirring);
         tag.putBoolean("StirClockwise", isStirringClockwise);
         
+        // 酿造指引持久化
+        if (!guidedSequence.isEmpty()) {
+            ListTag guideTag = new ListTag();
+            for (AlchemyInput input : guidedSequence) {
+                AlchemyInput.CODEC.encodeStart(NbtOps.INSTANCE, input)
+                        .resultOrPartial(ArsAstra.LOGGER::error)
+                        .ifPresent(guideTag::add);
+            }
+            tag.put("GuidedSequence", guideTag);
+            tag.putInt("GuideIndex", guideIndex);
+            tag.putBoolean("IsWaitingForItem", isWaitingForItem);
+            tag.putFloat("CurrentGuideRotation", currentGuideRotation);
+        }
+        
         ListTag inputsTag = new ListTag();
         for (AlchemyInput input : context.inputs()) {
             AlchemyInput.CODEC.encodeStart(NbtOps.INSTANCE, input)
@@ -301,6 +435,20 @@ public abstract class AbstractTunBlockEntity extends BlockEntity implements GeoB
         this.stirProgress = tag.getFloat("StirProgress");
         this.isStirring = tag.getBoolean("IsStirring");
         this.isStirringClockwise = tag.getBoolean("StirClockwise");
+        
+        // 恢复酿造指引
+        this.guidedSequence.clear();
+        if (tag.contains("GuidedSequence", Tag.TAG_LIST)) {
+            ListTag guideTag = tag.getList("GuidedSequence", Tag.TAG_COMPOUND);
+            for (Tag t : guideTag) {
+                AlchemyInput.CODEC.parse(NbtOps.INSTANCE, t)
+                        .resultOrPartial(ArsAstra.LOGGER::error)
+                        .ifPresent(this.guidedSequence::add);
+            }
+            this.guideIndex = tag.getInt("GuideIndex");
+            this.isWaitingForItem = tag.getBoolean("IsWaitingForItem");
+            this.currentGuideRotation = tag.getFloat("CurrentGuideRotation");
+        }
         
         List<AlchemyInput> loadedInputs = new ArrayList<>();
         if (tag.contains("Inputs", Tag.TAG_LIST)) {

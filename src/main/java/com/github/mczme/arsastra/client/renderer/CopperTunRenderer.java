@@ -33,6 +33,9 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
     public void render(CopperTunBlockEntity animatable, float partialTick, PoseStack poseStack, MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
         super.render(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay);
 
+        // 渲染指引 (位于最上方)
+        renderGuide(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay);
+
         // 渲染搅拌棒 (先渲染实体)
         renderStirringStick(animatable, partialTick, poseStack, bufferSource, packedLight, packedOverlay);
 
@@ -74,6 +77,45 @@ public class CopperTunRenderer extends GeoBlockRenderer<CopperTunBlockEntity> {
         MultiBufferSource.BufferSource immediate = Minecraft.getInstance().renderBuffers().bufferSource();
         Minecraft.getInstance().getItemRenderer().renderStatic(stick, ItemDisplayContext.FIXED, light, overlay, poseStack, immediate, entity.getLevel(), 0);
         immediate.endBatch();
+
+        poseStack.popPose();
+    }
+
+    @SuppressWarnings("null")
+    private void renderGuide(CopperTunBlockEntity entity, float partialTick, PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+        if (entity.guidedSequence.isEmpty() || entity.guideIndex >= entity.guidedSequence.size()) return;
+
+        poseStack.pushPose();
+        
+        // 1. 基础定位：釜中心上方
+        float time = (entity.getLevel().getGameTime() % 1000) + partialTick;
+        float bobbing = (float) Math.sin(time * 0.1f) * 0.05f;
+        poseStack.translate(0.5, 1.1 + bobbing, 0.5);
+
+        if (entity.isWaitingForItem) {
+            // --- 渲染幽灵物品 ---
+            ItemStack targetStack = entity.guidedSequence.get(entity.guideIndex).stack();
+            if (!targetStack.isEmpty()) {
+                poseStack.mulPose(Axis.YP.rotationDegrees(time * 2.0f));
+                poseStack.scale(0.6f, 0.6f, 0.6f);
+                
+                // 使用特殊的半透明 BufferSource
+                Minecraft.getInstance().getItemRenderer().renderStatic(targetStack, ItemDisplayContext.GROUND, light, overlay, poseStack, buffer, entity.getLevel(), 0);
+            }
+        } else {
+            // --- 渲染搅拌指引 ---
+            // 直接用搅拌棒物品代表搅拌操作
+            ItemStack stick = new ItemStack(com.github.mczme.arsastra.registry.AAItems.STIRRING_STICK.get());
+            boolean clockwise = entity.currentGuideRotation > 0;
+            
+            poseStack.mulPose(Axis.YP.rotationDegrees(clockwise ? time * 5.0f : -time * 5.0f));
+            poseStack.mulPose(Axis.ZP.rotationDegrees(45)); // 倾斜
+            poseStack.scale(0.8f, 0.8f, 0.8f);
+
+            Minecraft.getInstance().getItemRenderer().renderStatic(stick, ItemDisplayContext.FIXED, light, overlay, poseStack, buffer, entity.getLevel(), 0);
+            
+            // 渲染一个简单的方向文字或箭头 (可选)
+        }
 
         poseStack.popPose();
     }

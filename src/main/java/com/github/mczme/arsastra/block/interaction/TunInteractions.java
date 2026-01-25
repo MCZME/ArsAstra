@@ -21,6 +21,7 @@ public class TunInteractions {
         register(new BucketFillInteraction());
         register(new BucketEmptyInteraction());
         register(new BottleTakeInteraction());
+        register(new ManuscriptLinkInteraction());
         register(new StirringInteraction());
     }
 

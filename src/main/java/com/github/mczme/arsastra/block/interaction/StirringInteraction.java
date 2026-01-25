@@ -50,9 +50,15 @@ public class StirringInteraction implements TunInteraction {
             // Shift = 逆时针，普通 = 顺时针
             boolean clockwise = !player.isShiftKeyDown();
             
-            // 执行搅拌
-            performStir(entity, clockwise);
-            return Optional.of(InteractionResult.SUCCESS);
+                    // 执行搅拌
+            
+                    performStir(entity, clockwise);
+            
+                    entity.checkStir(clockwise);
+            
+                    return Optional.of(InteractionResult.SUCCESS);
+            
+            
         }
 
         return Optional.empty();

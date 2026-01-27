@@ -19,6 +19,16 @@ public record Rectangle(Vector2f min, Vector2f max) implements Shape {
     }
 
     @Override
+    public Vector2f getCenter() {
+        return new Vector2f(min).add(max).div(2);
+    }
+
+    @Override
+    public float getCharacteristicSize() {
+        return min.distance(max);
+    }
+
+    @Override
     public ShapeType getType() {
         return ShapeType.RECTANGLE;
     }

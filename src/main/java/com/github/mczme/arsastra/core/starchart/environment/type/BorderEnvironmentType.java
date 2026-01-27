@@ -1,8 +1,9 @@
 package com.github.mczme.arsastra.core.starchart.environment.type;
 
+import com.github.mczme.arsastra.core.starchart.StarChart;
+import com.github.mczme.arsastra.core.starchart.environment.Environment;
 import com.github.mczme.arsastra.core.starchart.environment.EnvironmentType;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
-import com.github.mczme.arsastra.core.starchart.shape.Shape;
 import org.joml.Vector2f;
 
 import java.util.Collections;
@@ -19,7 +20,7 @@ public class BorderEnvironmentType implements EnvironmentType {
     private static final float GRADIENT_END = 500.0f;
 
     @Override
-    public List<StarChartPath> processSegment(Vector2f currentStart, StarChartPath originalPath, Shape shape) {
+    public List<StarChartPath> processSegment(StarChart chart, Vector2f currentStart, StarChartPath originalPath, Environment environment) {
         float totalOriginalLength = originalPath.getLength();
         
         // 步长太小会影响性能，太大影响积分精度。取 5.0f 较为适中。

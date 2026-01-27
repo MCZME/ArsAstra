@@ -19,6 +19,16 @@ public record Circle(Vector2f center, float radius) implements Shape {
     }
 
     @Override
+    public Vector2f getCenter() {
+        return center;
+    }
+
+    @Override
+    public float getCharacteristicSize() {
+        return radius * 2;
+    }
+
+    @Override
     public ShapeType getType() {
         return ShapeType.CIRCLE;
     }

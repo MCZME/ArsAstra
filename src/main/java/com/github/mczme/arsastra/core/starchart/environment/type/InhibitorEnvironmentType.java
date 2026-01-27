@@ -1,8 +1,9 @@
 package com.github.mczme.arsastra.core.starchart.environment.type;
 
+import com.github.mczme.arsastra.core.starchart.StarChart;
+import com.github.mczme.arsastra.core.starchart.environment.Environment;
 import com.github.mczme.arsastra.core.starchart.environment.EnvironmentType;
 import com.github.mczme.arsastra.core.starchart.path.StarChartPath;
-import com.github.mczme.arsastra.core.starchart.shape.Shape;
 import org.joml.Vector2f;
 
 import java.util.Collections;
@@ -14,7 +15,7 @@ public class InhibitorEnvironmentType implements EnvironmentType {
     private static final float EFFICIENCY = 0.6f;
 
     @Override
-    public List<StarChartPath> processSegment(Vector2f currentStart, StarChartPath originalPath, Shape shape) {
+    public List<StarChartPath> processSegment(StarChart chart, Vector2f currentStart, StarChartPath originalPath, Environment environment) {
         float totalLength = originalPath.getLength();
         
         // 如果路径极短，直接返回原样平移后的结果

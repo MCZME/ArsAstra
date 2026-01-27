@@ -12,6 +12,13 @@ public interface Shape {
 
     boolean contains(Vector2f point);
 
+    Vector2f getCenter();
+
+    /**
+     * @return A representative size (e.g. diameter, diagonal) used for mechanics like Slingshot.
+     */
+    float getCharacteristicSize();
+
     ShapeType getType();
 
     enum ShapeType implements StringRepresentable {

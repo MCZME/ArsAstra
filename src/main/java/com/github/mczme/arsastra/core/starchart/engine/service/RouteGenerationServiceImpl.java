@@ -46,7 +46,7 @@ public class RouteGenerationServiceImpl implements RouteGenerationService {
                     StarChartPath finalSegment;
 
                     if (activeEnv != null) {
-                        List<StarChartPath> processed = activeEnv.getType().processSegment(currentPos, pendingRawPath, activeEnv.shape());
+                        List<StarChartPath> processed = activeEnv.getType().processSegment(chart, currentPos, pendingRawPath, activeEnv);
                         if (processed.isEmpty()) {
                             pendingRawPath = null;
                             continue;

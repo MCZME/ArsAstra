@@ -27,6 +27,32 @@ public record ExteriorPolygon(List<Vector2f> vertices) implements Shape {
     }
 
     @Override
+    public Vector2f getCenter() {
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        for (Vector2f v : vertices) {
+            if (v.x < minX) minX = v.x;
+            if (v.y < minY) minY = v.y;
+            if (v.x > maxX) maxX = v.x;
+            if (v.y > maxY) maxY = v.y;
+        }
+        return new Vector2f(minX + maxX, minY + maxY).div(2);
+    }
+
+    @Override
+    public float getCharacteristicSize() {
+        float minX = Float.MAX_VALUE, minY = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        for (Vector2f v : vertices) {
+            if (v.x < minX) minX = v.x;
+            if (v.y < minY) minY = v.y;
+            if (v.x > maxX) maxX = v.x;
+            if (v.y > maxY) maxY = v.y;
+        }
+        return new Vector2f(maxX - minX, maxY - minY).length();
+    }
+
+    @Override
     public ShapeType getType() {
         return ShapeType.EXTERIOR_POLYGON;
     }
